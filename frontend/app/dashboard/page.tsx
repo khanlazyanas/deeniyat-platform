@@ -6,12 +6,18 @@ export default function DashboardOverview() {
   const [userName, setUserName] = useState("Student"); // Default name
 
   useEffect(() => {
-    // Jab page load ho, toh localStorage se user ka data check karo
     const storedUser = localStorage.getItem("user");
     
-    if (storedUser) {
-      const user = JSON.parse(storedUser);
-      setUserName(user.name); // User ka asli naam state mein daal do
+    // Check karein ki storedUser null na ho aur string "undefined" bhi na ho
+    if (storedUser && storedUser !== "undefined") {
+      try {
+        const user = JSON.parse(storedUser);
+        if (user && user.name) {
+          setUserName(user.name); // User ka asli naam state mein daal do
+        }
+      } catch (error) {
+        console.error("Error parsing user data from localStorage:", error);
+      }
     }
   }, []);
 

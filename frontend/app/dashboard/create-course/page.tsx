@@ -18,11 +18,15 @@ export default function CreateCoursePage() {
   const [userId, setUserId] = useState("");
 
   useEffect(() => {
-    // LocalStorage se user ki ID nikal kar state mein save karo
     const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      const user = JSON.parse(storedUser);
-      setUserId(user._id || user.id); 
+    
+    if (storedUser && storedUser !== "undefined") {
+      try {
+        const user = JSON.parse(storedUser);
+        setUserId(user._id || user.id); 
+      } catch (error) {
+        console.error("Error parsing user data from localStorage:", error);
+      }
     }
   }, []);
 
