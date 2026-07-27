@@ -1,7 +1,8 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import authRoutes from './routes/authRoutes';
-import courseRoutes from './routes/courseRoutes'; // Naya import
+import courseRoutes from './routes/courseRoutes';
+import lessonRoutes from './routes/lessonRoutes'; // Naya import
 import { notFound, errorHandler } from './middlewares/errorMiddleware';
 
 const app = express();
@@ -12,7 +13,8 @@ app.use(express.json());
 
 // API Routes
 app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/courses', courseRoutes); // Naya route connect ho gaya
+app.use('/api/v1/courses', courseRoutes);
+app.use('/api/v1/lessons', lessonRoutes); // Naya route connect ho gaya
 
 // Basic Test Route
 app.get('/', (req: Request, res: Response) => {
