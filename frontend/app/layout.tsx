@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+// Navbar ko import kar rahe hain
+import Navbar from "../components/Navbar";
 
 export const metadata: Metadata = {
   title: "Deeniyat Platform | Learn Quran & Tajweed",
@@ -13,7 +15,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className="bg-gray-50 min-h-screen">
+        {/* Navbar har page ke top par aayega */}
+        <Navbar />
+        
+        {/* Baki ka page content yahan render hoga */}
+        {children}
+      </body>
     </html>
   );
 }
