@@ -19,18 +19,21 @@ export default function CoursesPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // Backend se saare courses fetch karne ka function
     const fetchCourses = async () => {
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses`);
+        
+        // Backend se jo data aa raha hai wo direct array hai
         const data = await response.json();
 
         if (!response.ok) {
           throw new Error(data.message || "Failed to fetch courses");
         }
 
-        // Data ko state mein set karna
-        setCourses(data.courses || []);
+        // FIX: Yahan 'data.courses' ki jagah sirf 'data' set karna hai
+        // Kyunki tumhara backend directly courses ka array bhej raha hai
+        setCourses(Array.isArray(data) ? data : []); 
+        
       } catch (err: any) {
         setError(err.message);
       } finally {
