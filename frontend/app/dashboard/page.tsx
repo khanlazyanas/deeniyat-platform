@@ -1,7 +1,26 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
 export default function DashboardOverview() {
+  const [userName, setUserName] = useState("Student"); // Default name
+
+  useEffect(() => {
+    // Jab page load ho, toh localStorage se user ka data check karo
+    const storedUser = localStorage.getItem("user");
+    
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      setUserName(user.name); // User ka asli naam state mein daal do
+    }
+  }, []);
+
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Welcome back, Student! 👋</h1>
+      {/* Ab yahan dummy naam ki jagah asli naam aayega */}
+      <h1 className="text-3xl font-bold text-gray-900 mb-6 capitalize">
+        Welcome back, {userName}! 👋
+      </h1>
       
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
