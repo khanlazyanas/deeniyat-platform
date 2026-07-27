@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import authRoutes from './routes/authRoutes';
+import courseRoutes from './routes/courseRoutes'; // Naya import
 import { notFound, errorHandler } from './middlewares/errorMiddleware';
 
 const app = express();
@@ -11,13 +12,14 @@ app.use(express.json());
 
 // API Routes
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/courses', courseRoutes); // Naya route connect ho gaya
 
 // Basic Test Route
 app.get('/', (req: Request, res: Response) => {
   res.send('Deeniyat Platform Backend is running perfectly! 🚀');
 });
 
-// Error Handling Middlewares (Yeh hamesha saare routes ke baad aate hain)
+// Error Handling Middlewares
 app.use(notFound);
 app.use(errorHandler);
 
