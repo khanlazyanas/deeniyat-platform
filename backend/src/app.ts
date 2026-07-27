@@ -5,7 +5,8 @@ import courseRoutes from './routes/courseRoutes';
 import lessonRoutes from './routes/lessonRoutes';
 import enrollmentRoutes from './routes/enrollmentRoutes';
 import submissionRoutes from './routes/submissionRoutes';
-import attendanceRoutes from './routes/attendanceRoutes'; 
+import attendanceRoutes from './routes/attendanceRoutes';
+import transactionRoutes from './routes/transactionRoutes'; 
 import { notFound, errorHandler } from './middlewares/errorMiddleware';
 
 const app = express();
@@ -20,7 +21,8 @@ app.use('/api/v1/courses', courseRoutes);
 app.use('/api/v1/lessons', lessonRoutes);
 app.use('/api/v1/enrollments', enrollmentRoutes);
 app.use('/api/v1/submissions', submissionRoutes);
-app.use('/api/v1/attendance', attendanceRoutes); 
+app.use('/api/v1/attendance', attendanceRoutes);
+app.use('/api/v1/transactions', transactionRoutes); 
 
 // Basic Test Route
 app.get('/', (req: Request, res: Response) => {
