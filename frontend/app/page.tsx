@@ -9,6 +9,9 @@ export default function Home() {
           Frontend is ready and running perfectly! 🚀
         </p>
       </div>
+      <div className="bg-red-500 text-white p-10 m-10 text-4xl font-bold text-center rounded-xl shadow-2xl animate-pulse">
+  TAILWIND IS WORKING! 🚀
+</div>
     </main>
   );
 }
