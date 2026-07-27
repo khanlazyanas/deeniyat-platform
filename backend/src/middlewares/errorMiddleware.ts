@@ -1,0 +1,19 @@
+import { Request, Response, NextFunction } from 'express';
+
+// Agar koi aisi API hit kare jo exist nahi karti
+export const notFound = (req: Request, res: Response, next: NextFunction) => {
+  const error = new Error(`Not Found - ${req.originalUrl}`);
+  res.status(404);
+  next(error);
+};
+
+// Main Error Handler
+export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
+  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  
+  res.status(statusCode).json({
+    message: err.message,
+    // Stack trace sirf development mein dikhega, production (live) par hide ho jayega
+    stack: process.env.NODE_ENV === 'production' ? null : err.stack,
+  });
+};
