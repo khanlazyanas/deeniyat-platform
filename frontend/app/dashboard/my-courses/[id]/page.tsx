@@ -7,8 +7,9 @@ import Link from "next/link";
 interface Lesson {
   _id: string;
   title: string;
-  content: string;
+  content?: string;
   videoUrl?: string;
+  pdfUrl?: string;
 }
 
 interface Course {
@@ -48,8 +49,8 @@ export default function CoursePlayerPage() {
         if (!courseRes.ok) throw new Error(courseData.message || "Failed to load course");
         setCourse(courseData);
 
-        // Fetch Lessons for this course
-        const lessonsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lessons?courseId=${courseId}`, {
+        // FIX: Updated the API endpoint to match your backend route exactly (/lessons/course/:courseId)
+        const lessonsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lessons/course/${courseId}`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
         const lessonsData = await lessonsRes.json();
@@ -119,8 +120,6 @@ export default function CoursePlayerPage() {
       setSubmissionMessage({ type: "error", text: err.message });
     } finally {
       setSubmittingTask(false);
-      
-      // Auto-hide success message after 5 seconds
       setTimeout(() => setSubmissionMessage({ type: "", text: "" }), 5000);
     }
   };
@@ -222,19 +221,20 @@ export default function CoursePlayerPage() {
             )}
 
             {/* Lesson Content / Notes Area */}
-            <div className="bg-slate-900/40 backdrop-blur-md border border-slate-800 rounded-[2rem] p-8 shadow-lg mb-8">
-              <h3 className="text-xl font-bold text-slate-200 mb-6 flex items-center gap-3">
-                <svg className="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-                Lesson Notes & Material
-              </h3>
-              <div className="prose prose-invert prose-emerald max-w-none text-slate-300 leading-relaxed whitespace-pre-wrap">
-                {activeLesson.content}
+            {activeLesson.content && (
+              <div className="bg-slate-900/40 backdrop-blur-md border border-slate-800 rounded-[2rem] p-8 shadow-lg mb-8">
+                <h3 className="text-xl font-bold text-slate-200 mb-6 flex items-center gap-3">
+                  <svg className="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                  Lesson Notes & Material
+                </h3>
+                <div className="prose prose-invert prose-emerald max-w-none text-slate-300 leading-relaxed whitespace-pre-wrap">
+                  {activeLesson.content}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Assignment Submission Section */}
             <div className="bg-slate-900/70 backdrop-blur-xl border border-slate-700 rounded-[2rem] p-8 shadow-2xl relative overflow-hidden">
-              {/* Decorative side accent */}
               <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500"></div>
               
               <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
