@@ -3,10 +3,19 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
+interface Activity {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  type: string;
+}
+
 interface DashboardStats {
   enrolledCourses: number;
   pendingAssignments: number;
   attendanceRate: number;
+  recentActivities: Activity[];
 }
 
 export default function DashboardOverview() {
@@ -14,7 +23,8 @@ export default function DashboardOverview() {
   const [stats, setStats] = useState<DashboardStats>({
     enrolledCourses: 0,
     pendingAssignments: 0,
-    attendanceRate: 0
+    attendanceRate: 0,
+    recentActivities: []
   });
   const [loading, setLoading] = useState(true);
 
@@ -49,7 +59,8 @@ export default function DashboardOverview() {
           setStats({
             enrolledCourses: data.enrolledCourses || 0,
             pendingAssignments: data.pendingAssignments || 0,
-            attendanceRate: data.attendanceRate || 0
+            attendanceRate: data.attendanceRate || 0,
+            recentActivities: data.recentActivities || []
           });
         }
       } catch (error) {
@@ -62,14 +73,17 @@ export default function DashboardOverview() {
     fetchStats();
   }, []);
 
+  // Helper to format date
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <div className="p-6 md:p-10 relative overflow-hidden min-h-full">
-      {/* Ambient Background Glow */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-900/10 rounded-full blur-[100px] pointer-events-none mix-blend-screen"></div>
 
       <div className="relative z-10 max-w-6xl mx-auto">
-        
-        {/* Header Section */}
         <div className="mb-10">
           <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-2 capitalize">
             Welcome Back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500">{userName}!</span> ✨
@@ -77,9 +91,7 @@ export default function DashboardOverview() {
           <p className="text-slate-400 font-light">Here is a quick overview of your learning journey and activities.</p>
         </div>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          
           <div className="group bg-slate-900/40 backdrop-blur-md border border-slate-800 p-6 rounded-3xl flex flex-col hover:border-emerald-500/40 transition-all duration-300 hover:shadow-[0_10px_30px_-10px_rgba(52,211,153,0.15)] hover:-translate-y-1">
             <span className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
               <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
@@ -109,10 +121,9 @@ export default function DashboardOverview() {
               {loading ? "..." : stats.attendanceRate}<span className="text-2xl text-slate-500">%</span>
             </span>
           </div>
-
         </div>
 
-        {/* Recent Activity Section */}
+        {/* Dynamic Recent Activity Section */}
         <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-[2rem] p-8">
           <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
             <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -120,20 +131,28 @@ export default function DashboardOverview() {
           </h3>
           
           <div className="space-y-4">
-            <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 p-4 rounded-2xl bg-slate-800/30 border border-slate-700/50 hover:bg-slate-800/50 transition-colors">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full bg-emerald-900/50 flex items-center justify-center shrink-0 border border-emerald-500/20">
-                  <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+            {loading ? (
+              <p className="text-slate-500 animate-pulse">Loading activity...</p>
+            ) : stats.recentActivities.length === 0 ? (
+              <p className="text-slate-500 italic">No recent activity found.</p>
+            ) : (
+              stats.recentActivities.map((activity) => (
+                <div key={activity.id} className="flex flex-col md:flex-row justify-between md:items-center gap-4 p-4 rounded-2xl bg-slate-800/30 border border-slate-700/50 hover:bg-slate-800/50 transition-colors">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-full bg-emerald-900/50 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                      <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                    <div>
+                      <p className="text-slate-200 font-semibold mb-0.5">{activity.title}</p>
+                      <p className="text-sm text-slate-500">{activity.description}</p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-medium text-slate-400 bg-slate-900 px-3 py-1.5 rounded-full border border-slate-800 whitespace-nowrap self-start md:self-auto">
+                    {formatDate(activity.date)}
+                  </span>
                 </div>
-                <div>
-                  <p className="text-slate-200 font-semibold mb-0.5">Submitted Tajweed Audio</p>
-                  <p className="text-sm text-slate-500">Lesson 3: Haroof-e-Maddah</p>
-                </div>
-              </div>
-              <span className="text-xs font-medium text-slate-400 bg-slate-900 px-3 py-1.5 rounded-full border border-slate-800 whitespace-nowrap self-start md:self-auto">
-                2 hours ago
-              </span>
-            </div>
+              ))
+            )}
           </div>
         </div>
       </div>

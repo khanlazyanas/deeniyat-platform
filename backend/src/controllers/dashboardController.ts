@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import catchAsync from '../utils/catchAsync';
 import Course from '../models/Course';
-import Submission from '../models/Submission'; // Ensure you have this model imported
+import Submission from '../models/Submission';
 
 // @desc    Get stats for the dashboard
 // @route   GET /api/v1/dashboard/stats
@@ -12,21 +12,51 @@ export const getDashboardStats = catchAsync(async (req: any, res: Response) => {
 
   let enrolledCourses = 0;
   let pendingAssignments = 0;
-  let attendanceRate = 95; // Abhi ke liye 95% fix rakhte hain, baad mein iska logic add karenge
+  let attendanceRate = 0; 
+  let recentActivities: any[] = [];
 
   if (userRole === 'Student') {
-    // Student ke liye: Total courses aur uske apne pending assignments check karo
     enrolledCourses = await Course.countDocuments(); 
     pendingAssignments = await Submission.countDocuments({ studentId: userId }); 
+    
+    const submissions = await Submission.find({ studentId: userId })
+      .sort({ createdAt: -1 })
+      .limit(3)
+      .populate('lessonId', 'title');
+      
+    // FIX: Explicitly type 'sub' as 'any' to bypass TypeScript strict checking for timestamps
+    recentActivities = submissions.map((sub: any) => ({
+      id: sub._id,
+      title: 'Submitted Assignment',
+      description: sub.lessonId ? sub.lessonId.title : 'Unknown Lesson',
+      date: sub.createdAt,
+      type: 'submission'
+    }));
+
   } else {
-    // Ustad (Teacher) ke liye: Total courses aur check karne wale sabhi assignments
     enrolledCourses = await Course.countDocuments();
     pendingAssignments = await Submission.countDocuments(); 
+    
+    const submissions = await Submission.find()
+      .sort({ createdAt: -1 })
+      .limit(3)
+      .populate('lessonId', 'title')
+      .populate('studentId', 'name');
+      
+    // FIX: Explicitly type 'sub' as 'any'
+    recentActivities = submissions.map((sub: any) => ({
+      id: sub._id,
+      title: `Submission from ${sub.studentId?.name || 'Student'}`,
+      description: sub.lessonId ? sub.lessonId.title : 'Unknown Lesson',
+      date: sub.createdAt,
+      type: 'submission'
+    }));
   }
 
   res.status(200).json({
     enrolledCourses,
     pendingAssignments,
-    attendanceRate
+    attendanceRate,
+    recentActivities
   });
 });
