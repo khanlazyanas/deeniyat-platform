@@ -8,6 +8,7 @@ import submissionRoutes from './routes/submissionRoutes';
 import attendanceRoutes from './routes/attendanceRoutes';
 import transactionRoutes from './routes/transactionRoutes'; 
 import { notFound, errorHandler } from './middlewares/errorMiddleware';
+import dashboardRoutes from './routes/dashboardRoutes';
 
 const app = express();
 
@@ -22,7 +23,8 @@ app.use('/api/v1/lessons', lessonRoutes);
 app.use('/api/v1/enrollments', enrollmentRoutes);
 app.use('/api/v1/submissions', submissionRoutes);
 app.use('/api/v1/attendance', attendanceRoutes);
-app.use('/api/v1/transactions', transactionRoutes); 
+app.use('/api/v1/transactions', transactionRoutes);
+app.use('/api/v1/dashboard', dashboardRoutes); 
 
 // Basic Test Route
 app.get('/', (req: Request, res: Response) => {
