@@ -55,6 +55,7 @@ export default function DashboardLayout({
             <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Teacher Tools</p>
             <NavLink href="/dashboard/create-course" currentPath={pathname}>Create Course</NavLink>
             <NavLink href="/dashboard/add-lesson" currentPath={pathname}>Add Lesson</NavLink>
+            <NavLink href="/dashboard/submissions" currentPath={pathname}>Submissions</NavLink>
           </div>
 
           <div className="pt-4 mt-4 border-t border-slate-800/50">
