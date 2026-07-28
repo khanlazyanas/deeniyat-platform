@@ -20,6 +20,7 @@ export default function AddLessonPage() {
     title: "",
     content: "",
     videoUrl: "",
+    order: "", // FIX: Added order field
   });
 
   // Fetch courses so the teacher can select which course to add a lesson to
@@ -54,13 +55,19 @@ export default function AddLessonPage() {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Authentication required");
 
+      // FIX: Ensure order is sent as a number
+      const payload = {
+        ...formData,
+        order: Number(formData.order) 
+      };
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lessons`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -70,7 +77,7 @@ export default function AddLessonPage() {
       }
 
       setMessage({ type: "success", text: "Lesson added successfully to the course! ✨" });
-      setFormData({ courseId: formData.courseId, title: "", content: "", videoUrl: "" }); // Reset form but keep course selected
+      setFormData({ courseId: formData.courseId, title: "", content: "", videoUrl: "", order: "" }); // Reset form
       
     } catch (err: any) {
       setMessage({ type: "error", text: err.message });
@@ -118,18 +125,35 @@ export default function AddLessonPage() {
               </select>
             </div>
 
-            {/* Lesson Title */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300 ml-1">Lesson Title <span className="text-emerald-500">*</span></label>
-              <input 
-                type="text" 
-                name="title" 
-                value={formData.title} 
-                onChange={handleChange} 
-                placeholder="e.g. Introduction to Tajweed Rules"
-                required
-                className="w-full bg-[#020617] border border-slate-700 rounded-xl px-5 py-4 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all duration-300"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {/* Lesson Order */}
+              <div className="space-y-2 md:col-span-1">
+                <label className="text-sm font-medium text-slate-300 ml-1">Lesson No. <span className="text-emerald-500">*</span></label>
+                <input 
+                  type="number" 
+                  name="order" 
+                  value={formData.order} 
+                  onChange={handleChange} 
+                  placeholder="e.g. 1"
+                  required
+                  min="1"
+                  className="w-full bg-[#020617] border border-slate-700 rounded-xl px-5 py-4 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all duration-300"
+                />
+              </div>
+
+              {/* Lesson Title */}
+              <div className="space-y-2 md:col-span-3">
+                <label className="text-sm font-medium text-slate-300 ml-1">Lesson Title <span className="text-emerald-500">*</span></label>
+                <input 
+                  type="text" 
+                  name="title" 
+                  value={formData.title} 
+                  onChange={handleChange} 
+                  placeholder="e.g. Introduction to Tajweed Rules"
+                  required
+                  className="w-full bg-[#020617] border border-slate-700 rounded-xl px-5 py-4 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all duration-300"
+                />
+              </div>
             </div>
 
             {/* Video URL */}
