@@ -51,44 +51,100 @@ export default function MyCoursesPage() {
         fetchMyCourses();
     }, []);
 
-    if (loading) return <div className="p-8 text-blue-600 font-medium">Loading your courses...</div>;
-    if (error) return <div className="p-8 text-red-600">{error}</div>;
+    // Premium Loading State
+    if (loading) return (
+        <div className="min-h-[80vh] flex flex-col items-center justify-center relative">
+            <div className="w-12 h-12 border-4 border-slate-800 border-t-emerald-500 rounded-full animate-spin mb-4 shadow-[0_0_15px_rgba(52,211,153,0.4)]"></div>
+            <p className="text-emerald-500 font-medium tracking-wide">Loading your curriculum...</p>
+        </div>
+    );
+    
+    // Premium Error State
+    if (error) return (
+        <div className="min-h-[80vh] flex items-center justify-center p-6">
+            <div className="bg-red-950/30 border border-red-500/30 p-8 rounded-2xl backdrop-blur-md text-center max-w-lg">
+                <svg className="w-12 h-12 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                <h3 className="text-xl font-bold text-red-400 mb-2">Oops! Something went wrong</h3>
+                <p className="text-red-300/80">{error}</p>
+            </div>
+        </div>
+    );
 
     return (
-        <div className="p-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">My Enrolled Courses</h2>
+        <div className="min-h-[85vh] p-4 md:p-8 relative overflow-hidden">
+            {/* Ambient Background Glow */}
+            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-900/10 rounded-full blur-[100px] pointer-events-none mix-blend-screen"></div>
 
-            {enrollments.length === 0 ? (
-                <div className="bg-gray-50 p-8 text-center rounded-xl border border-gray-200">
-                    <p className="text-gray-600 mb-4">You haven't enrolled in any courses yet.</p>
-                    <Link href="/courses" className="text-blue-600 font-medium hover:underline">
-                        Browse Courses
-                    </Link>
+            <div className="max-w-7xl mx-auto relative z-10">
+                <div className="mb-10">
+                    <h2 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-2">My Learning Journey</h2>
+                    <p className="text-slate-400 font-light">Continue mastering your Deen where you left off.</p>
                 </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {enrollments.map((enrollment) => (
-                        <div key={enrollment._id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-                            <div className="h-40 bg-blue-50 flex items-center justify-center">
-                                {enrollment.courseId?.thumbnail ? (
-                                    <img src={enrollment.courseId.thumbnail} alt={enrollment.courseId.title} className="w-full h-full object-cover" />
-                                ) : (
-                                    <span className="text-blue-300 font-medium">Course Image</span>
-                                )}
-                            </div>
-                            <div className="p-5 flex flex-col flex-grow">
-                                <h3 className="text-lg font-bold text-gray-800 mb-1 line-clamp-1">{enrollment.courseId?.title}</h3>
-                                <p className="text-sm text-gray-500 mb-4">
-                                    Enrolled on: {new Date(enrollment.enrolledAt).toLocaleDateString()}
-                                </p>
-                                <button className="mt-auto w-full py-2 bg-blue-50 text-blue-600 font-medium rounded hover:bg-blue-600 hover:text-white transition">
-                                    Continue Learning
-                                </button>
-                            </div>
+
+                {enrollments.length === 0 ? (
+                    <div className="bg-slate-900/50 backdrop-blur-xl p-12 text-center rounded-[2rem] border border-slate-800 shadow-2xl">
+                        <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-500">
+                            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
                         </div>
-                    ))}
-                </div>
-            )}
+                        <h3 className="text-2xl font-bold text-white mb-3">Your curriculum is empty</h3>
+                        <p className="text-slate-400 mb-8 max-w-md mx-auto">You haven't enrolled in any courses yet. Explore our catalog and start your spiritual journey today.</p>
+                        <Link href="/courses" className="inline-flex items-center gap-2 px-8 py-3 text-slate-950 bg-emerald-500 hover:bg-emerald-400 font-bold rounded-full transition-all duration-300 shadow-[0_0_20px_rgba(52,211,153,0.3)] hover:scale-105">
+                            Browse Catalog
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                        </Link>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {enrollments.map((enrollment) => (
+                            <div key={enrollment._id} className="group flex flex-col bg-slate-900/40 backdrop-blur-md rounded-[2rem] border border-slate-800 overflow-hidden hover:border-emerald-500/40 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_10px_40px_-10px_rgba(52,211,153,0.15)]">
+                                
+                                {/* Thumbnail Area */}
+                                <div className="h-48 bg-slate-800 flex items-center justify-center relative overflow-hidden">
+                                    {enrollment.courseId?.thumbnail ? (
+                                        <img 
+                                            src={enrollment.courseId.thumbnail} 
+                                            alt={enrollment.courseId.title} 
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+                                        />
+                                    ) : (
+                                        <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 flex flex-col items-center justify-center text-slate-600">
+                                            <svg className="w-12 h-12 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                            <span className="text-sm font-medium">Course Visual</span>
+                                        </div>
+                                    )}
+                                    {/* Level Badge */}
+                                    <div className="absolute top-4 right-4 px-3 py-1 bg-slate-950/80 backdrop-blur-md border border-slate-700/50 rounded-full text-xs font-semibold text-slate-300">
+                                        {enrollment.courseId?.level || "Beginner"}
+                                    </div>
+                                </div>
+
+                                {/* Content Area */}
+                                <div className="p-6 flex flex-col flex-grow relative">
+                                    <h3 className="text-xl font-bold text-white mb-2 line-clamp-1 group-hover:text-emerald-400 transition-colors">
+                                        {enrollment.courseId?.title}
+                                    </h3>
+                                    
+                                    <p className="text-sm text-slate-400 mb-6 flex items-center gap-2">
+                                        <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                        Enrolled: {new Date(enrollment.enrolledAt).toLocaleDateString()}
+                                    </p>
+
+                                    {/* Continue Learning Link (Replaced Button) */}
+                                    <Link 
+                                        href={`/dashboard/my-courses/${enrollment.courseId?._id}`}
+                                        className="mt-auto w-full group/btn relative inline-flex items-center justify-center px-6 py-3 text-sm font-bold text-emerald-400 bg-emerald-950/30 border border-emerald-900/50 rounded-xl overflow-hidden transition-all duration-300 hover:bg-emerald-500 hover:text-slate-950 hover:border-emerald-500 hover:shadow-[0_0_20px_rgba(52,211,153,0.4)]"
+                                    >
+                                        <span className="relative z-10 flex items-center gap-2">
+                                            Continue Learning
+                                            <svg className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                        </span>
+                                    </Link>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
