@@ -29,6 +29,11 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // FIX: Dashboard ke andar main navbar ko hide kar do
+  if (pathname?.startsWith("/dashboard")) {
+    return null;
+  }
+
   return (
     <nav 
       className={`fixed top-0 w-full z-50 transition-all duration-500 border-b ${
@@ -81,7 +86,7 @@ export default function Navbar() {
                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
                 <span className="relative flex items-center gap-2">
                   Portal Access
-                  <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                  <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4-4m4-4H3" /></svg>
                 </span>
               </Link>
             ) : (
