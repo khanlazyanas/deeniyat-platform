@@ -55,6 +55,9 @@ export default function DashboardLayout({
           <Link href="/dashboard/settings" className="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md font-medium transition">
             Settings
           </Link>
+          <Link href="/dashboard/add-lesson" className="block px-4 py-2 text-slate-300 hover:bg-emerald-900/30 hover:text-emerald-400 rounded-md font-medium transition-colors">
+            Add Lesson
+          </Link>
         </nav>
 
         {/* Logout Button (Bottom of sidebar) */}
