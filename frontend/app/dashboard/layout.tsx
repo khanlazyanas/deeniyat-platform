@@ -51,6 +51,14 @@ export default function DashboardLayout({
           <NavLink href="/dashboard" currentPath={pathname}>Overview</NavLink>
           <NavLink href="/dashboard/my-courses" currentPath={pathname}>My Courses</NavLink>
 
+          {/* Student Tools Section */}
+          <div className="pt-4 mt-4 border-t border-slate-800/50">
+            <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Student Tools</p>
+            <NavLink href="/dashboard/submit-assignment" currentPath={pathname}>Submit Assignment</NavLink>
+            <NavLink href="/dashboard/my-grades" currentPath={pathname}>My Grades</NavLink>
+          </div>
+
+          {/* Teacher Tools Section */}
           <div className="pt-4 mt-4 border-t border-slate-800/50">
             <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Teacher Tools</p>
             <NavLink href="/dashboard/create-course" currentPath={pathname}>Create Course</NavLink>
@@ -58,6 +66,7 @@ export default function DashboardLayout({
             <NavLink href="/dashboard/submissions" currentPath={pathname}>Submissions</NavLink>
           </div>
 
+          {/* Settings Section */}
           <div className="pt-4 mt-4 border-t border-slate-800/50">
             <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Settings</p>
             <NavLink href="/dashboard/attendance" currentPath={pathname}>Attendance</NavLink>
@@ -90,7 +99,7 @@ export default function DashboardLayout({
 
 // Helper Component for Sidebar Links
 function NavLink({ href, currentPath, children }: { href: string, currentPath: string, children: React.ReactNode }) {
-  // Determine if the current path matches the link
+  // Determine if the current path matches the link exactly or if it is a sub-path
   const isActive = currentPath === href || (currentPath.startsWith(href) && href !== '/dashboard');
 
   return (
