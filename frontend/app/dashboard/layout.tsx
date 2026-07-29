@@ -66,9 +66,10 @@ export default function DashboardLayout({
             <NavLink href="/dashboard/submissions" currentPath={pathname}>Submissions</NavLink>
           </div>
 
-          {/* Settings Section */}
+          {/* Settings & Billing Section */}
           <div className="pt-4 mt-4 border-t border-slate-800/50">
-            <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Settings</p>
+            <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Settings & Billing</p>
+            <NavLink href="/dashboard/transactions" currentPath={pathname}>Transactions</NavLink>
             <NavLink href="/dashboard/attendance" currentPath={pathname}>Attendance</NavLink>
             <NavLink href="/dashboard/settings" currentPath={pathname}>Settings</NavLink>
           </div>
