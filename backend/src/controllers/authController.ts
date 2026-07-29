@@ -88,13 +88,23 @@ export const updateProfile = catchAsync(async (req: any, res: Response) => {
 export const updatePassword = catchAsync(async (req: any, res: Response) => {
   const user = await User.findById(req.user._id);
 
-  // Check if current password matches (using 'as any' to bypass TypeScript strict checking for custom mongoose methods)
-  if (user && (await (user as any).matchPassword(req.body.currentPassword))) {
-    user.password = req.body.newPassword;
-    await user.save(); // This will automatically hash the new password if you have a pre-save hook
-    res.json({ message: 'Password updated successfully' });
+  if (user) {
+    // Use bcrypt directly to compare the current password
+    const isMatch = await bcrypt.compare(req.body.currentPassword, user.password);
+
+    if (isMatch) {
+      // Hash the new password manually before saving to ensure security
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(req.body.newPassword, salt);
+      
+      await user.save(); 
+      res.json({ message: 'Password updated successfully' });
+    } else {
+      res.status(401);
+      throw new Error('Invalid current password');
+    }
   } else {
-    res.status(401);
-    throw new Error('Invalid current password');
+    res.status(404);
+    throw new Error('User not found');
   }
 });
