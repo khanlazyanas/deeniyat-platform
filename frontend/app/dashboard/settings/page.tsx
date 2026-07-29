@@ -1,0 +1,158 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+export default function SettingsPage() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: "", text: "" });
+
+  // Load user data when page opens
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          setName(user.name || "");
+          setEmail(user.email || "");
+        }
+      } catch (error) {
+        console.error("Failed to parse user data", error);
+      }
+    };
+    fetchUserData();
+  }, []);
+
+  // Handle Profile Update
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage({ type: "", text: "" });
+
+    try {
+      // Simulate API call for profile update
+      // In reality, you will call your backend e.g., PUT /api/v1/auth/update
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      setMessage({ type: "success", text: "Profile updated successfully! ✨" });
+      
+      // Update localStorage with new name
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        user.name = name;
+        localStorage.setItem("user", JSON.stringify(user));
+      }
+    } catch (error) {
+      setMessage({ type: "error", text: "Failed to update profile." });
+    } finally {
+      setLoading(false);
+      setTimeout(() => setMessage({ type: "", text: "" }), 4000);
+    }
+  };
+
+  return (
+    <div className="min-h-[85vh] p-4 md:p-8 relative overflow-hidden bg-[#020617] font-sans">
+      {/* Decorative Background */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-900/10 rounded-full blur-[100px] pointer-events-none mix-blend-screen"></div>
+
+      <div className="max-w-4xl mx-auto relative z-10">
+        
+        {/* Header Section */}
+        <div className="mb-10">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900 border border-emerald-500/30 mb-4 shadow-[0_0_15px_rgba(52,211,153,0.1)]">
+            <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+            <span className="text-xs font-semibold text-emerald-300 tracking-wider uppercase">Account Preferences</span>
+          </div>
+          <h2 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-2">Settings</h2>
+          <p className="text-slate-400 font-light">Manage your personal information and security preferences.</p>
+        </div>
+
+        {/* Global Message */}
+        {message.text && (
+          <div className={`mb-8 p-4 rounded-xl text-sm font-medium border ${message.type === 'success' ? 'bg-emerald-900/20 border-emerald-500/30 text-emerald-400' : 'bg-red-900/20 border-red-500/30 text-red-400'}`}>
+            {message.text}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          
+          {/* Left Navigation (Static for layout) */}
+          <div className="md:col-span-1 space-y-2">
+            <button className="w-full text-left px-5 py-3 rounded-xl bg-emerald-900/20 text-emerald-400 border border-emerald-500/30 font-semibold shadow-[0_0_15px_rgba(52,211,153,0.1)]">
+              Personal Info
+            </button>
+            <button className="w-full text-left px-5 py-3 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 font-medium transition-colors">
+              Security
+            </button>
+            <button className="w-full text-left px-5 py-3 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 font-medium transition-colors">
+              Notifications
+            </button>
+          </div>
+
+          {/* Right Content Area */}
+          <div className="md:col-span-2 space-y-8">
+            
+            {/* Personal Information Form */}
+            <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-[2rem] p-8 shadow-2xl">
+              <h3 className="text-xl font-bold text-white mb-6 border-b border-slate-800 pb-4">Personal Information</h3>
+              
+              <form onSubmit={handleProfileUpdate} className="space-y-6">
+                {/* Profile Picture (Visual only for now) */}
+                <div className="flex items-center gap-6">
+                  <div className="w-20 h-20 rounded-full bg-slate-800 border-2 border-emerald-500/50 flex items-center justify-center text-2xl font-bold text-emerald-400 uppercase">
+                    {name ? name.charAt(0) : "U"}
+                  </div>
+                  <div>
+                    <button type="button" className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold rounded-lg transition-colors border border-slate-700 mb-2 block">
+                      Change Avatar
+                    </button>
+                    <p className="text-xs text-slate-500">JPG, GIF or PNG. Max size of 2MB.</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-6">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Full Name</label>
+                    <input 
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full bg-[#020617] border border-slate-700 text-white rounded-xl px-4 py-3 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Email Address</label>
+                    <input 
+                      type="email"
+                      value={email}
+                      disabled
+                      className="w-full bg-[#020617] border border-slate-800 text-slate-500 rounded-xl px-4 py-3 outline-none cursor-not-allowed"
+                    />
+                    <p className="text-xs text-slate-500 mt-2">Email address cannot be changed. Contact admin for support.</p>
+                  </div>
+                </div>
+
+                <div className="pt-4 flex justify-end">
+                  <button 
+                    type="submit"
+                    disabled={loading}
+                    className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(52,211,153,0.3)] disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {loading ? "Saving..." : "Save Changes"}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
