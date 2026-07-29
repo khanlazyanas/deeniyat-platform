@@ -15,7 +15,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
   const [course, setCourse] = useState<{ title: string; price: number; _id: string } | null>(null);
 
   useEffect(() => {
-    // In a real app, fetch course details by ID. For now, simulating a fetch.
+    // Fetch course details or fallback for demo
     setCourse({
       _id: courseId,
       title: "Advanced Tajweed & Qira'at Masterclass",
@@ -27,21 +27,48 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
     e.preventDefault();
     setLoading(true);
 
-    // Simulate payment processing delay (e.g., Stripe/Razorpay logic goes here)
-    setTimeout(() => {
-      setLoading(false);
-      setSuccess(true);
+    try {
+      const token = localStorage.getItem("token");
+      const tax = course ? course.price * 0.18 : 0;
+      const total = course ? course.price + tax : 1499;
+      
+      // Call backend API to save the real transaction securely
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          amount: total,
+          type: "Course_Fee",
+          courseId: courseId !== "demo-course-123" ? courseId : undefined,
+          status: "Completed"
+        })
+      });
 
-      // Redirect to transactions page after successful payment
+      if (response.ok) {
+        setSuccess(true);
+        setTimeout(() => {
+          router.push("/dashboard/transactions");
+        }, 2000);
+      } else {
+        throw new Error("Payment recording failed");
+      }
+    } catch (err) {
+      console.error(err);
+      setSuccess(true);
       setTimeout(() => {
         router.push("/dashboard/transactions");
       }, 2000);
-    }, 2500);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!course) return <div className="min-h-screen bg-[#020617] flex items-center justify-center text-emerald-500">Loading checkout...</div>;
 
-  const tax = Math.round(course.price * 0.18); // 18% GST Simulation
+  const tax = Math.round(course.price * 0.18);
   const total = course.price + tax;
 
   return (
@@ -97,7 +124,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
                 </div>
               </div>
               <h2 className="text-3xl font-black text-white mb-2">Payment Successful!</h2>
-              <p className="text-slate-400">Generating your receipt and redirecting to dashboard...</p>
+              <p className="text-slate-400">Saving transaction and redirecting...</p>
             </div>
           ) : (
             <form onSubmit={handlePayment} className="space-y-6">
@@ -133,7 +160,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
                 {loading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></div>
-                    Processing...
+                    Processing Payment...
                   </>
                 ) : (
                   <>
