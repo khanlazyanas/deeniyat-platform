@@ -27,7 +27,7 @@ export default function CourseDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   
-  // Enrollment ke states
+  // Enrollment states
   const [enrolling, setEnrolling] = useState(false);
   const [enrollMessage, setEnrollMessage] = useState({ type: "", text: "" });
 
@@ -53,11 +53,11 @@ export default function CourseDetailsPage() {
     fetchSingleCourse();
   }, [id]);
 
-  // Naya function: Enroll karne ke liye
+  // Function to handle student enrollment
   const handleEnroll = async () => {
     const token = localStorage.getItem("token");
     
-    // Agar user logged in nahi hai, toh seedha login page par bhej do
+    // Redirect to login if the user is not authenticated
     if (!token) {
       router.push("/login?redirect=/courses/" + id);
       return;
@@ -67,12 +67,12 @@ export default function CourseDetailsPage() {
     setEnrollMessage({ type: "", text: "" });
 
     try {
-      // Backend ko request bhej rahe hain (Make sure ye endpoint tumhare backend API se match kare)
+      // Send enrollment request to the backend
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/enrollments`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}` // Token zaroori hai pata lagane ke liye kon enroll ho raha hai
+          "Authorization": `Bearer ${token}` 
         },
         body: JSON.stringify({ courseId: id }),
       });
@@ -85,9 +85,9 @@ export default function CourseDetailsPage() {
 
       setEnrollMessage({ type: "success", text: "Successfully enrolled in the course! 🎉" });
       
-      // Kuch seconds baad dashboard par bhej do taaki wo apne courses dekh sake
+      // Redirect to the dashboard after a short delay so the student can see their new course
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push("/dashboard/my-courses");
       }, 2000);
 
     } catch (err: any) {
@@ -97,70 +97,137 @@ export default function CourseDetailsPage() {
     }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-blue-600 font-medium">Loading Course Details...</div>;
-  if (error) return <div className="min-h-screen flex items-center justify-center text-red-600">{error}</div>;
-  if (!course) return <div className="min-h-screen flex items-center justify-center">Course not found!</div>;
+  // Loading State UI
+  if (loading) return (
+    <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center relative">
+      <div className="w-12 h-12 border-4 border-slate-800 border-t-emerald-500 rounded-full animate-spin mb-4 shadow-[0_0_15px_rgba(52,211,153,0.4)]"></div>
+      <p className="text-emerald-500 font-medium tracking-wide">Loading Course Details...</p>
+    </div>
+  );
+
+  // Error State UI
+  if (error || !course) return (
+    <div className="min-h-screen bg-[#020617] flex items-center justify-center p-6">
+      <div className="bg-red-950/30 border border-red-500/30 p-8 rounded-2xl backdrop-blur-md text-center max-w-lg w-full">
+        <svg className="w-12 h-12 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+        <h3 className="text-xl font-bold text-red-400 mb-2">Error Loading Course</h3>
+        <p className="text-red-300/80">{error || "Course not found!"}</p>
+        <button onClick={() => router.push('/courses')} className="mt-6 px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors">Go Back</button>
+      </div>
+    </div>
+  );
 
   return (
-    <main className="max-w-4xl mx-auto px-4 py-12 min-h-screen">
-      <button onClick={() => router.back()} className="text-blue-600 hover:underline mb-6 flex items-center font-medium">
-        ← Back to Courses
-      </button>
+    <div className="min-h-screen bg-[#020617] pt-24 pb-20 relative overflow-hidden font-sans">
+      
+      {/* Ambient Background Glows */}
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-emerald-900/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen"></div>
 
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
-        <div className="h-64 w-full bg-blue-50 flex items-center justify-center">
-          {course.thumbnail ? (
-            <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
-          ) : (
-            <span className="text-blue-300 font-bold text-3xl">Deeniyat Platform</span>
-          )}
-        </div>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        
+        {/* Back Navigation */}
+        <button 
+          onClick={() => router.push('/courses')} 
+          className="group flex items-center gap-2 text-slate-400 hover:text-emerald-400 transition-colors mb-8 font-medium w-fit"
+        >
+          <svg className="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+          Back to Course Catalog
+        </button>
 
-        <div className="p-8">
-          <div className="flex justify-between items-start mb-4">
-            <h1 className="text-3xl font-bold text-gray-900">{course.title}</h1>
-            <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-semibold rounded-full">
-              {course.level}
-            </span>
-          </div>
-
-          {course.teacherId && (
-            <div className="mb-6 inline-flex items-center text-gray-700 bg-gray-50 px-4 py-2 rounded-lg border border-gray-100">
-              <span className="font-semibold mr-2">Instructor:</span> 
-              <span>{course.teacherId.name}</span>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+          
+          {/* Left Column: Course Info */}
+          <div className="lg:col-span-2 space-y-8">
+            
+            {/* Thumbnail Area */}
+            <div className="w-full h-[400px] bg-slate-900/50 rounded-[2rem] border border-slate-800 overflow-hidden relative shadow-2xl">
+              {course.thumbnail ? (
+                <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 flex flex-col items-center justify-center text-slate-600">
+                  <svg className="w-20 h-20 mb-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                </div>
+              )}
             </div>
-          )}
 
-          <div className="mt-4">
-            <h3 className="text-xl font-semibold text-gray-800 mb-3">About this Course</h3>
-            <p className="text-gray-600 whitespace-pre-wrap leading-relaxed">
-              {course.description}
-            </p>
-          </div>
-
-          <div className="mt-10 pt-6 border-t border-gray-100">
-            {/* Messages */}
-            {enrollMessage.text && (
-              <div className={`mb-4 p-3 rounded text-sm ${enrollMessage.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                {enrollMessage.text}
+            {/* Course Title and Description */}
+            <div>
+              <div className="flex flex-wrap items-center gap-4 mb-4">
+                <span className="px-4 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-sm font-bold tracking-wide uppercase">
+                  {course.level || "Beginner"}
+                </span>
               </div>
-            )}
-
-            {/* Active Enroll Button */}
-            <button 
-              onClick={handleEnroll}
-              disabled={enrolling || enrollMessage.type === 'success'}
-              className={`w-full md:w-auto px-8 py-3 text-white font-bold rounded shadow-md transition ${
-                enrolling || enrollMessage.type === 'success' 
-                ? 'bg-blue-400 cursor-not-allowed' 
-                : 'bg-blue-600 hover:bg-blue-700'
-              }`}
-            >
-              {enrolling ? "Enrolling..." : enrollMessage.type === 'success' ? "Enrolled!" : "Enroll Now"}
-            </button>
+              <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-6">
+                {course.title}
+              </h1>
+              
+              <div className="bg-slate-900/40 backdrop-blur-md rounded-2xl p-8 border border-slate-800/50">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                  <svg className="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  About this Course
+                </h3>
+                <p className="text-slate-300 whitespace-pre-wrap leading-relaxed text-lg font-light">
+                  {course.description}
+                </p>
+              </div>
+            </div>
           </div>
+
+          {/* Right Column: Enrollment Card */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-32 bg-slate-900/60 backdrop-blur-xl border border-slate-700 rounded-[2rem] p-8 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+              
+              {/* Instructor Info */}
+              {course.teacherId && (
+                <div className="flex items-center gap-4 p-4 bg-[#020617] rounded-xl border border-slate-800 mb-8">
+                  <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-lg font-bold text-slate-300">
+                    {course.teacherId.name.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">Taught By</p>
+                    <p className="text-white font-medium">Ustad {course.teacherId.name}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Enrollment Status Message */}
+              {enrollMessage.text && (
+                <div className={`mb-6 p-4 rounded-xl text-sm font-medium border ${enrollMessage.type === 'success' ? 'bg-emerald-900/20 border-emerald-500/30 text-emerald-400' : 'bg-red-900/20 border-red-500/30 text-red-400'}`}>
+                  {enrollMessage.text}
+                </div>
+              )}
+
+              {/* Action Button */}
+              <button 
+                onClick={handleEnroll}
+                disabled={enrolling || enrollMessage.type === 'success'}
+                className={`w-full py-4 text-slate-950 text-lg font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+                  enrolling || enrollMessage.type === 'success' 
+                  ? 'bg-emerald-800 text-slate-400 cursor-not-allowed' 
+                  : 'bg-emerald-500 hover:bg-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.3)] hover:shadow-[0_0_30px_rgba(52,211,153,0.5)]'
+                }`}
+              >
+                {enrolling ? (
+                  <>
+                    <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                    Enrolling...
+                  </>
+                ) : enrollMessage.type === 'success' ? (
+                  "Successfully Enrolled ✓"
+                ) : (
+                  "Enroll Now"
+                )}
+              </button>
+              
+              <p className="text-center text-slate-500 text-xs mt-4">
+                Secure your spot instantly. You will be redirected to your dashboard upon enrollment.
+              </p>
+
+            </div>
+          </div>
+
         </div>
       </div>
-    </main>
+    </div>
   );
 }
