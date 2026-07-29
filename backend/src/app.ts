@@ -1,3 +1,4 @@
+import path from 'path';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import authRoutes from './routes/authRoutes';
@@ -10,11 +11,15 @@ import transactionRoutes from './routes/transactionRoutes';
 import { notFound, errorHandler } from './middlewares/errorMiddleware';
 import dashboardRoutes from './routes/dashboardRoutes';
 
+
 const app = express();
 
 // Middlewares
 app.use(cors());
 app.use(express.json());
+
+// Serve static files from the uploads directory for audio playback
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // API Routes
 app.use('/api/v1/auth', authRoutes);
