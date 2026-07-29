@@ -59,3 +59,42 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
     res.status(401).json({ message: 'Invalid email or password' });
   }
 });
+
+// @desc    Update user profile (Name)
+// @route   PUT /api/v1/auth/profile
+// @access  Private
+export const updateProfile = catchAsync(async (req: any, res: Response) => {
+  const user = await User.findById(req.user._id);
+
+  if (user) {
+    user.name = req.body.name || user.name;
+    const updatedUser = await user.save();
+
+    res.json({
+      _id: updatedUser._id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      role: updatedUser.role,
+    });
+  } else {
+    res.status(404);
+    throw new Error('User not found');
+  }
+});
+
+// @desc    Update user password
+// @route   PUT /api/v1/auth/password
+// @access  Private
+export const updatePassword = catchAsync(async (req: any, res: Response) => {
+  const user = await User.findById(req.user._id);
+
+  // Check if current password matches (using 'as any' to bypass TypeScript strict checking for custom mongoose methods)
+  if (user && (await (user as any).matchPassword(req.body.currentPassword))) {
+    user.password = req.body.newPassword;
+    await user.save(); // This will automatically hash the new password if you have a pre-save hook
+    res.json({ message: 'Password updated successfully' });
+  } else {
+    res.status(401);
+    throw new Error('Invalid current password');
+  }
+});

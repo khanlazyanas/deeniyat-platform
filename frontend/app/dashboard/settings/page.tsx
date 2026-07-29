@@ -11,13 +11,13 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   
   const [loading, setLoading] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
 
   // Load user data safely avoiding the "undefined" JSON bug
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem("user");
-      // Check if it exists AND is not the literal string "undefined"
       if (storedUser && storedUser !== "undefined") {
         const user = JSON.parse(storedUser);
         setName(user.name || "");
@@ -28,64 +28,88 @@ export default function SettingsPage() {
     }
   }, []);
 
-  // Handle Profile Update
+  // Handle Profile Update (Real API Call)
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage({ type: "", text: "" });
 
     try {
-      // Simulate API call for profile update
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      setMessage({ type: "success", text: "Profile updated successfully! ✨" });
-      
-      // Safely update localStorage with new name
-      const storedUser = localStorage.getItem("user");
-      if (storedUser && storedUser !== "undefined") {
-        const user = JSON.parse(storedUser);
-        user.name = name;
-        localStorage.setItem("user", JSON.stringify(user));
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ name })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage({ type: "success", text: "Profile updated successfully! ✨" });
+        
+        // Safely update localStorage with new name
+        const storedUser = localStorage.getItem("user");
+        if (storedUser && storedUser !== "undefined") {
+          const user = JSON.parse(storedUser);
+          user.name = data.name; // Update with the exact name from backend
+          localStorage.setItem("user", JSON.stringify(user));
+        }
+      } else {
+        setMessage({ type: "error", text: data.message || "Failed to update profile." });
       }
     } catch (error) {
-      setMessage({ type: "error", text: "Failed to update profile." });
+      setMessage({ type: "error", text: "Network Error. Failed to update profile." });
     } finally {
       setLoading(false);
       setTimeout(() => setMessage({ type: "", text: "" }), 4000);
     }
   };
 
-  // Handle Password Update
+  // Handle Password Update (Real API Call)
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentPassword || !newPassword) return;
 
-    setLoading(true);
+    setPasswordLoading(true);
     setMessage({ type: "", text: "" });
 
     try {
-      // Simulate API call for password change
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      setMessage({ type: "success", text: "Password changed successfully! 🔒" });
-      setCurrentPassword("");
-      setNewPassword("");
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/password`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage({ type: "success", text: "Password changed successfully! 🔒" });
+        setCurrentPassword("");
+        setNewPassword("");
+      } else {
+        setMessage({ type: "error", text: data.message || "Failed to change password." });
+      }
     } catch (error) {
-      setMessage({ type: "error", text: "Failed to change password." });
+      setMessage({ type: "error", text: "Network Error. Failed to change password." });
     } finally {
-      setLoading(false);
+      setPasswordLoading(false);
       setTimeout(() => setMessage({ type: "", text: "" }), 4000);
     }
   };
 
   return (
     <div className="min-h-[85vh] p-4 md:p-8 relative overflow-hidden bg-[#020617] font-sans">
-      {/* Decorative Background */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-900/10 rounded-full blur-[100px] pointer-events-none mix-blend-screen"></div>
 
       <div className="max-w-4xl mx-auto relative z-10">
         
-        {/* Header Section */}
         <div className="mb-10">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900 border border-emerald-500/30 mb-4 shadow-[0_0_15px_rgba(52,211,153,0.1)]">
             <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -95,7 +119,6 @@ export default function SettingsPage() {
           <p className="text-slate-400 font-light">Manage your personal information and security preferences.</p>
         </div>
 
-        {/* Global Message */}
         {message.text && (
           <div className={`mb-8 p-4 rounded-xl text-sm font-medium border ${message.type === 'success' ? 'bg-emerald-900/20 border-emerald-500/30 text-emerald-400' : 'bg-red-900/20 border-red-500/30 text-red-400'}`}>
             {message.text}
@@ -104,7 +127,6 @@ export default function SettingsPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           
-          {/* Left Navigation (Static for layout) */}
           <div className="md:col-span-1 space-y-2">
             <button className="w-full text-left px-5 py-3 rounded-xl bg-emerald-900/20 text-emerald-400 border border-emerald-500/30 font-semibold shadow-[0_0_15px_rgba(52,211,153,0.1)]">
               Personal Info & Security
@@ -114,12 +136,9 @@ export default function SettingsPage() {
             </button>
           </div>
 
-          {/* Right Content Area */}
           <div className="md:col-span-2 space-y-8">
-            
             <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-[2rem] p-8 shadow-2xl">
               
-              {/* Personal Information Form */}
               <h3 className="text-xl font-bold text-white mb-6 border-b border-slate-800 pb-4">Personal Information</h3>
               <form onSubmit={handleProfileUpdate} className="space-y-6 mb-12">
                 <div className="flex items-center gap-6">
@@ -167,7 +186,6 @@ export default function SettingsPage() {
                 </div>
               </form>
 
-              {/* Security / Password Form */}
               <h3 className="text-xl font-bold text-white mb-6 border-b border-slate-800 pb-4">Security</h3>
               <form onSubmit={handlePasswordUpdate} className="space-y-6">
                 <div>
@@ -193,16 +211,15 @@ export default function SettingsPage() {
                 <div className="pt-2 flex justify-end">
                   <button 
                     type="submit"
-                    disabled={loading || !currentPassword || !newPassword}
+                    disabled={passwordLoading || !currentPassword || !newPassword}
                     className="px-8 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-emerald-500/50 text-white font-bold rounded-xl transition-all disabled:opacity-50"
                   >
-                    Update Password
+                    {passwordLoading ? "Updating..." : "Update Password"}
                   </button>
                 </div>
               </form>
 
             </div>
-
           </div>
         </div>
       </div>
