@@ -5,27 +5,27 @@ import { useEffect, useState } from "react";
 export default function SettingsPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  
+  // Password States
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
 
-  // Load user data when page opens
+  // Load user data safely avoiding the "undefined" JSON bug
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-          const user = JSON.parse(storedUser);
-          setName(user.name || "");
-          setEmail(user.email || "");
-        }
-      } catch (error) {
-        console.error("Failed to parse user data", error);
+    try {
+      const storedUser = localStorage.getItem("user");
+      // Check if it exists AND is not the literal string "undefined"
+      if (storedUser && storedUser !== "undefined") {
+        const user = JSON.parse(storedUser);
+        setName(user.name || "");
+        setEmail(user.email || "");
       }
-    };
-    fetchUserData();
+    } catch (error) {
+      console.error("Error parsing user data from localStorage:", error);
+    }
   }, []);
 
   // Handle Profile Update
@@ -36,20 +36,42 @@ export default function SettingsPage() {
 
     try {
       // Simulate API call for profile update
-      // In reality, you will call your backend e.g., PUT /api/v1/auth/update
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       setMessage({ type: "success", text: "Profile updated successfully! ✨" });
       
-      // Update localStorage with new name
+      // Safely update localStorage with new name
       const storedUser = localStorage.getItem("user");
-      if (storedUser) {
+      if (storedUser && storedUser !== "undefined") {
         const user = JSON.parse(storedUser);
         user.name = name;
         localStorage.setItem("user", JSON.stringify(user));
       }
     } catch (error) {
       setMessage({ type: "error", text: "Failed to update profile." });
+    } finally {
+      setLoading(false);
+      setTimeout(() => setMessage({ type: "", text: "" }), 4000);
+    }
+  };
+
+  // Handle Password Update
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPassword || !newPassword) return;
+
+    setLoading(true);
+    setMessage({ type: "", text: "" });
+
+    try {
+      // Simulate API call for password change
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      setMessage({ type: "success", text: "Password changed successfully! 🔒" });
+      setCurrentPassword("");
+      setNewPassword("");
+    } catch (error) {
+      setMessage({ type: "error", text: "Failed to change password." });
     } finally {
       setLoading(false);
       setTimeout(() => setMessage({ type: "", text: "" }), 4000);
@@ -66,7 +88,7 @@ export default function SettingsPage() {
         {/* Header Section */}
         <div className="mb-10">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900 border border-emerald-500/30 mb-4 shadow-[0_0_15px_rgba(52,211,153,0.1)]">
-            <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+            <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
             <span className="text-xs font-semibold text-emerald-300 tracking-wider uppercase">Account Preferences</span>
           </div>
           <h2 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-2">Settings</h2>
@@ -85,10 +107,7 @@ export default function SettingsPage() {
           {/* Left Navigation (Static for layout) */}
           <div className="md:col-span-1 space-y-2">
             <button className="w-full text-left px-5 py-3 rounded-xl bg-emerald-900/20 text-emerald-400 border border-emerald-500/30 font-semibold shadow-[0_0_15px_rgba(52,211,153,0.1)]">
-              Personal Info
-            </button>
-            <button className="w-full text-left px-5 py-3 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 font-medium transition-colors">
-              Security
+              Personal Info & Security
             </button>
             <button className="w-full text-left px-5 py-3 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 font-medium transition-colors">
               Notifications
@@ -98,12 +117,11 @@ export default function SettingsPage() {
           {/* Right Content Area */}
           <div className="md:col-span-2 space-y-8">
             
-            {/* Personal Information Form */}
             <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-[2rem] p-8 shadow-2xl">
-              <h3 className="text-xl font-bold text-white mb-6 border-b border-slate-800 pb-4">Personal Information</h3>
               
-              <form onSubmit={handleProfileUpdate} className="space-y-6">
-                {/* Profile Picture (Visual only for now) */}
+              {/* Personal Information Form */}
+              <h3 className="text-xl font-bold text-white mb-6 border-b border-slate-800 pb-4">Personal Information</h3>
+              <form onSubmit={handleProfileUpdate} className="space-y-6 mb-12">
                 <div className="flex items-center gap-6">
                   <div className="w-20 h-20 rounded-full bg-slate-800 border-2 border-emerald-500/50 flex items-center justify-center text-2xl font-bold text-emerald-400 uppercase">
                     {name ? name.charAt(0) : "U"}
@@ -138,16 +156,51 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="pt-4 flex justify-end">
+                <div className="pt-2 flex justify-end">
                   <button 
                     type="submit"
                     disabled={loading}
-                    className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(52,211,153,0.3)] disabled:opacity-50 flex items-center gap-2"
+                    className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(52,211,153,0.3)] disabled:opacity-50"
                   >
                     {loading ? "Saving..." : "Save Changes"}
                   </button>
                 </div>
               </form>
+
+              {/* Security / Password Form */}
+              <h3 className="text-xl font-bold text-white mb-6 border-b border-slate-800 pb-4">Security</h3>
+              <form onSubmit={handlePasswordUpdate} className="space-y-6">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Current Password</label>
+                  <input 
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Enter current password"
+                    className="w-full bg-[#020617] border border-slate-700 text-white rounded-xl px-4 py-3 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">New Password</label>
+                  <input 
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password"
+                    className="w-full bg-[#020617] border border-slate-700 text-white rounded-xl px-4 py-3 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-colors"
+                  />
+                </div>
+                <div className="pt-2 flex justify-end">
+                  <button 
+                    type="submit"
+                    disabled={loading || !currentPassword || !newPassword}
+                    className="px-8 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-emerald-500/50 text-white font-bold rounded-xl transition-all disabled:opacity-50"
+                  >
+                    Update Password
+                  </button>
+                </div>
+              </form>
+
             </div>
 
           </div>
