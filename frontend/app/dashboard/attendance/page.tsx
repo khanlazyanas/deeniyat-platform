@@ -18,14 +18,9 @@ export default function AttendancePage() {
   const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
   
-  // Dummy students for UI demonstration (Jab tak enrollment API connect na ho)
-  const [students, setStudents] = useState<Student[]>([
-    { _id: "1", name: "Ahmad Raza", email: "ahmad@example.com" },
-    { _id: "2", name: "Zainab Ali", email: "zainab@example.com" },
-    { _id: "3", name: "Omar Farooq", email: "omar@example.com" },
-  ]);
+  // DUMMY DATA HATA DIYA! Ab shuru mein array khali rahega.
+  const [students, setStudents] = useState<Student[]>([]);
   
-  // Store attendance status mapping: { studentId: "Present" | "Absent" | "Late" }
   const [attendanceData, setAttendanceData] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
@@ -45,6 +40,37 @@ export default function AttendancePage() {
     };
     fetchCourses();
   }, []);
+
+  // 2. NAYA: Fetch Real Students when a Course is Selected!
+  useEffect(() => {
+    const fetchEnrolledStudents = async () => {
+      if (!selectedCourse) {
+        setStudents([]); // Agar koi course select nahi kiya toh list khali kar do
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/enrollments/course/${selectedCourse}/students`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setStudents(data);
+          
+          // Naya course select karne par pichli attendance clear kar do
+          setAttendanceData({}); 
+        }
+      } catch (error) {
+        console.error("Failed to load students", error);
+      }
+    };
+
+    fetchEnrolledStudents();
+  }, [selectedCourse]); // Yeh useEffect tab chalega jab 'selectedCourse' change hoga
 
   // Handle individual status toggle
   const handleStatusChange = (studentId: string, status: string) => {
@@ -66,12 +92,15 @@ export default function AttendancePage() {
     const token = localStorage.getItem("token");
 
     try {
-      // User ka backend ek-ek student ki attendance leta hai, isliye Promise.all use karenge
-      const promises = students.map(student => {
-        const status = attendanceData[student._id];
-        if (!status) return Promise.resolve(); // Agar status select nahi kiya toh skip karo
+      let successCount = 0;
+      let failCount = 0;
+      let lastErrorMessage = "";
 
-        return fetch(`${process.env.NEXT_PUBLIC_API_URL}/attendance`, {
+      for (const student of students) {
+        const status = attendanceData[student._id];
+        if (!status) continue; 
+
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/attendance`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -84,14 +113,32 @@ export default function AttendancePage() {
             status: status
           })
         });
-      });
 
-      await Promise.all(promises);
-      
-      setMessage({ type: "success", text: "Attendance saved successfully! ✨" });
-      setTimeout(() => setMessage({ type: "", text: "" }), 4000);
+        if (!response.ok) {
+          const errorData = await response.json();
+          failCount++;
+          lastErrorMessage = errorData.message || `Failed to save for ${student.name}`;
+        } else {
+          successCount++;
+        }
+      }
+
+      if (failCount > 0) {
+        if (lastErrorMessage.includes('authorize') || lastErrorMessage.toLowerCase().includes('forbidden')) {
+             setMessage({ type: "error", text: "Access Denied: Only Ustad or Admin can mark attendance." });
+        } else {
+             setMessage({ type: "error", text: `Saved ${successCount}, but failed for ${failCount} students. Error: ${lastErrorMessage}` });
+        }
+      } else if (successCount > 0) {
+        setMessage({ type: "success", text: "Attendance saved successfully! ✨" });
+        setTimeout(() => setMessage({ type: "", text: "" }), 4000);
+      } else {
+        setMessage({ type: "error", text: "No attendance status selected to save." });
+      }
+
     } catch (error) {
-      setMessage({ type: "error", text: "Failed to save attendance." });
+      console.error("Network Error:", error);
+      setMessage({ type: "error", text: "Network Error: Failed to connect to server." });
     } finally {
       setLoading(false);
     }
@@ -99,12 +146,10 @@ export default function AttendancePage() {
 
   return (
     <div className="min-h-[85vh] p-4 md:p-8 relative overflow-hidden bg-[#020617]">
-      {/* Ambient Glow */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-900/10 rounded-full blur-[100px] pointer-events-none mix-blend-screen"></div>
 
       <div className="max-w-5xl mx-auto relative z-10">
         
-        {/* Header */}
         <div className="mb-10">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900 border border-emerald-500/30 mb-4 shadow-[0_0_15px_rgba(52,211,153,0.1)]">
             <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -114,7 +159,6 @@ export default function AttendancePage() {
           <p className="text-slate-400 font-light">Mark your students' daily presence, absence, or late arrivals.</p>
         </div>
 
-        {/* Controls Section (Course & Date) */}
         <div className="bg-slate-900/40 backdrop-blur-md border border-slate-800 rounded-3xl p-6 mb-8 flex flex-col md:flex-row gap-6">
           <div className="flex-1">
             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Select Course</label>
@@ -141,7 +185,6 @@ export default function AttendancePage() {
           </div>
         </div>
 
-        {/* Student List Section */}
         <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-[2rem] overflow-hidden shadow-2xl">
           <div className="p-6 border-b border-slate-800/50 flex justify-between items-center bg-slate-900/40">
             <h3 className="text-lg font-bold text-white flex items-center gap-3">
@@ -152,42 +195,48 @@ export default function AttendancePage() {
           </div>
 
           <div className="divide-y divide-slate-800/50">
-            {students.map((student) => (
-              <div key={student._id} className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-800/20 transition-colors">
-                
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-emerald-900/30 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold uppercase">
-                    {student.name.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-200">{student.name}</p>
-                    <p className="text-xs text-slate-500">{student.email}</p>
-                  </div>
-                </div>
-
-                <div className="flex bg-[#020617] rounded-xl border border-slate-800 p-1">
-                  <button 
-                    onClick={() => handleStatusChange(student._id, 'Present')}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-300 ${attendanceData[student._id] === 'Present' ? 'bg-emerald-500/20 text-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.2)]' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'}`}
-                  >
-                    Present
-                  </button>
-                  <button 
-                    onClick={() => handleStatusChange(student._id, 'Late')}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-300 ${attendanceData[student._id] === 'Late' ? 'bg-amber-500/20 text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'}`}
-                  >
-                    Late
-                  </button>
-                  <button 
-                    onClick={() => handleStatusChange(student._id, 'Absent')}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-300 ${attendanceData[student._id] === 'Absent' ? 'bg-red-500/20 text-red-400 shadow-[0_0_10px_rgba(239,68,68,0.2)]' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'}`}
-                  >
-                    Absent
-                  </button>
-                </div>
-
+            {students.length === 0 ? (
+              <div className="p-8 text-center text-slate-500 italic">
+                {selectedCourse ? "No students enrolled in this course yet." : "Please select a course to see students."}
               </div>
-            ))}
+            ) : (
+              students.map((student) => (
+                <div key={student._id} className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-800/20 transition-colors">
+                  
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-emerald-900/30 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold uppercase">
+                      {student.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-200">{student.name}</p>
+                      <p className="text-xs text-slate-500">{student.email}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex bg-[#020617] rounded-xl border border-slate-800 p-1">
+                    <button 
+                      onClick={() => handleStatusChange(student._id, 'Present')}
+                      className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-300 ${attendanceData[student._id] === 'Present' ? 'bg-emerald-500/20 text-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.2)]' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'}`}
+                    >
+                      Present
+                    </button>
+                    <button 
+                      onClick={() => handleStatusChange(student._id, 'Late')}
+                      className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-300 ${attendanceData[student._id] === 'Late' ? 'bg-amber-500/20 text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'}`}
+                    >
+                      Late
+                    </button>
+                    <button 
+                      onClick={() => handleStatusChange(student._id, 'Absent')}
+                      className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-300 ${attendanceData[student._id] === 'Absent' ? 'bg-red-500/20 text-red-400 shadow-[0_0_10px_rgba(239,68,68,0.2)]' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'}`}
+                    >
+                      Absent
+                    </button>
+                  </div>
+
+                </div>
+              ))
+            )}
           </div>
 
           <div className="p-6 border-t border-slate-800/50 bg-slate-900/60 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -200,7 +249,7 @@ export default function AttendancePage() {
             </div>
             <button 
               onClick={handleSaveAttendance}
-              disabled={loading || !selectedCourse}
+              disabled={loading || !selectedCourse || students.length === 0}
               className="w-full sm:w-auto px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(52,211,153,0.3)] hover:shadow-[0_0_30px_rgba(52,211,153,0.5)] disabled:opacity-50 disabled:hover:shadow-none flex items-center justify-center gap-2"
             >
               {loading ? "Saving..." : "Save Attendance"}

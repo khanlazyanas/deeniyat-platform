@@ -48,3 +48,26 @@ export const getMyEnrollments = catchAsync(async (req: Request, res: Response) =
 
   res.json(enrollments);
 });
+
+// ==========================================
+// NAYA CODE: Sirf Ustad ke liye (Attendance ke waqt bacchon ki list lana)
+// ==========================================
+
+// @desc    Get all students enrolled in a specific course
+// @route   GET /api/v1/enrollments/course/:courseId/students
+// @access  Private (Ustad/Admin)
+export const getEnrolledStudents = catchAsync(async (req: Request, res: Response) => {
+  const { courseId } = req.params;
+
+  // Find enrollments and populate the student details
+  const enrollments = await Enrollment.find({ courseId: courseId })
+    .populate('studentId', 'name email profileImage')
+    .sort({ createdAt: -1 });
+
+  // Map to return only student data
+  const students = enrollments
+    .map(enrollment => enrollment.studentId)
+    .filter(student => student !== null); // Filter out any nulls
+
+  res.status(200).json(students);
+});

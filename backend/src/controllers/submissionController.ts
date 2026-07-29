@@ -59,3 +59,15 @@ export const getSubmissionsByLesson = catchAsync(async (req: Request, res: Respo
     
   res.json(submissions);
 });
+
+// @desc    Get ALL submissions across all lessons (For Ustad Dashboard)
+// @route   GET /api/v1/submissions/all
+// @access  Private (Ustad & Admin)
+export const getAllSubmissions = catchAsync(async (req: Request, res: Response) => {
+  const submissions = await Submission.find()
+    .populate('studentId', 'name email profileImage')
+    .populate('lessonId', 'title') // Lesson ka naam bhi chahiye UI pe dikhane ke liye
+    .sort({ createdAt: -1 });
+    
+  res.json(submissions);
+});
