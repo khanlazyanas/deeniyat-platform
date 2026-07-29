@@ -4,11 +4,12 @@ import { protect, authorize } from '../middlewares/authMiddleware';
 
 const router = express.Router();
 
-// User (Student/Ustad/Admin) apne transactions bana sakte hain aur dekh sakte hain
-router.post('/', protect, createTransaction);
+// Specific user route (must be before the /:id or / routes to avoid conflicts)
 router.get('/my-transactions', protect, getMyTransactions);
 
-// Sirf SUPER ADMIN pure platform ka paisa (Fees/Donations) track kar sakta hai
-router.get('/', protect, authorize('Admin'), getAllTransactions);
+// General routes
+router.route('/')
+  .post(protect, createTransaction) // Users create transactions
+  .get(protect, authorize('Admin'), getAllTransactions); // Super Admin tracks all revenue
 
 export default router;
