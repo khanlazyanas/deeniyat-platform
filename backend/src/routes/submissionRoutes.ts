@@ -2,7 +2,8 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { submitAssignment, gradeSubmission, getSubmissionsByLesson, getAllSubmissions } from '../controllers/submissionController';
+// Imported getMySubmissions
+import { submitAssignment, gradeSubmission, getSubmissionsByLesson, getAllSubmissions, getMySubmissions } from '../controllers/submissionController';
 import { protect, authorize } from '../middlewares/authMiddleware';
 
 const router = express.Router();
@@ -26,9 +27,11 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // Routes
-// Using upload.single('audio') middleware to handle file upload
+// Student routes
 router.post('/', protect, authorize('Student'), upload.single('audio'), submitAssignment);
+router.get('/my-submissions', protect, authorize('Student'), getMySubmissions); // NEW ROUTE
 
+// Ustad/Admin routes
 router.get('/all', protect, authorize('Admin', 'Ustad'), getAllSubmissions);
 router.put('/:id/grade', protect, authorize('Admin', 'Ustad'), gradeSubmission);
 router.get('/lesson/:lessonId', protect, authorize('Admin', 'Ustad'), getSubmissionsByLesson);

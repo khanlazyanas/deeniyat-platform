@@ -85,3 +85,15 @@ export const getAllSubmissions = catchAsync(async (req: Request, res: Response) 
     
   res.json(submissions);
 });
+
+// @desc    Get logged in student's submissions
+// @route   GET /api/v1/submissions/my-submissions
+// @access  Private (Student)
+export const getMySubmissions = catchAsync(async (req: any, res: Response) => {
+  // Fetch submissions only for the currently logged-in student
+  const submissions = await Submission.find({ studentId: req.user?._id })
+    .populate('lessonId', 'title')
+    .sort({ createdAt: -1 });
+    
+  res.json(submissions);
+});
