@@ -5,6 +5,17 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { use } from "react";
 
+// Script loading helper for Razorpay
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
+
 export default function CheckoutPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const unwrappedParams = use(params);
@@ -15,58 +26,122 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
   const [course, setCourse] = useState<{ title: string; price: number; _id: string } | null>(null);
 
   useEffect(() => {
-    // Fetch course details or fallback for demo
-    setCourse({
-      _id: courseId,
-      title: "Advanced Tajweed & Qira'at Masterclass",
-      price: 1499,
-    });
+    // Fetch course details
+    const fetchCourse = async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${courseId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setCourse(data);
+        } else {
+          // Fallback demo data if API fails during testing
+          setCourse({ _id: courseId, title: "Advanced Tajweed & Qira'at Masterclass", price: 1499 });
+        }
+      } catch (err) {
+        setCourse({ _id: courseId, title: "Advanced Tajweed & Qira'at Masterclass", price: 1499 });
+      }
+    };
+    fetchCourse();
   }, [courseId]);
 
-  const handlePayment = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleRazorpayPayment = async () => {
     setLoading(true);
 
     try {
       const token = localStorage.getItem("token");
-      const tax = course ? course.price * 0.18 : 0;
-      const total = course ? course.price + tax : 1499;
-      
-      // Call backend API to save the real transaction securely
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          amount: total,
-          type: "Course_Fee",
-          courseId: courseId !== "demo-course-123" ? courseId : undefined,
-          status: "Completed"
-        })
-      });
-
-      if (response.ok) {
-        setSuccess(true);
-        setTimeout(() => {
-          router.push("/dashboard/transactions");
-        }, 2000);
-      } else {
-        throw new Error("Payment recording failed");
+      if (!token) {
+        router.push("/login");
+        return;
       }
-    } catch (err) {
-      console.error(err);
-      setSuccess(true);
-      setTimeout(() => {
-        router.push("/dashboard/transactions");
-      }, 2000);
+
+      // 1. Load Razorpay SDK
+      const res = await loadRazorpayScript();
+      if (!res) {
+        alert("Razorpay SDK failed to load. Are you online?");
+        setLoading(false);
+        return;
+      }
+
+      const tax = course ? course.price * 0.18 : 0;
+      const totalAmount = course ? course.price + tax : 1499;
+
+      // 2. Call YOUR BACKEND to create an order (We will build this backend API next)
+      /* 
+        const orderResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/create-order`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          body: JSON.stringify({ amount: totalAmount, courseId })
+        });
+        const orderData = await orderResponse.json();
+      */
+      
+      // Simulating the backend order response for now so the UI doesn't break
+      const mockOrderId = "order_" + Math.random().toString(36).substring(2, 15);
+
+      // 3. Initialize Razorpay Options
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_YOUR_KEY_HERE", // Add your Razorpay Test Key in .env.local
+        amount: Math.round(totalAmount * 100), // Razorpay accepts amount in paise (multiply by 100)
+        currency: "INR",
+        name: "Deeniyat Platform",
+        description: `Enrollment for ${course?.title}`,
+        image: "https://your-logo-url.com/logo.png", // Optional: Add your logo URL
+        order_id: mockOrderId, // Replace with orderData.id from backend
+        handler: async function (response: any) {
+          // 4. This function runs when payment is SUCCESSFUL
+          console.log("Payment Successful!", response);
+          
+          // Verify payment on backend & Save Transaction
+          try {
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+              body: JSON.stringify({
+                amount: totalAmount,
+                type: "Course_Fee",
+                courseId: courseId,
+                status: "Completed",
+                paymentId: response.razorpay_payment_id
+              })
+            });
+
+            setSuccess(true);
+            setTimeout(() => {
+              router.push("/dashboard/transactions");
+            }, 2000);
+          } catch (error) {
+            alert("Payment received, but failed to save to dashboard. Contact support.");
+          }
+        },
+        prefill: {
+          name: "Student Name", // You can fetch user details from localStorage to pre-fill
+          email: "student@example.com",
+          contact: "9999999999"
+        },
+        theme: {
+          color: "#10b981" // Emerald 500 to match your UI
+        }
+      };
+
+      // 5. Open the Razorpay Payment Modal
+      const paymentObject = new (window as any).Razorpay(options);
+      paymentObject.on("payment.failed", function (response: any) {
+        alert(`Payment Failed: ${response.error.description}`);
+        setLoading(false);
+      });
+      
+      paymentObject.open();
+
+    } catch (error) {
+      console.error(error);
+      alert("Something went wrong with the payment gateway.");
     } finally {
-      setLoading(false);
+      // Don't set loading false immediately if successful, because modal stays open
+      // We handle loading state inside the handler or failure events
     }
   };
 
-  if (!course) return <div className="min-h-screen bg-[#020617] flex items-center justify-center text-emerald-500">Loading checkout...</div>;
+  if (!course) return <div className="min-h-screen bg-[#020617] flex items-center justify-center text-emerald-500">Loading secure checkout...</div>;
 
   const tax = Math.round(course.price * 0.18);
   const total = course.price + tax;
@@ -74,15 +149,15 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
   return (
     <div className="min-h-screen bg-[#020617] font-sans selection:bg-emerald-500/30 selection:text-emerald-200 relative flex items-center justify-center p-4">
       {/* Background Glows */}
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-emerald-900/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen"></div>
+      <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-emerald-900/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen"></div>
       
-      <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+      <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10 pt-20 pb-10">
         
         {/* Left Side - Order Summary */}
         <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-800 rounded-[2rem] p-8 md:p-10 shadow-2xl">
-          <Link href={`/courses`} className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white mb-10 transition-colors">
+          <Link href={`/courses/${courseId}`} className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white mb-10 transition-colors">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-            Back to Courses
+            Back to Course
           </Link>
           
           <h2 className="text-2xl font-bold text-white mb-6">Order Summary</h2>
@@ -93,7 +168,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
             </div>
             <div>
               <h3 className="font-bold text-white text-lg leading-tight mb-1">{course.title}</h3>
-              <p className="text-sm text-slate-400">Lifetime Access</p>
+              <p className="text-sm text-slate-400">Full Lifetime Access</p>
             </div>
           </div>
 
@@ -113,7 +188,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
           </div>
         </div>
 
-        {/* Right Side - Payment Form */}
+        {/* Right Side - Professional Payment Gateway Trigger */}
         <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-[2rem] p-8 md:p-10 shadow-2xl flex flex-col justify-center relative overflow-hidden">
           
           {success ? (
@@ -124,57 +199,51 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
                 </div>
               </div>
               <h2 className="text-3xl font-black text-white mb-2">Payment Successful!</h2>
-              <p className="text-slate-400">Saving transaction and redirecting...</p>
+              <p className="text-slate-400">Your enrollment is confirmed. Redirecting to dashboard...</p>
             </div>
           ) : (
-            <form onSubmit={handlePayment} className="space-y-6">
-              <div>
-                <h2 className="text-2xl font-bold text-white mb-1">Payment Details</h2>
-                <p className="text-sm text-slate-400 mb-6">Complete your secure purchase.</p>
+            <div className="space-y-6 text-center">
+              <div className="w-20 h-20 bg-slate-800 border border-slate-700 rounded-2xl flex items-center justify-center mx-auto mb-6 text-slate-300 shadow-inner">
+                 <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
               </div>
+              
+              <h2 className="text-3xl font-bold text-white mb-2">Secure Checkout</h2>
+              <p className="text-slate-400 mb-8 max-w-sm mx-auto leading-relaxed">
+                You will be redirected to our secure payment gateway to complete your purchase using UPI, Credit Card, or Net Banking.
+              </p>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Card Number</label>
-                  <input required type="text" placeholder="0000 0000 0000 0000" maxLength={19} className="w-full bg-[#020617] border border-slate-700 text-white rounded-xl px-4 py-3 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-colors font-mono tracking-widest" />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Expiry Date</label>
-                    <input required type="text" placeholder="MM/YY" maxLength={5} className="w-full bg-[#020617] border border-slate-700 text-white rounded-xl px-4 py-3 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-colors font-mono" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase mb-2">CVC</label>
-                    <input required type="password" placeholder="•••" maxLength={3} className="w-full bg-[#020617] border border-slate-700 text-white rounded-xl px-4 py-3 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-colors font-mono tracking-widest" />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Cardholder Name</label>
-                  <input required type="text" placeholder="e.g. Anas Khan" className="w-full bg-[#020617] border border-slate-700 text-white rounded-xl px-4 py-3 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-colors" />
-                </div>
-              </div>
-
-              <button disabled={loading} type="submit" className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-lg rounded-xl transition-all shadow-[0_0_20px_rgba(52,211,153,0.2)] disabled:opacity-70 flex items-center justify-center gap-2 group mt-8">
+              <button 
+                onClick={handleRazorpayPayment}
+                disabled={loading} 
+                className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-lg rounded-xl transition-all shadow-[0_0_20px_rgba(52,211,153,0.2)] hover:shadow-[0_0_30px_rgba(52,211,153,0.4)] disabled:opacity-70 flex items-center justify-center gap-2 group"
+              >
                 {loading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></div>
-                    Processing Payment...
+                    Connecting to Bank...
                   </>
                 ) : (
                   <>
-                    Pay ₹{total} Securely
+                    Pay ₹{total} via Razorpay
                     <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                   </>
                 )}
               </button>
-              
-              <div className="flex items-center justify-center gap-2 text-xs text-slate-500 mt-4">
-                <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                Payments are 100% secure and encrypted
+
+              {/* Trust Badges */}
+              <div className="pt-8 mt-8 border-t border-slate-800/50 flex flex-wrap justify-center gap-4 opacity-50 grayscale hover:grayscale-0 transition-all duration-300">
+                {/* Simulated payment method logos */}
+                <div className="px-3 py-1 bg-slate-800 rounded text-xs font-bold tracking-wider text-slate-300">UPI</div>
+                <div className="px-3 py-1 bg-slate-800 rounded text-xs font-bold tracking-wider text-slate-300">VISA</div>
+                <div className="px-3 py-1 bg-slate-800 rounded text-xs font-bold tracking-wider text-slate-300">MasterCard</div>
+                <div className="px-3 py-1 bg-slate-800 rounded text-xs font-bold tracking-wider text-slate-300">NetBanking</div>
               </div>
-            </form>
+              
+              <div className="flex items-center justify-center gap-2 text-xs text-slate-500 font-medium mt-4">
+                <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                100% Encrypted & PCI DSS Compliant
+              </div>
+            </div>
           )}
         </div>
       </div>

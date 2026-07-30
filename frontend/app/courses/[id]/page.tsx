@@ -16,6 +16,7 @@ interface Course {
   level: string;
   thumbnail?: string;
   teacherId?: Teacher;
+  price?: number; // Added price optional field
 }
 
 export default function CourseDetailsPage() {
@@ -53,8 +54,8 @@ export default function CourseDetailsPage() {
     fetchSingleCourse();
   }, [id]);
 
-  // Function to handle student enrollment
-  const handleEnroll = async () => {
+  // Function to handle student enrollment redirection to checkout
+  const handleEnroll = () => {
     const token = localStorage.getItem("token");
     
     // Redirect to login if the user is not authenticated
@@ -64,37 +65,9 @@ export default function CourseDetailsPage() {
     }
 
     setEnrolling(true);
-    setEnrollMessage({ type: "", text: "" });
-
-    try {
-      // Send enrollment request to the backend
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/enrollments`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}` 
-        },
-        body: JSON.stringify({ courseId: id }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong while enrolling");
-      }
-
-      setEnrollMessage({ type: "success", text: "Successfully enrolled in the course! 🎉" });
-      
-      // Redirect to the dashboard after a short delay so the student can see their new course
-      setTimeout(() => {
-        router.push("/dashboard/my-courses");
-      }, 2000);
-
-    } catch (err: any) {
-      setEnrollMessage({ type: "error", text: err.message });
-    } finally {
-      setEnrolling(false);
-    }
+    
+    // REDIRECT TO PREMIUM CHECKOUT PAGE
+    router.push(`/checkout/${id}`);
   };
 
   // Loading State UI
@@ -190,19 +163,12 @@ export default function CourseDetailsPage() {
                 </div>
               )}
 
-              {/* Enrollment Status Message */}
-              {enrollMessage.text && (
-                <div className={`mb-6 p-4 rounded-xl text-sm font-medium border ${enrollMessage.type === 'success' ? 'bg-emerald-900/20 border-emerald-500/30 text-emerald-400' : 'bg-red-900/20 border-red-500/30 text-red-400'}`}>
-                  {enrollMessage.text}
-                </div>
-              )}
-
               {/* Action Button */}
               <button 
                 onClick={handleEnroll}
-                disabled={enrolling || enrollMessage.type === 'success'}
+                disabled={enrolling}
                 className={`w-full py-4 text-slate-950 text-lg font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
-                  enrolling || enrollMessage.type === 'success' 
+                  enrolling 
                   ? 'bg-emerald-800 text-slate-400 cursor-not-allowed' 
                   : 'bg-emerald-500 hover:bg-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.3)] hover:shadow-[0_0_30px_rgba(52,211,153,0.5)]'
                 }`}
@@ -210,17 +176,19 @@ export default function CourseDetailsPage() {
                 {enrolling ? (
                   <>
                     <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                    Enrolling...
+                    Redirecting to Checkout...
                   </>
-                ) : enrollMessage.type === 'success' ? (
-                  "Successfully Enrolled ✓"
                 ) : (
-                  "Enroll Now"
+                  <>
+                    Proceed to Checkout
+                    <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                  </>
                 )}
               </button>
               
-              <p className="text-center text-slate-500 text-xs mt-4">
-                Secure your spot instantly. You will be redirected to your dashboard upon enrollment.
+              <p className="text-center text-slate-500 text-xs mt-4 flex items-center justify-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                Secure Checkout
               </p>
 
             </div>
