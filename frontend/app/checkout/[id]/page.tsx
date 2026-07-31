@@ -65,65 +65,82 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
       const tax = course ? course.price * 0.18 : 0;
       const totalAmount = course ? course.price + tax : 1499;
 
-      // 2. Call YOUR BACKEND to create an order (We will build this backend API next)
-      /* 
-        const orderResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/create-order`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-          body: JSON.stringify({ amount: totalAmount, courseId })
-        });
-        const orderData = await orderResponse.json();
-      */
-      
-      // Simulating the backend order response for now so the UI doesn't break
-      const mockOrderId = "order_" + Math.random().toString(36).substring(2, 15);
+      // 2. Call REAL BACKEND to create an order
+      const orderResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/create-order`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ amount: totalAmount, courseId })
+      });
+      const orderData = await orderResponse.json();
 
-      // 3. Initialize Razorpay Options
+      if (!orderData.success) {
+        alert("Failed to create order. Is Backend running?");
+        setLoading(false);
+        return;
+      }
+
+      // 3. Initialize Razorpay Options with REAL Order ID
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_YOUR_KEY_HERE", // Add your Razorpay Test Key in .env.local
-        amount: Math.round(totalAmount * 100), // Razorpay accepts amount in paise (multiply by 100)
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, // Automatically picks from .env.local
+        amount: Math.round(totalAmount * 100),
         currency: "INR",
         name: "Deeniyat Platform",
         description: `Enrollment for ${course?.title}`,
-        image: "https://your-logo-url.com/logo.png", // Optional: Add your logo URL
-        order_id: mockOrderId, // Replace with orderData.id from backend
+        order_id: orderData.order.id, // ASLI ID JO BACKEND SE AAYI HAI
         handler: async function (response: any) {
-          // 4. This function runs when payment is SUCCESSFUL
-          console.log("Payment Successful!", response);
           
-          // Verify payment on backend & Save Transaction
+          // 4. VERIFY PAYMENT SIGNATURE ON BACKEND
           try {
-            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions`, {
+            const verifyRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/verify`, {
               method: "POST",
               headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
               body: JSON.stringify({
-                amount: totalAmount,
-                type: "Course_Fee",
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
                 courseId: courseId,
-                status: "Completed",
-                paymentId: response.razorpay_payment_id
+                amount: totalAmount
               })
             });
 
-            setSuccess(true);
-            setTimeout(() => {
-              router.push("/dashboard/transactions");
-            }, 2000);
+            const verifyData = await verifyRes.json();
+
+            if (verifyData.success) {
+              // 5. Database mein Transaction Save karna
+              await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify({
+                  amount: totalAmount,
+                  type: "Course_Fee",
+                  courseId: courseId,
+                  status: "Completed",
+                  paymentId: response.razorpay_payment_id
+                })
+              });
+
+              setSuccess(true);
+              setTimeout(() => {
+                router.push("/dashboard/transactions");
+              }, 2000);
+            } else {
+              alert("Payment Verification Failed! Data might be tampered.");
+            }
           } catch (error) {
-            alert("Payment received, but failed to save to dashboard. Contact support.");
+            alert("Error verifying payment.");
           }
         },
         prefill: {
-          name: "Student Name", // You can fetch user details from localStorage to pre-fill
-          email: "student@example.com",
+          name: "Test Student", // You can update this to fetch user data if needed
+          email: "student@test.com",
           contact: "9999999999"
         },
         theme: {
-          color: "#10b981" // Emerald 500 to match your UI
+          color: "#10b981" 
         }
       };
 
-      // 5. Open the Razorpay Payment Modal
+      // 6. Open the Razorpay Payment Modal
       const paymentObject = new (window as any).Razorpay(options);
       paymentObject.on("payment.failed", function (response: any) {
         alert(`Payment Failed: ${response.error.description}`);
@@ -135,9 +152,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
     } catch (error) {
       console.error(error);
       alert("Something went wrong with the payment gateway.");
-    } finally {
-      // Don't set loading false immediately if successful, because modal stays open
-      // We handle loading state inside the handler or failure events
+      setLoading(false);
     }
   };
 
@@ -232,7 +247,6 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
 
               {/* Trust Badges */}
               <div className="pt-8 mt-8 border-t border-slate-800/50 flex flex-wrap justify-center gap-4 opacity-50 grayscale hover:grayscale-0 transition-all duration-300">
-                {/* Simulated payment method logos */}
                 <div className="px-3 py-1 bg-slate-800 rounded text-xs font-bold tracking-wider text-slate-300">UPI</div>
                 <div className="px-3 py-1 bg-slate-800 rounded text-xs font-bold tracking-wider text-slate-300">VISA</div>
                 <div className="px-3 py-1 bg-slate-800 rounded text-xs font-bold tracking-wider text-slate-300">MasterCard</div>
