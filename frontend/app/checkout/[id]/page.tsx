@@ -81,11 +81,11 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
         return;
       }
 
-      // 3. Initialize Razorpay Options with REAL Order ID
+      // 3. Initialize Razorpay Options with EXACT BACKEND AMOUNT (100% Fix for 400 Bad Request)
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, // Automatically picks from .env.local
-        amount: Math.round(totalAmount * 100),
-        currency: "INR",
+        amount: orderData.order.amount, // 🔥 FIX 1: Direct backend exact amount (No math mismatch)
+        currency: orderData.order.currency || "INR", // 🔥 FIX 2: Direct backend currency
         name: "Deeniyat Platform",
         description: `Enrollment for ${course?.title}`,
         order_id: orderData.order.id, // ASLI ID JO BACKEND SE AAYI HAI
@@ -133,8 +133,8 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
           }
         },
         prefill: {
-          name: "Test Student", // You can update this to fetch user data if needed
-          email: "student@test.com",
+          name: "Test Student", 
+          email: "test@deeniyat.com", // Updated email to avoid spam blocks
           contact: "9999999999"
         },
         theme: {
@@ -145,6 +145,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
       // 6. Open the Razorpay Payment Modal
       const paymentObject = new (window as any).Razorpay(options);
       paymentObject.on("payment.failed", function (response: any) {
+        console.error("Razorpay Error Object:", response.error); // Console log for detailed error
         alert(`Payment Failed: ${response.error.description}`);
         setLoading(false);
       });
