@@ -31,7 +31,7 @@ app.use('/api/v1/submissions', submissionRoutes);
 app.use('/api/v1/attendance', attendanceRoutes);
 app.use('/api/v1/transactions', transactionRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
-app.use("/api/payments", paymentRoutes); 
+app.use("/api/v1/payments", paymentRoutes);
 
 // Basic Test Route
 app.get('/', (req: Request, res: Response) => {

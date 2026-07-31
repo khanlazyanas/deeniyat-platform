@@ -62,8 +62,10 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
         return;
       }
 
-      const tax = course ? course.price * 0.18 : 0;
-      const totalAmount = course ? course.price + tax : 1499;
+      // SAFE PRICE CALCULATION LOGIC
+      const safePriceForPayment = course?.price || 1499;
+      const taxForPayment = Math.round(safePriceForPayment * 0.18);
+      const totalAmount = safePriceForPayment + taxForPayment;
 
       // 2. Call REAL BACKEND to create an order
       const orderResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/create-order`, {
@@ -158,8 +160,10 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
 
   if (!course) return <div className="min-h-screen bg-[#020617] flex items-center justify-center text-emerald-500">Loading secure checkout...</div>;
 
-  const tax = Math.round(course.price * 0.18);
-  const total = course.price + tax;
+  // SAFE CALCULATION FOR UI TO PREVENT NaN
+  const safePrice = course?.price || 1499;
+  const tax = Math.round(safePrice * 0.18);
+  const total = safePrice + tax;
 
   return (
     <div className="min-h-screen bg-[#020617] font-sans selection:bg-emerald-500/30 selection:text-emerald-200 relative flex items-center justify-center p-4">
@@ -190,7 +194,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
           <div className="space-y-4 text-sm font-medium border-t border-slate-800/50 pt-6">
             <div className="flex justify-between text-slate-300">
               <span>Original Price</span>
-              <span>₹{course.price}</span>
+              <span>₹{safePrice}</span>
             </div>
             <div className="flex justify-between text-slate-300">
               <span>Taxes (18% GST)</span>
