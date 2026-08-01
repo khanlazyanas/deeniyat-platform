@@ -26,7 +26,6 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
   const [course, setCourse] = useState<{ title: string; price: number; _id: string } | null>(null);
 
   useEffect(() => {
-    // Fetch course details
     const fetchCourse = async () => {
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${courseId}`);
@@ -34,7 +33,6 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
           const data = await res.json();
           setCourse(data);
         } else {
-          // Fallback demo data if API fails during testing
           setCourse({ _id: courseId, title: "Advanced Tajweed & Qira'at Masterclass", price: 1499 });
         }
       } catch (err) {
@@ -54,48 +52,52 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
         return;
       }
 
-      // 1. Load Razorpay SDK
       const res = await loadRazorpayScript();
       if (!res) {
-        alert("Razorpay SDK failed to load. Are you online?");
+        alert("Payment gateway offline. Check internet.");
         setLoading(false);
         return;
       }
 
-      // SAFE PRICE CALCULATION LOGIC
-      const safePriceForPayment = course?.price || 1499;
-      const taxForPayment = Math.round(safePriceForPayment * 0.18);
-      const totalAmount = safePriceForPayment + taxForPayment;
+      const safePrice = course?.price || 1499;
+      const tax = Math.round(safePrice * 0.18);
+      const totalAmount = safePrice + tax;
 
-      // 2. Call REAL BACKEND to create an order
+      // 1. Call Backend to create order (Using your exact working payload structure)
       const orderResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/create-order`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        headers: { 
+          "Content-Type": "application/json", 
+          "Authorization": `Bearer ${token}` 
+        },
         body: JSON.stringify({ amount: totalAmount, courseId })
       });
+
       const orderData = await orderResponse.json();
 
-      if (!orderData.success) {
-        alert("Failed to create order. Is Backend running?");
+      if (!orderResponse.ok || !orderData.success) {
+        alert("Gateway Error: " + (orderData.error || 'Initialization failed.'));
         setLoading(false);
         return;
       }
 
-      // 3. Initialize Razorpay Options with EXACT BACKEND AMOUNT (100% Fix for 400 Bad Request)
+      // 2. Razorpay Options (Hardcoded proven key + exact response fields from your working snippet)
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, // Automatically picks from .env.local
-        amount: orderData.order.amount, // 🔥 FIX 1: Direct backend exact amount (No math mismatch)
-        currency: orderData.order.currency || "INR", // 🔥 FIX 2: Direct backend currency
+        key: 'rzp_test_8YGiWeZrGctMwH', // Asli working key from your store
+        amount: orderData.order.amount,
+        currency: orderData.order.currency || "INR",
         name: "Deeniyat Platform",
         description: `Enrollment for ${course?.title}`,
-        order_id: orderData.order.id, // ASLI ID JO BACKEND SE AAYI HAI
+        order_id: orderData.order.id,
         handler: async function (response: any) {
-          
-          // 4. VERIFY PAYMENT SIGNATURE ON BACKEND
           try {
+            // 3. Verify Payment on Backend
             const verifyRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/verify`, {
               method: "POST",
-              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+              headers: { 
+                "Content-Type": "application/json", 
+                "Authorization": `Bearer ${token}` 
+              },
               body: JSON.stringify({
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
@@ -107,11 +109,14 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
 
             const verifyData = await verifyRes.json();
 
-            if (verifyData.success) {
-              // 5. Database mein Transaction Save karna
+            if (verifyRes.ok && verifyData.success) {
+              // 4. Save Transaction Record
               await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                headers: { 
+                  "Content-Type": "application/json", 
+                  "Authorization": `Bearer ${token}` 
+                },
                 body: JSON.stringify({
                   amount: totalAmount,
                   type: "Course_Fee",
@@ -126,30 +131,29 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
                 router.push("/dashboard/transactions");
               }, 2000);
             } else {
-              alert("Payment Verification Failed! Data might be tampered.");
+              alert("Payment Verification Failed!");
+              setLoading(false);
             }
           } catch (error) {
-            alert("Error verifying payment.");
+            alert("Error verifying payment signature.");
+            setLoading(false);
           }
         },
-        prefill: {
+        prefill: { 
           name: "Test Student", 
-          email: "test@deeniyat.com", // Updated email to avoid spam blocks
-          contact: "9999999999"
+          contact: "9999999999" 
         },
-        theme: {
-          color: "#10b981" 
+        theme: { 
+          color: '#10b981' 
+        },
+        modal: { 
+          ondismiss: function() { 
+            setLoading(false); 
+          } 
         }
       };
 
-      // 6. Open the Razorpay Payment Modal
       const paymentObject = new (window as any).Razorpay(options);
-      paymentObject.on("payment.failed", function (response: any) {
-        console.error("Razorpay Error Object:", response.error); // Console log for detailed error
-        alert(`Payment Failed: ${response.error.description}`);
-        setLoading(false);
-      });
-      
       paymentObject.open();
 
     } catch (error) {
@@ -161,19 +165,17 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
 
   if (!course) return <div className="min-h-screen bg-[#020617] flex items-center justify-center text-emerald-500">Loading secure checkout...</div>;
 
-  // SAFE CALCULATION FOR UI TO PREVENT NaN
   const safePrice = course?.price || 1499;
   const tax = Math.round(safePrice * 0.18);
   const total = safePrice + tax;
 
   return (
-    <div className="min-h-screen bg-[#020617] font-sans selection:bg-emerald-500/30 selection:text-emerald-200 relative flex items-center justify-center p-4">
-      {/* Background Glows */}
+    <div className="min-h-screen bg-[#020617] font-sans selection:bg-emerald-500/35 selection:text-emerald-200 relative flex items-center justify-center p-4">
       <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-emerald-900/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen"></div>
       
       <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10 pt-20 pb-10">
         
-        {/* Left Side - Order Summary */}
+        {/* Order Summary */}
         <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-800 rounded-[2rem] p-8 md:p-10 shadow-2xl">
           <Link href={`/courses/${courseId}`} className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white mb-10 transition-colors">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
@@ -208,9 +210,8 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
           </div>
         </div>
 
-        {/* Right Side - Professional Payment Gateway Trigger */}
+        {/* Checkout Action Box */}
         <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-[2rem] p-8 md:p-10 shadow-2xl flex flex-col justify-center relative overflow-hidden">
-          
           {success ? (
             <div className="text-center animate-in fade-in zoom-in duration-500">
               <div className="w-24 h-24 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -229,7 +230,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
               
               <h2 className="text-3xl font-bold text-white mb-2">Secure Checkout</h2>
               <p className="text-slate-400 mb-8 max-w-sm mx-auto leading-relaxed">
-                You will be redirected to our secure payment gateway to complete your purchase using UPI, Credit Card, or Net Banking.
+                Complete your purchase securely via Razorpay payment gateway.
               </p>
 
               <button 
@@ -240,7 +241,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
                 {loading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></div>
-                    Connecting to Bank...
+                    Processing Payment...
                   </>
                 ) : (
                   <>
@@ -249,19 +250,6 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
                   </>
                 )}
               </button>
-
-              {/* Trust Badges */}
-              <div className="pt-8 mt-8 border-t border-slate-800/50 flex flex-wrap justify-center gap-4 opacity-50 grayscale hover:grayscale-0 transition-all duration-300">
-                <div className="px-3 py-1 bg-slate-800 rounded text-xs font-bold tracking-wider text-slate-300">UPI</div>
-                <div className="px-3 py-1 bg-slate-800 rounded text-xs font-bold tracking-wider text-slate-300">VISA</div>
-                <div className="px-3 py-1 bg-slate-800 rounded text-xs font-bold tracking-wider text-slate-300">MasterCard</div>
-                <div className="px-3 py-1 bg-slate-800 rounded text-xs font-bold tracking-wider text-slate-300">NetBanking</div>
-              </div>
-              
-              <div className="flex items-center justify-center gap-2 text-xs text-slate-500 font-medium mt-4">
-                <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                100% Encrypted & PCI DSS Compliant
-              </div>
             </div>
           )}
         </div>
