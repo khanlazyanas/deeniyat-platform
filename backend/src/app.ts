@@ -12,11 +12,13 @@ import { notFound, errorHandler } from './middlewares/errorMiddleware';
 import dashboardRoutes from './routes/dashboardRoutes';
 import paymentRoutes from "./routes/paymentRoutes";
 
-
 const app = express();
 
 // Middlewares
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true, // Frontend se cookies ya token aane dene ke liye
+}));
 app.use(express.json());
 
 // Serve static files from the uploads directory for audio playback
