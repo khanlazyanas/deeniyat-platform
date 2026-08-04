@@ -80,8 +80,8 @@ export default function Home() {
       {/* GLOBAL BACKGROUND: Refined tech grid */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none"></div>
 
-      {/* 1. CINEMATIC HERO SECTION (With Parallax & Overlap Fix) */}
-      <section className="relative w-full min-h-screen flex flex-col items-center justify-center text-center px-4 sm:px-6 lg:px-8 overflow-hidden pt-10 pb-20 perspective-[1000px]">
+      {/* 1. CINEMATIC HERO SECTION (With Parallax & Navbar Overlap Fix) */}
+      <section className="relative w-full min-h-screen flex flex-col items-center justify-center text-center px-4 sm:px-6 lg:px-8 overflow-hidden pt-24 pb-20 perspective-[1000px]">
         
         {/* Parallax Background Orbs & Watermark */}
         <motion.div 
@@ -110,7 +110,7 @@ export default function Home() {
           </motion.div>
         </motion.div>
 
-        {/* 15+ HIGH-DENSITY FLOATING PARTICLES */}
+        {/* 25+ HIGH-DENSITY MAGICAL FLOATING PARTICLES */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
           <motion.div variants={floatAnimation} animate="animate" className="absolute top-[15%] left-[20%] w-2 h-2 bg-emerald-400 rounded-full blur-[1px] shadow-[0_0_15px_rgba(52,211,153,0.8)]"></motion.div>
           <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '1.5s' }} className="absolute top-[40%] right-[15%] w-3 h-3 bg-teal-400 rounded-full blur-[2px] shadow-[0_0_20px_rgba(45,212,191,0.8)]"></motion.div>
@@ -122,32 +122,43 @@ export default function Home() {
           <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '3.7s' }} className="absolute bottom-[15%] left-[45%] w-3 h-3 bg-amber-300 rounded-full blur-[2px] opacity-50 shadow-[0_0_15px_rgba(252,211,77,0.8)]"></motion.div>
           <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '0.3s' }} className="absolute top-[50%] right-[5%] w-2 h-2 bg-teal-300 rounded-full blur-[1px] shadow-[0_0_10px_rgba(94,234,212,0.8)]"></motion.div>
           <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '2.9s' }} className="absolute top-[75%] left-[25%] w-1.5 h-1.5 bg-emerald-500 rounded-full blur-[1px] shadow-[0_0_10px_rgba(16,185,129,0.8)]"></motion.div>
+          
+          {/* Extra Particles for that 2000x Premium feel */}
+          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '5s' }} className="absolute top-[35%] left-[5%] w-2 h-2 bg-amber-400 rounded-full blur-[1px] shadow-[0_0_12px_rgba(245,158,11,0.9)]"></motion.div>
+          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '2.5s' }} className="absolute bottom-[10%] right-[40%] w-1 h-1 bg-white rounded-full blur-[0.5px] shadow-[0_0_5px_rgba(255,255,255,1)]"></motion.div>
+          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '1.8s' }} className="absolute top-[55%] right-[25%] w-3 h-3 bg-emerald-400 rounded-full blur-[2px] shadow-[0_0_15px_rgba(52,211,153,0.7)]"></motion.div>
+          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '4.1s' }} className="absolute bottom-[60%] left-[40%] w-2 h-2 bg-teal-300 rounded-full blur-[1px] shadow-[0_0_10px_rgba(94,234,212,0.8)]"></motion.div>
+          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '0.9s' }} className="absolute top-[20%] left-[40%] w-4 h-4 bg-amber-500/20 rounded-full blur-[3px] shadow-[0_0_20px_rgba(245,158,11,0.3)]"></motion.div>
         </div>
 
-        {/* Hero Content with Parallax Text - Shifted up slightly (-translate-y-8) to avoid overlap */}
+        {/* Hero Content with Parallax Text - ADDED mt-12 to push down from Navbar */}
         <motion.div 
           style={{ y: yText }}
           initial="hidden"
           animate="visible"
           variants={staggerContainer}
-          className="relative z-20 max-w-5xl mx-auto flex flex-col items-center transform -translate-y-8 pb-10"
+          className="relative z-20 max-w-5xl mx-auto flex flex-col items-center mt-12 pb-10"
         >
-          {/* Premium Gold Badge with Arabic */}
-          <motion.div variants={fadeInUp} className="group cursor-default mb-10 inline-flex flex-col items-center gap-2 px-8 py-4 rounded-3xl bg-slate-900/30 border border-amber-500/20 backdrop-blur-2xl shadow-[0_10px_40px_rgba(245,158,11,0.15)] hover:border-amber-400/60 hover:bg-slate-900/50 transition-all duration-700 hover:-translate-y-1">
-            <span className="text-2xl md:text-3xl font-serif text-amber-400/90 font-medium tracking-wider drop-shadow-[0_0_15px_rgba(245,158,11,0.4)]">
+          {/* ULTIMATE PREMIUM GOLD BADGE WITH ARABIC (God-Tier Box Shadow) */}
+          <motion.div variants={fadeInUp} className="group cursor-default mb-10 inline-flex flex-col items-center gap-2 px-10 py-5 rounded-3xl bg-gradient-to-b from-slate-900/80 to-slate-900/40 border border-amber-500/40 backdrop-blur-3xl shadow-[0_0_50px_rgba(245,158,11,0.25),inset_0_0_20px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/20 hover:border-amber-400/80 hover:shadow-[0_0_80px_rgba(245,158,11,0.4),inset_0_0_30px_rgba(245,158,11,0.2)] transition-all duration-700 hover:-translate-y-2">
+            
+            {/* Inner Glow Aura */}
+            <div className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/10 to-amber-500/0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-md pointer-events-none"></div>
+
+            <span className="relative z-10 text-2xl md:text-3xl font-serif text-amber-400/95 font-medium tracking-wider drop-shadow-[0_0_20px_rgba(245,158,11,0.6)]">
               بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
             </span>
-            <div className="flex items-center gap-4 mt-1">
-              <div className="h-px w-10 bg-gradient-to-r from-transparent to-amber-500/50"></div>
-              <span className="text-[10px] sm:text-xs font-bold text-amber-200/70 tracking-[0.3em] uppercase drop-shadow-md">
+            <div className="relative z-10 flex items-center gap-4 mt-2">
+              <div className="h-px w-12 bg-gradient-to-r from-transparent to-amber-500/70"></div>
+              <span className="text-[10px] sm:text-xs font-bold text-amber-200/90 tracking-[0.3em] uppercase drop-shadow-md">
                 In the name of Allah
               </span>
-              <div className="h-px w-10 bg-gradient-to-l from-transparent to-amber-500/50"></div>
+              <div className="h-px w-12 bg-gradient-to-l from-transparent to-amber-500/70"></div>
             </div>
           </motion.div>
 
           {/* Majestic Headline - Word by Word */}
-          <h1 className="text-5xl sm:text-7xl md:text-[6rem] font-black text-white tracking-tighter leading-[1.05] mb-8 flex flex-wrap justify-center gap-x-4">
+          <h1 className="text-5xl sm:text-7xl md:text-[6.5rem] font-black text-white tracking-tighter leading-[1.05] mb-8 flex flex-wrap justify-center gap-x-4 drop-shadow-2xl">
             {["Elevate", "Your", "Spiritual", "Journey"].map((word, i) => (
               <motion.span 
                 key={i} 
@@ -182,7 +193,7 @@ export default function Home() {
             
             <Link 
               href="/dashboard" 
-              className="px-12 py-5 text-base font-bold text-white bg-slate-900/30 backdrop-blur-md border border-slate-700/50 rounded-full hover:bg-slate-800 hover:border-slate-400 transition-all duration-300 hover:shadow-[0_0_30px_rgba(255,255,255,0.1)] ring-1 ring-inset ring-white/5"
+              className="px-12 py-5 text-base font-bold text-white bg-slate-900/40 backdrop-blur-xl border border-slate-600/50 rounded-full hover:bg-slate-800 hover:border-slate-400 transition-all duration-300 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)] ring-1 ring-inset ring-white/10"
             >
               Enter Portal
             </Link>
