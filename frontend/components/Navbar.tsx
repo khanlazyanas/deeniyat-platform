@@ -9,8 +9,15 @@ export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   
   const pathname = usePathname();
+
+  const navLinks = [
+    { name: 'Home', path: '/' },
+    { name: 'Courses', path: '/courses' },
+    { name: 'About', path: '/about' }
+  ];
 
   // Handle Auth State
   useEffect(() => {
@@ -43,47 +50,69 @@ export default function Navbar() {
 
   return (
     <>
-      <nav 
-        className={`fixed top-0 w-full z-50 transition-all duration-700 ease-out ${
+      <motion.nav 
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        className={`fixed top-0 w-full z-50 transition-all duration-500 ease-out ${
           scrolled || mobileMenuOpen
-            ? "bg-[#020617]/70 backdrop-blur-2xl border-b border-emerald-500/10 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] py-3" 
+            ? "bg-[#020617]/70 backdrop-blur-2xl border-b border-white/5 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.6)] py-3" 
             : "bg-transparent border-transparent py-6"
         }`}
       >
+        {/* Subtle bottom glow on scroll */}
+        <div className={`absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent transition-opacity duration-500 ${scrolled ? 'opacity-100' : 'opacity-0'}`}></div>
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-12">
             
             {/* 1. Logo Area (Premium Glowing Icon) */}
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/" className="flex items-center gap-3 group">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-[0_0_15px_rgba(52,211,153,0.4)] group-hover:shadow-[0_0_30px_rgba(52,211,153,0.8)] group-hover:scale-105 transition-all duration-500 border border-white/20">
+              <Link href="/" className="flex items-center gap-3 group relative">
+                <div className="absolute inset-0 bg-emerald-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-[0_0_15px_rgba(52,211,153,0.4)] group-hover:shadow-[0_0_30px_rgba(52,211,153,0.8)] group-hover:scale-105 group-hover:rotate-3 transition-all duration-500 border border-white/20 z-10">
                   <svg className="w-6 h-6 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                   </svg>
                 </div>
-                <span className="text-2xl font-black text-white tracking-wide flex items-baseline">
-                  Deeniyat<span className="text-emerald-500 animate-pulse">.</span>
+                <span className="relative text-2xl font-black text-white tracking-wide flex items-baseline z-10 drop-shadow-md">
+                  Deeniyat<span className="text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]">.</span>
                 </span>
               </Link>
             </div>
 
-            {/* 2. Navigation Links (Desktop) */}
-            <div className="hidden md:flex space-x-10 items-center">
-              {[
-                { name: 'Home', path: '/' },
-                { name: 'Courses', path: '/courses' },
-                { name: 'About', path: '/about' }
-              ].map((link) => (
-                <Link 
-                  key={link.name}
-                  href={link.path} 
-                  className="text-sm font-semibold text-slate-300 hover:text-white transition-colors tracking-widest uppercase relative group py-2"
-                >
-                  {link.name}
-                  {/* Premium Glowing Underline */}
-                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-emerald-400 transition-all duration-300 group-hover:w-full rounded-full shadow-[0_0_10px_rgba(52,211,153,0.8)]"></span>
-                </Link>
-              ))}
+            {/* 2. Navigation Links (Desktop Magnetic Pill Hover) */}
+            <div className="hidden md:flex space-x-2 items-center bg-slate-900/30 p-1.5 rounded-full border border-white/5 shadow-inner backdrop-blur-md">
+              {navLinks.map((link, i) => {
+                const isActive = pathname === link.path;
+                return (
+                  <div 
+                    key={link.name} 
+                    className="relative px-4 py-2"
+                    onMouseEnter={() => setHoveredIndex(i)}
+                    onMouseLeave={() => setHoveredIndex(null)}
+                  >
+                    <AnimatePresence>
+                      {hoveredIndex === i && (
+                        <motion.div 
+                          layoutId="nav-pill"
+                          className="absolute inset-0 bg-emerald-500/15 rounded-full border border-emerald-500/20 shadow-[0_0_15px_rgba(52,211,153,0.2)]"
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          transition={{ duration: 0.2 }}
+                        />
+                      )}
+                    </AnimatePresence>
+                    <Link 
+                      href={link.path} 
+                      className={`relative z-10 text-sm font-semibold tracking-widest uppercase transition-colors duration-300 ${isActive ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 'text-slate-300 hover:text-white'}`}
+                    >
+                      {link.name}
+                    </Link>
+                  </div>
+                );
+              })}
             </div>
 
             {/* 3. Auth Buttons / Dashboard Button (Desktop) */}
@@ -91,25 +120,29 @@ export default function Navbar() {
               {isLoggedIn ? (
                 <Link 
                   href="/dashboard" 
-                  className="group relative px-7 py-2.5 text-sm font-bold text-slate-950 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full overflow-hidden transition-all duration-500 hover:scale-[1.03] shadow-[0_0_25px_rgba(52,211,153,0.4)] hover:shadow-[0_0_40px_rgba(52,211,153,0.8)] ring-1 ring-white/30"
+                  className="group relative px-8 py-2.5 text-sm font-bold text-slate-950 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full overflow-hidden transition-all duration-500 hover:scale-[1.05] shadow-[0_0_30px_rgba(52,211,153,0.4)] hover:shadow-[0_0_40px_rgba(52,211,153,0.8)] ring-2 ring-white/20"
                 >
                   <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>
-                  <span className="relative flex items-center gap-2">
+                  <span className="relative flex items-center gap-2 drop-shadow-sm">
                     Portal Access
-                    <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4-4m4-4H3" /></svg>
+                    <svg className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4-4m4-4H3" /></svg>
                   </span>
                 </Link>
               ) : (
                 <div className="flex items-center space-x-6">
-                  <Link href="/login" className="text-sm font-semibold text-slate-300 hover:text-white transition-colors tracking-wider">
+                  <Link href="/login" className="text-sm font-bold text-slate-300 hover:text-white transition-colors tracking-widest hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]">
                     LOG IN
                   </Link>
                   <Link 
                     href="/register" 
-                    className="group relative px-7 py-2.5 text-sm font-bold text-white bg-slate-900/50 backdrop-blur-md rounded-full overflow-hidden transition-all duration-500 hover:scale-[1.03] shadow-[0_0_20px_rgba(255,255,255,0.05)] border border-slate-700 hover:border-emerald-500/50 hover:shadow-[0_0_30px_rgba(52,211,153,0.2)]"
+                    className="group relative px-8 py-2.5 text-sm font-bold text-white bg-slate-900/40 backdrop-blur-md rounded-full overflow-hidden transition-all duration-500 hover:scale-[1.05] shadow-[0_0_20px_rgba(52,211,153,0.15)] border border-emerald-500/30 hover:border-emerald-400 hover:shadow-[0_0_40px_rgba(52,211,153,0.4)] ring-1 ring-inset ring-white/10"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>
-                    <span className="relative z-10">CREATE ACCOUNT</span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 via-teal-400/20 to-emerald-500/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>
+                    
+                    {/* Animated Hover Light Beam */}
+                    <div className="absolute -inset-full top-0 z-0 block h-full w-1/2 -skew-x-12 transform bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:animate-shimmer"></div>
+
+                    <span className="relative z-10 tracking-widest drop-shadow-md">CREATE ACCOUNT</span>
                   </Link>
                 </div>
               )}
@@ -119,7 +152,7 @@ export default function Navbar() {
             <div className="md:hidden flex items-center">
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="text-emerald-400 hover:text-white focus:outline-none p-2.5 bg-slate-900/80 rounded-xl border border-emerald-500/30 transition-all duration-300 shadow-[0_0_15px_rgba(52,211,153,0.15)]"
+                className="text-emerald-400 hover:text-white focus:outline-none p-3 bg-slate-900/60 rounded-full border border-emerald-500/30 transition-all duration-300 shadow-[0_0_20px_rgba(52,211,153,0.15)] backdrop-blur-md hover:shadow-[0_0_30px_rgba(52,211,153,0.3)]"
               >
                 <motion.div
                   animate={mobileMenuOpen ? "open" : "closed"}
@@ -134,66 +167,80 @@ export default function Navbar() {
 
           </div>
         </div>
-      </nav>
+      </motion.nav>
 
-      {/* 5. Mobile Menu Dropdown (Framer Motion Animated) */}
+      {/* 5. Mobile Menu Dropdown (Framer Motion Staggered Animations) */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="md:hidden fixed top-[72px] left-0 w-full z-40"
+            initial={{ opacity: 0, filter: "blur(10px)" }}
+            animate={{ opacity: 1, filter: "blur(0px)" }}
+            exit={{ opacity: 0, filter: "blur(10px)", transition: { duration: 0.2 } }}
+            className="md:hidden fixed inset-0 top-[76px] z-40 px-4 pb-4"
           >
-            <div className="mx-4 mt-2 bg-slate-900/95 backdrop-blur-3xl border border-slate-800 rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8)] ring-1 ring-white/5">
-              <div className="px-6 py-8 space-y-2 flex flex-col">
-                {[
-                  { name: 'Home', path: '/' },
-                  { name: 'Courses', path: '/courses' },
-                  { name: 'About', path: '/about' }
-                ].map((link, i) => (
-                  <motion.div 
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    key={link.name}
-                  >
-                    <Link 
-                      href={link.path} 
-                      className="block text-lg font-semibold text-slate-300 hover:text-emerald-400 hover:bg-slate-800/50 px-4 py-3.5 rounded-2xl transition-all"
+            {/* Backdrop click to close */}
+            <div className="absolute inset-0 bg-[#020617]/40 pointer-events-none" onClick={() => setMobileMenuOpen(false)}></div>
+
+            <motion.div 
+              initial={{ y: -20, scale: 0.95 }}
+              animate={{ y: 0, scale: 1 }}
+              exit={{ y: -20, scale: 0.95 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="relative w-full bg-slate-900/80 backdrop-blur-3xl border border-slate-700/60 rounded-[2rem] overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,0.8)] ring-1 ring-white/10"
+            >
+              {/* Internal Glowing Orb */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none"></div>
+
+              <div className="px-6 py-10 flex flex-col gap-2 relative z-10">
+                {navLinks.map((link, i) => {
+                  const isActive = pathname === link.path;
+                  return (
+                    <motion.div 
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.1 + 0.1, ease: "easeOut" }}
+                      key={link.name}
                     >
-                      {link.name}
-                    </Link>
-                  </motion.div>
-                ))}
+                      <Link 
+                        href={link.path} 
+                        className={`block text-2xl font-bold px-6 py-4 rounded-2xl transition-all ${isActive ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'text-slate-300 hover:text-white hover:bg-slate-800/50'}`}
+                      >
+                        {link.name}
+                      </Link>
+                    </motion.div>
+                  );
+                })}
 
                 <motion.div 
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-                  className="h-px w-full bg-gradient-to-r from-transparent via-slate-700 to-transparent my-4"
+                  initial={{ opacity: 0, scaleX: 0 }} 
+                  animate={{ opacity: 1, scaleX: 1 }} 
+                  transition={{ delay: 0.4 }}
+                  className="h-px w-full bg-gradient-to-r from-transparent via-slate-600 to-transparent my-6 origin-left"
                 ></motion.div>
 
                 {/* Mobile Auth Buttons */}
                 <motion.div 
-                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-                  className="flex flex-col space-y-4 pt-2"
+                  initial={{ opacity: 0, y: 20 }} 
+                  animate={{ opacity: 1, y: 0 }} 
+                  transition={{ delay: 0.5, ease: "easeOut" }}
+                  className="flex flex-col gap-4"
                 >
                   {isLoggedIn ? (
                     <Link 
                       href="/dashboard" 
-                      className="w-full flex justify-center items-center gap-2 px-6 py-4 text-base font-bold text-slate-950 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-2xl shadow-[0_0_20px_rgba(52,211,153,0.3)]"
+                      className="w-full flex justify-center items-center gap-3 px-6 py-5 text-lg font-bold text-slate-950 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-2xl shadow-[0_0_30px_rgba(52,211,153,0.4)]"
                     >
                       Portal Access
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4-4m4-4H3" /></svg>
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4-4m4-4H3" /></svg>
                     </Link>
                   ) : (
                     <>
-                      <Link href="/login" className="w-full text-center py-4 text-base font-bold text-slate-300 hover:text-white bg-slate-800/50 rounded-2xl border border-slate-700/50">
+                      <Link href="/login" className="w-full text-center py-4 text-lg font-bold text-slate-300 hover:text-white bg-slate-800/40 rounded-2xl border border-slate-700/50 hover:bg-slate-800/80 transition-colors">
                         LOG IN
                       </Link>
                       <Link 
                         href="/register" 
-                        className="w-full text-center px-6 py-4 text-base font-bold text-slate-950 bg-emerald-400 rounded-2xl shadow-[0_0_20px_rgba(52,211,153,0.4)]"
+                        className="w-full text-center px-6 py-4 text-lg font-bold text-slate-950 bg-emerald-400 rounded-2xl shadow-[0_0_30px_rgba(52,211,153,0.3)] hover:bg-emerald-300 transition-colors"
                       >
                         CREATE ACCOUNT
                       </Link>
@@ -205,6 +252,16 @@ export default function Navbar() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Shimmer animation logic injection */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes shimmer {
+          100% { transform: translateX(200%) skewX(-12deg); }
+        }
+        .animate-shimmer {
+          animation: shimmer 1.5s infinite;
+        }
+      `}} />
     </>
   );
 }
