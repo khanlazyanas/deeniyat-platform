@@ -136,71 +136,99 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* 4. Mobile Menu Toggle */}
+          {/* 4. ULTRA-PROFESSIONAL SAAS HAMBURGER MENU (2-Line Asymmetric) */}
           <div className="md:hidden flex items-center">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-white focus:outline-none p-2 rounded-full hover:bg-white/10 transition-colors"
+              className="relative flex items-center justify-center w-10 h-10 rounded-full text-slate-300 hover:text-white hover:bg-white/10 transition-colors focus:outline-none"
+              aria-label="Toggle Menu"
             >
-              <motion.div animate={mobileMenuOpen ? "open" : "closed"} className="w-5 h-5 flex flex-col justify-center items-center relative">
-                <span className={`block w-full h-[2px] bg-current rounded-full transition-all duration-300 ${mobileMenuOpen ? "rotate-45 absolute" : "-translate-y-1.5"}`}></span>
-                <span className={`block w-full h-[2px] bg-current rounded-full transition-all duration-300 ${mobileMenuOpen ? "opacity-0" : "opacity-100"}`}></span>
-                <span className={`block w-full h-[2px] bg-current rounded-full transition-all duration-300 ${mobileMenuOpen ? "-rotate-45 absolute" : "translate-y-1.5"}`}></span>
-              </motion.div>
+              <div className="flex flex-col items-end justify-center w-5 h-5 gap-[5px]">
+                <motion.span
+                  animate={mobileMenuOpen ? { rotate: 45, y: 3.5 } : { rotate: 0, y: 0 }}
+                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                  className="block h-[2px] w-full bg-current rounded-full origin-center"
+                ></motion.span>
+                <motion.span
+                  animate={mobileMenuOpen ? { rotate: -45, y: -3.5, width: "100%" } : { rotate: 0, y: 0, width: "70%" }}
+                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                  className="block h-[2px] bg-current rounded-full origin-center"
+                ></motion.span>
+              </div>
             </button>
           </div>
         </motion.nav>
       </header>
 
-      {/* 5. Clean Mobile Menu Overlay */}
+      {/* 5. Ultra-Premium Floating Mobile Menu (Card Style instead of Full Screen) */}
       <AnimatePresence>
         {mobileMenuOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="md:hidden fixed inset-0 z-40 flex flex-col pt-24 px-4 pb-6 bg-[#020617]/95 backdrop-blur-xl"
-          >
-            <div className="flex-1 flex flex-col gap-2">
-              {navLinks.map((link, i) => {
-                const isActive = pathname === link.path;
-                return (
-                  <motion.div 
-                    initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} key={link.name}
-                  >
-                    <Link 
-                      href={link.path} 
-                      className={`block text-xl font-semibold px-4 py-4 rounded-xl transition-all ${isActive ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-                      onClick={() => setMobileMenuOpen(false)}
+          <>
+            {/* Soft Backdrop overlay to bring focus to the menu */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="md:hidden fixed inset-0 z-30 bg-[#020617]/60 backdrop-blur-sm"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+
+            <motion.div 
+              initial={{ opacity: 0, y: -15, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.98 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="md:hidden fixed top-[84px] left-4 right-4 z-40 flex flex-col p-2 bg-[#0a0f1d] border border-white/[0.08] shadow-[0_20px_60px_-10px_rgba(0,0,0,0.8)] rounded-3xl"
+            >
+              <div className="flex flex-col gap-1 p-2">
+                {navLinks.map((link, i) => {
+                  const isActive = pathname === link.path;
+                  return (
+                    <motion.div 
+                      initial={{ opacity: 0, x: -10 }} 
+                      animate={{ opacity: 1, x: 0 }} 
+                      transition={{ delay: i * 0.05 + 0.1, ease: "easeOut" }} 
+                      key={link.name}
                     >
-                      {link.name}
-                    </Link>
-                  </motion.div>
-                );
-              })}
+                      <Link 
+                        href={link.path} 
+                        className={`block text-lg font-semibold px-4 py-3.5 rounded-2xl transition-all ${isActive ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        {link.name}
+                      </Link>
+                    </motion.div>
+                  );
+                })}
+              </div>
 
-              <div className="h-px w-full bg-white/10 my-4"></div>
+              <div className="h-px w-[calc(100%-2rem)] mx-auto bg-white/5 my-2"></div>
 
-              <div className="flex flex-col gap-3 px-4">
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                transition={{ delay: 0.2, ease: "easeOut" }}
+                className="flex flex-col gap-2 p-4 pt-2"
+              >
                 {isLoggedIn ? (
-                  <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="w-full flex justify-center items-center gap-2 text-center py-4 text-base font-semibold text-[#020617] bg-white rounded-xl">
+                  <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="w-full flex justify-center items-center gap-2 text-center py-3.5 text-[15px] font-semibold text-[#020617] bg-white rounded-xl shadow-sm">
                     Dashboard
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4-4m4-4H3" /></svg>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4-4m4-4H3" /></svg>
                   </Link>
                 ) : (
                   <>
-                    <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="w-full text-center py-4 text-base font-semibold text-slate-300 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
+                    <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="w-full text-center py-3.5 text-[15px] font-semibold text-slate-300 bg-white/[0.03] rounded-xl border border-white/[0.05] hover:bg-white/10 transition-colors">
                       Log In
                     </Link>
-                    <Link href="/register" onClick={() => setMobileMenuOpen(false)} className="w-full text-center py-4 text-base font-bold text-[#020617] bg-[#4ade80] rounded-xl">
+                    <Link href="/register" onClick={() => setMobileMenuOpen(false)} className="w-full text-center py-3.5 text-[15px] font-bold text-[#020617] bg-[#4ade80] rounded-xl shadow-[0_4px_14px_rgba(74,222,128,0.25)]">
                       Sign Up
                     </Link>
                   </>
                 )}
-              </div>
-            </div>
-          </motion.div>
+              </motion.div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </>
