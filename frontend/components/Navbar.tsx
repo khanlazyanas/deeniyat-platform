@@ -49,24 +49,29 @@ export default function Navbar() {
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           className={`pointer-events-auto w-full max-w-7xl flex justify-between items-center transition-all duration-500 ${
             scrolled || mobileMenuOpen
-              ? "bg-[#020617]/70 backdrop-blur-[20px] border border-white/[0.08] shadow-[0_8px_30px_rgb(0,0,0,0.5)] rounded-full px-5 py-3" 
+              ? "bg-[#020617]/80 backdrop-blur-[24px] border border-white/[0.06] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] rounded-full px-5 py-3" 
               : "bg-transparent border-transparent px-2 py-4"
           }`}
         >
-          {/* 1. EXACT SCREENSHOT LOGO (Clean, Flat, Professional) */}
+          {/* 1. EXACT SCREENSHOT LOGO (Ultra-Professional Font & Spacing) */}
           <div className="flex-shrink-0 flex items-center">
-            <Link href="/" className="flex items-center gap-3 group">
-              {/* Box with soft gradient and exact glow from screenshot */}
-              <div className="relative flex items-center justify-center w-[42px] h-[42px] rounded-[12px] bg-gradient-to-b from-[#4ade80] to-[#10b981] shadow-[0_0_24px_rgba(52,211,153,0.3)] transition-transform duration-300 group-hover:scale-105 group-hover:shadow-[0_0_32px_rgba(52,211,153,0.4)]">
-                {/* Thick, dark slate book icon */}
-                <svg className="w-6 h-6 text-[#020617]" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <Link href="/" className="flex items-center group outline-none">
+              
+              {/* Premium Flat-Squircle Box with subtle inner highlight */}
+              <div className="relative flex items-center justify-center w-[42px] h-[42px] rounded-[13px] bg-gradient-to-b from-[#4ade80] to-[#10b981] shadow-[0_4px_16px_rgba(16,185,129,0.25),inset_0_1px_1px_rgba(255,255,255,0.4)] transition-transform duration-300 group-hover:scale-105">
+                
+                {/* Thick, dark slate book icon perfectly centered */}
+                <svg className="w-[22px] h-[22px] text-[#020617]" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                   <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
                   <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
                 </svg>
               </div>
 
-              {/* Pure Solid White Text with Green Dot */}
-              <span className="text-[32px] font-black text-white tracking-[-0.04em] leading-none flex items-baseline">
+              {/* Ultra-Professional Typography: Custom font stack, heavy weight, tight tracking */}
+              <span 
+                className="text-[32px] font-black text-white tracking-[-0.05em] leading-none flex items-baseline ml-3.5 antialiased" 
+                style={{ fontFamily: '"Inter", "SF Pro Display", -apple-system, sans-serif' }}
+              >
                 Deeniyat<span className="text-[#4ade80] ml-[1px]">.</span>
               </span>
             </Link>
@@ -87,7 +92,7 @@ export default function Navbar() {
                     {hoveredIndex === i && (
                       <motion.div 
                         layoutId="nav-pill"
-                        className="absolute inset-0 bg-white/10 rounded-full"
+                        className="absolute inset-0 bg-white/[0.08] rounded-full"
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
@@ -97,7 +102,7 @@ export default function Navbar() {
                   </AnimatePresence>
                   <Link 
                     href={link.path} 
-                    className={`relative z-10 text-[14px] font-medium tracking-wide transition-colors duration-200 ${isActive ? 'text-white' : 'text-slate-400 hover:text-white'}`}
+                    className={`relative z-10 text-[14px] font-semibold tracking-tight transition-colors duration-200 ${isActive ? 'text-white' : 'text-slate-400 hover:text-white'}`}
                   >
                     {link.name}
                   </Link>
@@ -111,18 +116,19 @@ export default function Navbar() {
             {isLoggedIn ? (
               <Link 
                 href="/dashboard" 
-                className="px-5 py-2.5 text-[14px] font-semibold text-[#020617] bg-white rounded-full hover:bg-slate-200 transition-all duration-300 hover:scale-105 flex items-center gap-2"
+                className="px-5 py-2.5 text-[14px] font-semibold text-[#020617] bg-white rounded-full hover:bg-slate-200 transition-all duration-300 hover:scale-105 shadow-[0_4px_14px_rgba(255,255,255,0.15)] flex items-center gap-2"
               >
                 Dashboard
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4-4m4-4H3" /></svg>
               </Link>
             ) : (
               <>
-                <Link href="/login" className="px-5 py-2.5 text-[14px] font-medium text-slate-300 hover:text-white transition-colors">
+                <Link href="/login" className="px-5 py-2.5 text-[14px] font-semibold text-slate-300 hover:text-white transition-colors">
                   Log in
                 </Link>
                 <Link 
                   href="/register" 
-                  className="px-6 py-2.5 text-[14px] font-semibold text-[#020617] bg-[#4ade80] hover:bg-[#22c55e] rounded-full transition-all duration-300 hover:scale-105 shadow-[0_0_16px_rgba(74,222,128,0.2)]"
+                  className="px-6 py-2.5 text-[14px] font-bold text-[#020617] bg-[#4ade80] hover:bg-[#22c55e] rounded-full transition-all duration-300 hover:scale-105 shadow-[0_4px_14px_rgba(74,222,128,0.25)]"
                 >
                   Sign Up
                 </Link>
@@ -178,15 +184,16 @@ export default function Navbar() {
 
               <div className="flex flex-col gap-3 px-4">
                 {isLoggedIn ? (
-                  <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="w-full text-center py-4 text-base font-semibold text-[#020617] bg-white rounded-xl">
+                  <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="w-full flex justify-center items-center gap-2 text-center py-4 text-base font-semibold text-[#020617] bg-white rounded-xl">
                     Dashboard
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4-4m4-4H3" /></svg>
                   </Link>
                 ) : (
                   <>
                     <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="w-full text-center py-4 text-base font-semibold text-slate-300 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
                       Log In
                     </Link>
-                    <Link href="/register" onClick={() => setMobileMenuOpen(false)} className="w-full text-center py-4 text-base font-semibold text-[#020617] bg-[#4ade80] rounded-xl">
+                    <Link href="/register" onClick={() => setMobileMenuOpen(false)} className="w-full text-center py-4 text-base font-bold text-[#020617] bg-[#4ade80] rounded-xl">
                       Sign Up
                     </Link>
                   </>
