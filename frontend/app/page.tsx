@@ -80,23 +80,45 @@ export default function Home() {
       {/* GLOBAL BACKGROUND: Refined tech grid */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none"></div>
 
-      {/* 1. CINEMATIC HERO SECTION (With Parallax & Navbar Overlap Fix) */}
-      <section className="relative w-full min-h-screen flex flex-col items-center justify-center text-center px-4 sm:px-6 lg:px-8 overflow-hidden pt-24 pb-20 perspective-[1000px]">
+      {/* FIX 1: PARTICLES MOVED TO FIXED INSET-0 */}
+      {/* Now they float across the entire screen seamlessly no matter where you scroll */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-10 perspective-[1000px] transform-gpu">
+        <motion.div variants={floatAnimation} animate="animate" className="absolute top-[15%] left-[20%] w-2 h-2 bg-emerald-400 rounded-full blur-[1px] shadow-[0_0_15px_rgba(52,211,153,0.8)] will-change-transform"></motion.div>
+        <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '1.5s' }} className="absolute top-[40%] right-[15%] w-3 h-3 bg-teal-400 rounded-full blur-[2px] shadow-[0_0_20px_rgba(45,212,191,0.8)] will-change-transform"></motion.div>
+        <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '3s' }} className="absolute top-[60%] left-[10%] w-1.5 h-1.5 bg-amber-400 rounded-full blur-[1px] shadow-[0_0_10px_rgba(245,158,11,0.8)] will-change-transform"></motion.div>
+        <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '0.8s' }} className="absolute bottom-[25%] right-[25%] w-2.5 h-2.5 bg-emerald-300 rounded-full blur-[1.5px] shadow-[0_0_12px_rgba(110,231,183,0.8)] will-change-transform"></motion.div>
+        <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '2.2s' }} className="absolute top-[25%] right-[30%] w-4 h-4 bg-teal-500 rounded-full blur-[4px] opacity-40 shadow-[0_0_25px_rgba(20,184,166,0.6)] will-change-transform"></motion.div>
+        <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '4.5s' }} className="absolute bottom-[40%] left-[30%] w-2 h-2 bg-white rounded-full blur-[1px] opacity-70 shadow-[0_0_10px_rgba(255,255,255,0.8)] will-change-transform"></motion.div>
+        <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '1.1s' }} className="absolute top-[10%] right-[45%] w-1 h-1 bg-emerald-200 rounded-full blur-[0.5px] shadow-[0_0_5px_rgba(167,243,208,0.8)] will-change-transform"></motion.div>
+        <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '3.7s' }} className="absolute bottom-[15%] left-[45%] w-3 h-3 bg-amber-300 rounded-full blur-[2px] opacity-50 shadow-[0_0_15px_rgba(252,211,77,0.8)] will-change-transform"></motion.div>
+        <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '0.3s' }} className="absolute top-[50%] right-[5%] w-2 h-2 bg-teal-300 rounded-full blur-[1px] shadow-[0_0_10px_rgba(94,234,212,0.8)] will-change-transform"></motion.div>
+        <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '2.9s' }} className="absolute top-[75%] left-[25%] w-1.5 h-1.5 bg-emerald-500 rounded-full blur-[1px] shadow-[0_0_10px_rgba(16,185,129,0.8)] will-change-transform"></motion.div>
         
-        {/* Parallax Background Orbs & Watermark */}
+        {/* Extra Particles for that 2000x Premium feel */}
+        <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '5s' }} className="absolute top-[35%] left-[5%] w-2 h-2 bg-amber-400 rounded-full blur-[1px] shadow-[0_0_12px_rgba(245,158,11,0.9)] will-change-transform"></motion.div>
+        <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '2.5s' }} className="absolute bottom-[10%] right-[40%] w-1 h-1 bg-white rounded-full blur-[0.5px] shadow-[0_0_5px_rgba(255,255,255,1)] will-change-transform"></motion.div>
+        <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '1.8s' }} className="absolute top-[55%] right-[25%] w-3 h-3 bg-emerald-400 rounded-full blur-[2px] shadow-[0_0_15px_rgba(52,211,153,0.7)] will-change-transform"></motion.div>
+        <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '4.1s' }} className="absolute bottom-[60%] left-[40%] w-2 h-2 bg-teal-300 rounded-full blur-[1px] shadow-[0_0_10px_rgba(94,234,212,0.8)] will-change-transform"></motion.div>
+        <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '0.9s' }} className="absolute top-[20%] left-[40%] w-4 h-4 bg-amber-500/20 rounded-full blur-[3px] shadow-[0_0_20px_rgba(245,158,11,0.3)] will-change-transform"></motion.div>
+      </div>
+
+      {/* 1. CINEMATIC HERO SECTION */}
+      <section className="relative w-full min-h-screen flex flex-col items-center justify-center text-center px-4 sm:px-6 lg:px-8 overflow-hidden pt-24 pb-20">
+        
+        {/* FIX 2: Added will-change-transform and transform-gpu to massive blur elements to fix lag */}
         <motion.div 
           style={{ y: yBg, opacity: opacityBg }} 
-          className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none"
+          className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none transform-gpu"
         >
           <motion.div 
             animate={{ scale: [1, 1.15, 1], opacity: [0.15, 0.25, 0.15], rotate: [0, 90, 0] }}
             transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute w-[600px] sm:w-[900px] h-[600px] sm:h-[900px] bg-emerald-900/20 rounded-full blur-[120px] mix-blend-screen"
+            className="absolute w-[600px] sm:w-[900px] h-[600px] sm:h-[900px] bg-emerald-900/20 rounded-full blur-[120px] mix-blend-screen will-change-transform"
           />
           <motion.div 
             animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.2, 0.1], rotate: [0, -90, 0] }}
             transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-            className="absolute w-[400px] sm:w-[700px] h-[400px] sm:h-[700px] bg-teal-800/20 rounded-full blur-[100px] mix-blend-screen translate-y-20 translate-x-20"
+            className="absolute w-[400px] sm:w-[700px] h-[400px] sm:h-[700px] bg-teal-800/20 rounded-full blur-[100px] mix-blend-screen translate-y-20 translate-x-20 will-change-transform"
           />
           
           {/* Giant Arabic Watermark (Iqra) */}
@@ -104,45 +126,23 @@ export default function Home() {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 3, ease: "easeOut" }}
-            className="absolute text-[20rem] sm:text-[40rem] font-serif text-slate-800/10 select-none tracking-widest z-0 transform -translate-y-24 drop-shadow-2xl"
+            className="absolute text-[20rem] sm:text-[40rem] font-serif text-slate-800/10 select-none tracking-widest z-0 transform -translate-y-24 drop-shadow-2xl will-change-transform"
           >
             اقْرَأْ
           </motion.div>
         </motion.div>
 
-        {/* 25+ HIGH-DENSITY MAGICAL FLOATING PARTICLES */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
-          <motion.div variants={floatAnimation} animate="animate" className="absolute top-[15%] left-[20%] w-2 h-2 bg-emerald-400 rounded-full blur-[1px] shadow-[0_0_15px_rgba(52,211,153,0.8)]"></motion.div>
-          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '1.5s' }} className="absolute top-[40%] right-[15%] w-3 h-3 bg-teal-400 rounded-full blur-[2px] shadow-[0_0_20px_rgba(45,212,191,0.8)]"></motion.div>
-          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '3s' }} className="absolute top-[60%] left-[10%] w-1.5 h-1.5 bg-amber-400 rounded-full blur-[1px] shadow-[0_0_10px_rgba(245,158,11,0.8)]"></motion.div>
-          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '0.8s' }} className="absolute bottom-[25%] right-[25%] w-2.5 h-2.5 bg-emerald-300 rounded-full blur-[1.5px] shadow-[0_0_12px_rgba(110,231,183,0.8)]"></motion.div>
-          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '2.2s' }} className="absolute top-[25%] right-[30%] w-4 h-4 bg-teal-500 rounded-full blur-[4px] opacity-40 shadow-[0_0_25px_rgba(20,184,166,0.6)]"></motion.div>
-          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '4.5s' }} className="absolute bottom-[40%] left-[30%] w-2 h-2 bg-white rounded-full blur-[1px] opacity-70 shadow-[0_0_10px_rgba(255,255,255,0.8)]"></motion.div>
-          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '1.1s' }} className="absolute top-[10%] right-[45%] w-1 h-1 bg-emerald-200 rounded-full blur-[0.5px] shadow-[0_0_5px_rgba(167,243,208,0.8)]"></motion.div>
-          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '3.7s' }} className="absolute bottom-[15%] left-[45%] w-3 h-3 bg-amber-300 rounded-full blur-[2px] opacity-50 shadow-[0_0_15px_rgba(252,211,77,0.8)]"></motion.div>
-          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '0.3s' }} className="absolute top-[50%] right-[5%] w-2 h-2 bg-teal-300 rounded-full blur-[1px] shadow-[0_0_10px_rgba(94,234,212,0.8)]"></motion.div>
-          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '2.9s' }} className="absolute top-[75%] left-[25%] w-1.5 h-1.5 bg-emerald-500 rounded-full blur-[1px] shadow-[0_0_10px_rgba(16,185,129,0.8)]"></motion.div>
-          
-          {/* Extra Particles for that 2000x Premium feel */}
-          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '5s' }} className="absolute top-[35%] left-[5%] w-2 h-2 bg-amber-400 rounded-full blur-[1px] shadow-[0_0_12px_rgba(245,158,11,0.9)]"></motion.div>
-          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '2.5s' }} className="absolute bottom-[10%] right-[40%] w-1 h-1 bg-white rounded-full blur-[0.5px] shadow-[0_0_5px_rgba(255,255,255,1)]"></motion.div>
-          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '1.8s' }} className="absolute top-[55%] right-[25%] w-3 h-3 bg-emerald-400 rounded-full blur-[2px] shadow-[0_0_15px_rgba(52,211,153,0.7)]"></motion.div>
-          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '4.1s' }} className="absolute bottom-[60%] left-[40%] w-2 h-2 bg-teal-300 rounded-full blur-[1px] shadow-[0_0_10px_rgba(94,234,212,0.8)]"></motion.div>
-          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '0.9s' }} className="absolute top-[20%] left-[40%] w-4 h-4 bg-amber-500/20 rounded-full blur-[3px] shadow-[0_0_20px_rgba(245,158,11,0.3)]"></motion.div>
-        </div>
-
-        {/* Hero Content with Parallax Text - ADDED mt-12 to push down from Navbar */}
+        {/* Hero Content with Parallax Text */}
         <motion.div 
           style={{ y: yText }}
           initial="hidden"
           animate="visible"
           variants={staggerContainer}
-          className="relative z-20 max-w-5xl mx-auto flex flex-col items-center mt-12 pb-10"
+          className="relative z-20 max-w-5xl mx-auto flex flex-col items-center mt-12 pb-10 will-change-transform"
         >
-          {/* ULTIMATE PREMIUM GOLD BADGE WITH ARABIC (God-Tier Box Shadow) */}
+          {/* ULTIMATE PREMIUM GOLD BADGE WITH ARABIC */}
           <motion.div variants={fadeInUp} className="group cursor-default mb-10 inline-flex flex-col items-center gap-2 px-10 py-5 rounded-3xl bg-gradient-to-b from-slate-900/80 to-slate-900/40 border border-amber-500/40 backdrop-blur-3xl shadow-[0_0_50px_rgba(245,158,11,0.25),inset_0_0_20px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/20 hover:border-amber-400/80 hover:shadow-[0_0_80px_rgba(245,158,11,0.4),inset_0_0_30px_rgba(245,158,11,0.2)] transition-all duration-700 hover:-translate-y-2">
             
-            {/* Inner Glow Aura */}
             <div className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/10 to-amber-500/0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-md pointer-events-none"></div>
 
             <span className="relative z-10 text-2xl md:text-3xl font-serif text-amber-400/95 font-medium tracking-wider drop-shadow-[0_0_20px_rgba(245,158,11,0.6)]">
@@ -228,7 +228,7 @@ export default function Home() {
         <motion.div 
           animate={{ x: [0, -1000] }}
           transition={{ repeat: Infinity, duration: 25, ease: "linear" }}
-          className="flex whitespace-nowrap items-center w-max"
+          className="flex whitespace-nowrap items-center w-max will-change-transform"
         >
           {[...islamicValues, ...islamicValues, ...islamicValues, ...islamicValues].map((val, idx) => (
             <div key={idx} className="flex items-center mx-8 sm:mx-16">
@@ -244,8 +244,8 @@ export default function Home() {
       <section className="relative py-40 bg-[#020617] z-20 overflow-hidden">
         
         {/* Ambient background glows for the section */}
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-emerald-900/10 rounded-full blur-[150px] pointer-events-none"></div>
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-teal-900/10 rounded-full blur-[150px] pointer-events-none"></div>
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-emerald-900/10 rounded-full blur-[150px] pointer-events-none transform-gpu"></div>
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-teal-900/10 rounded-full blur-[150px] pointer-events-none transform-gpu"></div>
 
         <motion.div 
           initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeInUp}
@@ -265,8 +265,8 @@ export default function Home() {
           <div className="relative bg-gradient-to-b from-slate-900/80 to-slate-900/40 backdrop-blur-3xl border border-emerald-500/30 rounded-[3rem] p-10 md:p-20 shadow-[0_0_100px_rgba(16,185,129,0.15),inset_0_0_60px_rgba(16,185,129,0.05),0_20px_40px_-10px_rgba(0,0,0,0.8)] ring-1 ring-white/10 overflow-hidden group hover:border-emerald-400/50 hover:shadow-[0_0_120px_rgba(16,185,129,0.25),inset_0_0_80px_rgba(16,185,129,0.1)] transition-all duration-700">
             
             {/* Inner Glowing Corner Accents */}
-            <div className="absolute -top-32 -left-32 w-64 h-64 bg-emerald-400/20 rounded-full blur-[80px] group-hover:bg-emerald-400/30 transition-colors duration-700"></div>
-            <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-teal-400/20 rounded-full blur-[80px] group-hover:bg-teal-400/30 transition-colors duration-700"></div>
+            <div className="absolute -top-32 -left-32 w-64 h-64 bg-emerald-400/20 rounded-full blur-[80px] group-hover:bg-emerald-400/30 transition-colors duration-700 transform-gpu"></div>
+            <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-teal-400/20 rounded-full blur-[80px] group-hover:bg-teal-400/30 transition-colors duration-700 transform-gpu"></div>
             
             {/* Noise texture overlay inside the box for organic feel */}
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay pointer-events-none"></div>
@@ -315,8 +315,8 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             
             {/* Massive Feature Card */}
-            <motion.div variants={fadeInUp} whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }} className="md:col-span-2 group relative bg-slate-900/40 rounded-[2.5rem] p-10 md:p-14 border border-slate-700/50 hover:border-emerald-400/50 hover:bg-slate-900/70 overflow-hidden backdrop-blur-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] ring-1 ring-white/10 hover:shadow-[0_0_50px_rgba(52,211,153,0.15)]">
-              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[100px] group-hover:bg-emerald-500/20 transition-all duration-700 translate-x-32 -translate-y-32"></div>
+            <motion.div variants={fadeInUp} whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }} className="md:col-span-2 group relative bg-slate-900/40 rounded-[2.5rem] p-10 md:p-14 border border-slate-700/50 hover:border-emerald-400/50 hover:bg-slate-900/70 overflow-hidden backdrop-blur-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] ring-1 ring-white/10 hover:shadow-[0_0_50px_rgba(52,211,153,0.15)] will-change-transform">
+              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[100px] group-hover:bg-emerald-500/20 transition-all duration-700 translate-x-32 -translate-y-32 transform-gpu"></div>
               
               <div className="relative z-10 h-full flex flex-col justify-between">
                 <div>
@@ -332,8 +332,8 @@ export default function Home() {
             </motion.div>
 
             {/* Premium Side Feature 1 */}
-            <motion.div variants={fadeInUp} whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }} className="group relative bg-slate-900/40 rounded-[2.5rem] p-10 border border-slate-700/50 hover:border-amber-400/50 hover:bg-slate-900/70 overflow-hidden backdrop-blur-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] ring-1 ring-white/10 hover:shadow-[0_0_50px_rgba(245,158,11,0.1)]">
-              <div className="absolute bottom-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-[80px] group-hover:bg-amber-500/20 transition-all duration-700"></div>
+            <motion.div variants={fadeInUp} whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }} className="group relative bg-slate-900/40 rounded-[2.5rem] p-10 border border-slate-700/50 hover:border-amber-400/50 hover:bg-slate-900/70 overflow-hidden backdrop-blur-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] ring-1 ring-white/10 hover:shadow-[0_0_50px_rgba(245,158,11,0.1)] will-change-transform">
+              <div className="absolute bottom-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-[80px] group-hover:bg-amber-500/20 transition-all duration-700 transform-gpu"></div>
               <div className="w-16 h-16 bg-slate-800 border border-slate-600 rounded-2xl flex items-center justify-center mb-10 relative z-10 group-hover:bg-amber-500/20 group-hover:border-amber-500/50 transition-colors duration-500 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
               </div>
@@ -342,8 +342,8 @@ export default function Home() {
             </motion.div>
 
             {/* Premium Side Feature 2 */}
-            <motion.div variants={fadeInUp} whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }} className="group relative bg-slate-900/40 rounded-[2.5rem] p-10 border border-slate-700/50 hover:border-blue-400/50 hover:bg-slate-900/70 overflow-hidden backdrop-blur-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] ring-1 ring-white/10 hover:shadow-[0_0_50px_rgba(59,130,246,0.1)]">
-              <div className="absolute top-0 left-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] group-hover:bg-blue-500/20 transition-all duration-700"></div>
+            <motion.div variants={fadeInUp} whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }} className="group relative bg-slate-900/40 rounded-[2.5rem] p-10 border border-slate-700/50 hover:border-blue-400/50 hover:bg-slate-900/70 overflow-hidden backdrop-blur-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] ring-1 ring-white/10 hover:shadow-[0_0_50px_rgba(59,130,246,0.1)] will-change-transform">
+              <div className="absolute top-0 left-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] group-hover:bg-blue-500/20 transition-all duration-700 transform-gpu"></div>
               <div className="w-16 h-16 bg-slate-800 border border-slate-600 rounded-2xl flex items-center justify-center mb-10 relative z-10 group-hover:bg-blue-500/20 group-hover:border-blue-500/50 transition-colors duration-500 text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
               </div>
@@ -352,7 +352,7 @@ export default function Home() {
             </motion.div>
             
             {/* Bottom Glow Feature */}
-            <motion.div variants={fadeInUp} whileHover={{ scale: 1.01 }} className="md:col-span-3 group bg-gradient-to-r from-emerald-900/40 via-slate-900/70 to-slate-900/40 rounded-[2.5rem] p-10 md:p-16 border border-emerald-500/30 relative overflow-hidden transition-all duration-500 hover:border-emerald-400/60 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.9)] ring-1 ring-white/10">
+            <motion.div variants={fadeInUp} whileHover={{ scale: 1.01 }} className="md:col-span-3 group bg-gradient-to-r from-emerald-900/40 via-slate-900/70 to-slate-900/40 rounded-[2.5rem] p-10 md:p-16 border border-emerald-500/30 relative overflow-hidden transition-all duration-500 hover:border-emerald-400/60 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.9)] ring-1 ring-white/10 will-change-transform">
               <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.04] mix-blend-overlay pointer-events-none"></div>
               
               {/* Dynamic light beam effect on hover */}
@@ -381,7 +381,7 @@ export default function Home() {
         <motion.div 
           animate={{ rotate: 360, scale: [1, 1.2, 1] }}
           transition={{ duration: 120, repeat: Infinity, ease: "linear" }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-emerald-600/15 rounded-full blur-[150px] pointer-events-none"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-emerald-600/15 rounded-full blur-[150px] pointer-events-none transform-gpu will-change-transform"
         />
         
         <motion.div 
