@@ -7,7 +7,9 @@ import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-
 
 // Custom physics for that "Apple/Linear" frictionless feel
 const smoothEase: [number, number, number, number] = [0.23, 1, 0.32, 1];
-const springTransition = { type: "spring", stiffness: 400, damping: 30 };
+
+// FIXED: 'as const' added to 'type' so TypeScript knows exactly what animation this is
+const springTransition = { type: "spring" as const, stiffness: 400, damping: 30 };
 
 // Variants for staggered link animations in mobile menu
 const mobileMenuContainerVariants = {
@@ -19,7 +21,7 @@ const mobileMenuContainerVariants = {
     transition: {
       duration: 0.4,
       ease: smoothEase,
-      staggerChildren: 0.06, // Seqential link animations
+      staggerChildren: 0.06, // Sequential link animations
       delayChildren: 0.1,
     },
   },
@@ -112,7 +114,7 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* 2. DESKTOP NAVIGATION: Magnetic Pill & Active Dot */}
+          {/* 2. DESKTOP NAVIGATION: Magnetic Pill */}
           <div className="hidden md:flex items-center space-x-1 pl-4">
             {navLinks.map((link, i) => {
               const isActive = pathname === link.path;
@@ -123,7 +125,6 @@ export default function Navbar() {
                   onMouseEnter={() => setHoveredIndex(i)}
                   onMouseLeave={() => setHoveredIndex(null)}
                 >
-                  {/* Magnetic Hover Pill */}
                   <AnimatePresence>
                     {hoveredIndex === i && (
                       <motion.div 
@@ -132,7 +133,7 @@ export default function Navbar() {
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
-                        transition={{ duration: 0.25, ease: smoothEase }}
+                        transition={springTransition}
                       />
                     )}
                   </AnimatePresence>
@@ -144,7 +145,6 @@ export default function Navbar() {
                     {link.name}
                   </Link>
 
-                  {/* Active Indicator Dot */}
                   {isActive && (
                     <motion.div 
                       layoutId="active-dot"
@@ -171,7 +171,6 @@ export default function Navbar() {
                 <Link href="/login" className="px-5 py-2.5 text-[14px] font-medium text-slate-300 hover:text-white transition-colors">
                   Log in
                 </Link>
-                {/* 3D Premium Signup Button */}
                 <Link 
                   href="/register" 
                   className="relative group px-6 py-2.5 text-[14px] font-bold text-[#020617] bg-gradient-to-b from-[#4ade80] to-[#10b981] rounded-full transition-all duration-400 ease-[0.23,1,0.32,1] hover:scale-[1.04] shadow-[0_4px_16px_rgba(16,185,129,0.3),inset_0_1px_1px_rgba(255,255,255,0.6),inset_0_-2px_2px_rgba(0,0,0,0.15)] ring-1 ring-white/10"
@@ -183,7 +182,7 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* 4. HAMBURGER: Flawless Mathematics */}
+          {/* 4. HAMBURGER MENU */}
           <div className="md:hidden flex items-center pr-1">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -216,7 +215,7 @@ export default function Navbar() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
+              transition={{ duration: 0.4, ease: smoothEase }}
               className="md:hidden fixed inset-0 z-30 bg-[#020617]/70 backdrop-blur-[16px] backdrop-saturate-150"
               onClick={() => setMobileMenuOpen(false)}
             />
@@ -268,7 +267,6 @@ export default function Navbar() {
                     <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="w-full text-center py-3.5 text-[15px] sm:text-[16px] font-medium text-slate-300 bg-white/[0.03] rounded-[18px] border border-white/[0.06] hover:bg-white/[0.06] transition-colors active:scale-[0.98] transition-transform duration-200 ease-out">
                       Log In
                     </Link>
-                    {/* Consistent Premium Mobile Button */}
                     <Link 
                       href="/register" 
                       onClick={() => setMobileMenuOpen(false)} 
