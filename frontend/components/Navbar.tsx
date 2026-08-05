@@ -6,9 +6,36 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
 
 // Custom physics for that "Apple/Linear" frictionless feel
-// FIXED: Added `as const` to tell TypeScript this is exactly the "spring" type
-const springTransition = { type: "spring" as const, stiffness: 400, damping: 30 };
 const smoothEase: [number, number, number, number] = [0.23, 1, 0.32, 1];
+const springTransition = { type: "spring", stiffness: 400, damping: 30 };
+
+// Variants for staggered link animations in mobile menu
+const mobileMenuContainerVariants = {
+  closed: { opacity: 0, y: -20, scale: 0.96 },
+  open: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      duration: 0.4,
+      ease: smoothEase,
+      staggerChildren: 0.06, // Seqential link animations
+      delayChildren: 0.1,
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -15,
+    scale: 0.96,
+    transition: { duration: 0.3, ease: smoothEase, staggerChildren: 0.04, staggerDirection: -1 },
+  },
+};
+
+const mobileMenuItemVariants = {
+  closed: { opacity: 0, x: -15 },
+  open: { opacity: 1, x: 0, transition: { duration: 0.4, ease: smoothEase } },
+  exit: { opacity: 0, x: -10, transition: { duration: 0.2, ease: smoothEase } },
+};
 
 export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -57,7 +84,7 @@ export default function Navbar() {
           transition={{ duration: 0.5, ease: smoothEase }}
           className={`pointer-events-auto w-full max-w-7xl flex justify-between items-center transition-all duration-500 will-change-transform ${
             scrolled || mobileMenuOpen
-              ? "bg-[#020617]/50 backdrop-blur-[32px] backdrop-saturate-200 border border-white/[0.08] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.06)] rounded-full px-3 py-2 sm:py-2.5" 
+              ? "bg-[#020617]/60 backdrop-blur-[28px] backdrop-saturate-200 border border-white/[0.08] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.06)] rounded-full px-3 py-2 sm:py-2.5" 
               : "bg-transparent border-transparent px-2 py-4"
           }`}
         >
@@ -105,7 +132,7 @@ export default function Navbar() {
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
-                        transition={springTransition}
+                        transition={{ duration: 0.25, ease: smoothEase }}
                       />
                     )}
                   </AnimatePresence>
@@ -135,7 +162,7 @@ export default function Navbar() {
             {isLoggedIn ? (
               <Link 
                 href="/dashboard" 
-                className="px-6 py-2.5 text-[14px] font-semibold text-[#020617] bg-white rounded-full hover:bg-slate-200 transition-all duration-300 hover:scale-105 shadow-[0_4px_16px_rgba(255,255,255,0.1)] flex items-center gap-2"
+                className="px-6 py-2.5 text-[14px] font-semibold text-[#020617] bg-white rounded-full hover:bg-slate-200 transition-all duration-300 hover:scale-105 shadow-[0_2px_12px_rgba(255,255,255,0.1)] flex items-center gap-2"
               >
                 Dashboard
               </Link>
@@ -180,39 +207,39 @@ export default function Navbar() {
         </motion.nav>
       </header>
 
-      {/* 5. MOBILE MENU: Ultra-Glass Dropdown */}
+      {/* 5. MOBILE MENU: Refined Premium Floating Island */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <>
+            {/* Cinematic Backdrop with adaptive blur */}
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.4, ease: smoothEase }}
-              className="md:hidden fixed inset-0 z-30 bg-[#020617]/70 backdrop-blur-[24px] backdrop-saturate-150"
+              transition={{ duration: 0.4 }}
+              className="md:hidden fixed inset-0 z-30 bg-[#020617]/70 backdrop-blur-[16px] backdrop-saturate-150"
               onClick={() => setMobileMenuOpen(false)}
             />
 
+            {/* Floating Island Menu */}
             <motion.div 
-              initial={{ opacity: 0, y: -24, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -16, scale: 0.96 }}
-              transition={{ duration: 0.4, ease: smoothEase }}
-              className="md:hidden fixed top-[84px] left-4 right-4 z-40 flex flex-col p-2.5 bg-[#060b18]/80 border border-white/[0.08] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.06)] rounded-[28px] backdrop-blur-3xl"
+              initial="closed"
+              animate="open"
+              exit="exit"
+              variants={mobileMenuContainerVariants}
+              className="md:hidden fixed top-[80px] sm:top-[88px] left-4 right-4 z-40 flex flex-col p-2.5 bg-[#060b18]/95 border border-white/[0.08] shadow-[0_24px_64px_-16px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.04)] rounded-[26px] backdrop-blur-3xl overflow-hidden will-change-transform"
             >
-              <div className="flex flex-col gap-1 p-2">
-                {navLinks.map((link, i) => {
+              <div className="flex flex-col gap-1.5 p-2">
+                {navLinks.map((link) => {
                   const isActive = pathname === link.path;
                   return (
                     <motion.div 
-                      initial={{ opacity: 0, x: -12 }} 
-                      animate={{ opacity: 1, x: 0 }} 
-                      transition={{ delay: i * 0.05 + 0.1, ease: smoothEase }} 
+                      variants={mobileMenuItemVariants}
                       key={link.name}
                     >
                       <Link 
                         href={link.path} 
-                        className={`block text-[16px] font-semibold tracking-tight px-4 py-3.5 rounded-[18px] transition-all ${isActive ? 'bg-white/[0.08] text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]' : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'}`}
+                        className={`block text-[15px] sm:text-[16px] font-semibold tracking-tight px-5 py-3.5 rounded-[16px] transition-all duration-200 ease-out active:scale-[0.98] ${isActive ? 'bg-white/[0.08] text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]' : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'}`}
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         {link.name}
@@ -222,25 +249,33 @@ export default function Navbar() {
                 })}
               </div>
 
-              <div className="h-px w-[calc(100%-2rem)] mx-auto bg-gradient-to-r from-transparent via-white/[0.08] to-transparent my-2"></div>
+              {/* Staggered Separator */}
+              <motion.div 
+                variants={mobileMenuItemVariants}
+                className="h-px w-[calc(100%-2.5rem)] mx-auto bg-gradient-to-r from-transparent via-white/[0.08] to-transparent my-1.5"
+              />
 
               <motion.div 
-                initial={{ opacity: 0, y: 12 }} 
-                animate={{ opacity: 1, y: 0 }} 
-                transition={{ delay: 0.2, ease: smoothEase }}
-                className="flex flex-col gap-3 p-4 pt-2"
+                variants={mobileMenuItemVariants}
+                className="flex flex-col gap-3 p-4 pt-3"
               >
                 {isLoggedIn ? (
-                  <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="w-full flex justify-center items-center gap-2 text-center py-4 text-[15px] font-semibold text-[#020617] bg-white rounded-[20px] shadow-[0_2px_12px_rgba(255,255,255,0.15)] active:scale-[0.98] transition-transform">
+                  <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="w-full flex justify-center items-center gap-2 text-center py-3.5 text-[15px] sm:text-[16px] font-semibold text-[#020617] bg-white rounded-[18px] shadow-[0_2px_12px_rgba(255,255,255,0.15)] active:scale-[0.98] transition-transform duration-200 ease-out">
                     Dashboard
                   </Link>
                 ) : (
                   <>
-                    <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="w-full text-center py-3.5 text-[15px] font-medium text-slate-300 bg-white/[0.03] rounded-[20px] border border-white/[0.06] hover:bg-white/[0.08] transition-colors active:scale-[0.98]">
+                    <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="w-full text-center py-3.5 text-[15px] sm:text-[16px] font-medium text-slate-300 bg-white/[0.03] rounded-[18px] border border-white/[0.06] hover:bg-white/[0.06] transition-colors active:scale-[0.98] transition-transform duration-200 ease-out">
                       Log In
                     </Link>
-                    <Link href="/register" onClick={() => setMobileMenuOpen(false)} className="w-full text-center py-3.5 text-[15px] font-bold text-[#020617] bg-gradient-to-b from-[#4ade80] to-[#10b981] rounded-[20px] shadow-[0_4px_16px_rgba(16,185,129,0.3),inset_0_1px_1px_rgba(255,255,255,0.5)] active:scale-[0.98] transition-transform">
-                      Sign Up
+                    {/* Consistent Premium Mobile Button */}
+                    <Link 
+                      href="/register" 
+                      onClick={() => setMobileMenuOpen(false)} 
+                      className="relative group w-full text-center py-3.5 text-[15px] sm:text-[16px] font-bold text-[#020617] bg-gradient-to-b from-[#4ade80] to-[#10b981] rounded-[18px] shadow-[0_4px_16px_rgba(16,185,129,0.3),inset_0_1px_1px_rgba(255,255,255,0.5),inset_0_-2px_2px_rgba(0,0,0,0.15)] active:scale-[0.98] transition-transform duration-200 ease-out"
+                    >
+                      <div className="absolute inset-0 bg-white/20 rounded-[18px] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <span className="relative z-10 drop-shadow-[0_1px_1px_rgba(255,255,255,0.3)]">Sign Up</span>
                     </Link>
                   </>
                 )}
