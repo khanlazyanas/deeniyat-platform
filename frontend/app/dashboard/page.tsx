@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 
 interface Activity {
   id: string;
@@ -19,8 +19,8 @@ interface DashboardStats {
   recentActivities: Activity[];
 }
 
-// Advanced Animation Variants
-const containerVariants = {
+// Advanced Animation Variants with Explicit Typing to fix TS Error
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -28,13 +28,14 @@ const containerVariants = {
   }
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 20, filter: "blur(10px)" },
   visible: { 
     opacity: 1, 
     y: 0, 
     filter: "blur(0px)",
-    transition: { type: "spring", stiffness: 300, damping: 24 } 
+    // FIXED: Added 'as const' to prevent the generic string inference error
+    transition: { type: "spring" as const, stiffness: 300, damping: 24 } 
   }
 };
 
