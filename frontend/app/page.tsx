@@ -127,9 +127,10 @@ function HolographicCard({ children, className = "" }: { children: React.ReactNo
 // --- 3. MAIN PAGE COMPONENT ---
 export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
   
-  // Advanced Smooth Scroll Physics
-  const { scrollYProgress } = useScroll({ target: containerRef, offset: ["start start", "end start"] });
+  // Advanced Smooth Scroll Physics - bound to window scroll
+  const { scrollYProgress } = useScroll();
   const smoothProgress = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
 
   // Parallax transforms using smoothed progress
@@ -141,6 +142,7 @@ export default function Home() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   
   useEffect(() => {
+    setMounted(true);
     const handleGlobalMouseMove = (e: MouseEvent) => {
       setMousePosition({ 
         x: (e.clientX / window.innerWidth - 0.5) * 40, 
@@ -152,125 +154,135 @@ export default function Home() {
   }, []);
 
   return (
-    <main ref={containerRef} className="min-h-screen bg-[#010206] text-slate-50 flex flex-col font-sans selection:bg-emerald-500/30 selection:text-emerald-200 overflow-hidden relative perspective-[2000px]">
+    <main ref={containerRef} className="min-h-screen bg-[#010206] text-slate-50 flex flex-col font-sans selection:bg-emerald-500/30 selection:text-emerald-200 overflow-x-hidden relative perspective-[2000px]">
       
       {/* Top Progress Bar */}
-      <motion.div 
-        className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-blue-500 origin-left z-[100] shadow-[0_0_20px_rgba(52,211,153,0.5)]"
-        style={{ scaleX: smoothProgress }}
-      />
+      {mounted && (
+        <motion.div 
+          className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-blue-500 origin-left z-[100] shadow-[0_0_20px_rgba(52,211,153,0.5)]"
+          style={{ scaleX: smoothProgress }}
+        />
+      )}
 
       {/* GLOBAL BACKGROUND */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none"></div>
-      <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.025] mix-blend-overlay pointer-events-none z-0"></div>
+      <div className="fixed inset-0 bg-[url('[https://grainy-gradients.vercel.app/noise.svg](https://grainy-gradients.vercel.app/noise.svg)')] opacity-[0.025] mix-blend-overlay pointer-events-none z-0"></div>
 
       {/* --- INTERACTIVE 3D PARTICLES ENGINE --- */}
-      <motion.div 
-        className="fixed inset-0 overflow-hidden pointer-events-none z-10 transform-gpu"
-        animate={{ x: -mousePosition.x, y: -mousePosition.y }}
-        transition={{ type: "spring", stiffness: 50, damping: 30 }}
-      >
-        <motion.div variants={floatAnimation} animate="animate" className="absolute top-[15%] left-[20%] w-2 h-2 bg-emerald-400 rounded-full blur-[1px] shadow-[0_0_20px_rgba(52,211,153,1)] will-change-transform"></motion.div>
-        <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '1.5s' }} className="absolute top-[40%] right-[15%] w-3 h-3 bg-teal-400 rounded-full blur-[2px] shadow-[0_0_25px_rgba(45,212,191,1)] will-change-transform"></motion.div>
-        <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '3s' }} className="absolute top-[60%] left-[10%] w-1.5 h-1.5 bg-blue-400 rounded-full blur-[1px] shadow-[0_0_15px_rgba(59,130,246,1)] will-change-transform"></motion.div>
-        <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '0.8s' }} className="absolute bottom-[25%] right-[25%] w-2.5 h-2.5 bg-emerald-300 rounded-full blur-[1.5px] shadow-[0_0_20px_rgba(110,231,183,1)] will-change-transform"></motion.div>
-        <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '2.2s' }} className="absolute top-[25%] right-[30%] w-4 h-4 bg-teal-500 rounded-full blur-[4px] opacity-60 shadow-[0_0_30px_rgba(20,184,166,0.8)] will-change-transform"></motion.div>
-        <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '4.5s' }} className="absolute bottom-[40%] left-[30%] w-2 h-2 bg-white rounded-full blur-[1px] opacity-80 shadow-[0_0_15px_rgba(255,255,255,1)] will-change-transform"></motion.div>
-        
-        {/* Extra Premium Particles */}
-        <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '5s' }} className="absolute top-[35%] left-[5%] w-2 h-2 bg-purple-400 rounded-full blur-[1px] shadow-[0_0_15px_rgba(168,85,247,1)] will-change-transform"></motion.div>
-        <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '1.8s' }} className="absolute top-[55%] right-[25%] w-3 h-3 bg-emerald-400 rounded-full blur-[2px] shadow-[0_0_20px_rgba(52,211,153,0.9)] will-change-transform"></motion.div>
-        <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '0.9s' }} className="absolute top-[20%] left-[40%] w-5 h-5 bg-amber-500/20 rounded-full blur-[4px] shadow-[0_0_30px_rgba(245,158,11,0.4)] will-change-transform"></motion.div>
-      </motion.div>
+      {mounted && (
+        <motion.div 
+          className="fixed inset-0 overflow-visible pointer-events-none z-10 transform-gpu"
+          animate={{ x: -mousePosition.x, y: -mousePosition.y }}
+          transition={{ type: "spring", stiffness: 50, damping: 30 }}
+        >
+          <motion.div variants={floatAnimation} animate="animate" className="absolute top-[15%] left-[20%] w-2 h-2 bg-emerald-400 rounded-full blur-[1px] shadow-[0_0_20px_rgba(52,211,153,1)] will-change-transform"></motion.div>
+          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '1.5s' }} className="absolute top-[40%] right-[15%] w-3 h-3 bg-teal-400 rounded-full blur-[2px] shadow-[0_0_25px_rgba(45,212,191,1)] will-change-transform"></motion.div>
+          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '3s' }} className="absolute top-[60%] left-[10%] w-1.5 h-1.5 bg-blue-400 rounded-full blur-[1px] shadow-[0_0_15px_rgba(59,130,246,1)] will-change-transform"></motion.div>
+          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '0.8s' }} className="absolute bottom-[25%] right-[25%] w-2.5 h-2.5 bg-emerald-300 rounded-full blur-[1.5px] shadow-[0_0_20px_rgba(110,231,183,1)] will-change-transform"></motion.div>
+          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '2.2s' }} className="absolute top-[25%] right-[30%] w-4 h-4 bg-teal-500 rounded-full blur-[4px] opacity-60 shadow-[0_0_30px_rgba(20,184,166,0.8)] will-change-transform"></motion.div>
+          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '4.5s' }} className="absolute bottom-[40%] left-[30%] w-2 h-2 bg-white rounded-full blur-[1px] opacity-80 shadow-[0_0_15px_rgba(255,255,255,1)] will-change-transform"></motion.div>
+          
+          {/* Extra Premium Particles */}
+          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '5s' }} className="absolute top-[35%] left-[5%] w-2 h-2 bg-purple-400 rounded-full blur-[1px] shadow-[0_0_15px_rgba(168,85,247,1)] will-change-transform"></motion.div>
+          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '1.8s' }} className="absolute top-[55%] right-[25%] w-3 h-3 bg-emerald-400 rounded-full blur-[2px] shadow-[0_0_20px_rgba(52,211,153,0.9)] will-change-transform"></motion.div>
+          <motion.div variants={floatAnimation} animate="animate" style={{ animationDelay: '0.9s' }} className="absolute top-[20%] left-[40%] w-5 h-5 bg-amber-500/20 rounded-full blur-[4px] shadow-[0_0_30px_rgba(245,158,11,0.4)] will-change-transform"></motion.div>
+        </motion.div>
+      )}
 
       {/* --- 1. CINEMATIC HERO SECTION --- */}
       <section className="relative w-full min-h-screen flex flex-col items-center justify-center text-center px-4 sm:px-6 lg:px-8 overflow-hidden pt-24 pb-20">
         
-        <motion.div 
-          style={{ y: yBg, opacity: opacityBg }} 
-          className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none transform-gpu"
-        >
-          {/* Volumetric Orbs */}
+        {mounted && (
           <motion.div 
-            animate={{ scale: [1, 1.15, 1], opacity: [0.15, 0.25, 0.15], rotate: [0, 90, 0] }}
-            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-            className="absolute w-[60vw] sm:w-[900px] h-[60vw] sm:h-[900px] bg-emerald-600/20 rounded-full blur-[140px] mix-blend-screen will-change-transform"
-          />
-          <motion.div 
-            animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.2, 0.1], rotate: [0, -90, 0] }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear", delay: 2 }}
-            className="absolute w-[40vw] sm:w-[700px] h-[40vw] sm:h-[700px] bg-teal-800/20 rounded-full blur-[120px] mix-blend-screen translate-y-20 translate-x-32 will-change-transform"
-          />
-          
-          {/* Giant Arabic Watermark */}
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 3, ease: "easeOut" }}
-            className="absolute text-[25rem] sm:text-[45rem] font-serif text-white/[0.02] select-none tracking-widest z-0 transform -translate-y-24 drop-shadow-2xl will-change-transform mix-blend-overlay"
+            style={{ y: yBg, opacity: opacityBg }} 
+            className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none transform-gpu"
           >
-            اقْرَأْ
+            {/* Volumetric Orbs */}
+            <motion.div 
+              animate={{ scale: [1, 1.15, 1], opacity: [0.15, 0.25, 0.15], rotate: [0, 90, 0] }}
+              transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+              className="absolute w-[60vw] sm:w-[900px] h-[60vw] sm:h-[900px] bg-emerald-600/20 rounded-full blur-[140px] mix-blend-screen will-change-transform"
+            />
+            <motion.div 
+              animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.2, 0.1], rotate: [0, -90, 0] }}
+              transition={{ duration: 20, repeat: Infinity, ease: "linear", delay: 2 }}
+              className="absolute w-[40vw] sm:w-[700px] h-[40vw] sm:h-[700px] bg-teal-800/20 rounded-full blur-[120px] mix-blend-screen translate-y-20 translate-x-32 will-change-transform"
+            />
+            
+            {/* Giant Arabic Watermark */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 3, ease: "easeOut" }}
+              className="absolute text-[25rem] sm:text-[45rem] font-serif text-white/[0.02] select-none tracking-widest z-0 transform -translate-y-24 drop-shadow-2xl will-change-transform mix-blend-overlay"
+            >
+              اقْرَأْ
+            </motion.div>
           </motion.div>
-        </motion.div>
+        )}
 
         {/* Hero Content */}
-        <motion.div 
-          style={{ y: yText }}
-          initial="hidden" animate="visible" variants={staggerContainer}
-          className="relative z-20 max-w-5xl mx-auto flex flex-col items-center mt-12 pb-10 will-change-transform"
-        >
-          {/* Elite Badge */}
-          <motion.div variants={fadeInUp} className="group cursor-default mb-10 inline-flex flex-col items-center gap-2 px-10 py-5 rounded-full bg-[#030612]/80 border border-amber-500/30 backdrop-blur-3xl shadow-[0_16px_32px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.1)] hover:border-amber-400/80 hover:shadow-[0_0_40px_rgba(245,158,11,0.3)] transition-all duration-700">
-            <span className="relative z-10 text-2xl md:text-3xl font-serif text-amber-400/95 font-medium tracking-wider drop-shadow-[0_0_20px_rgba(245,158,11,0.8)]">
-              بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
-            </span>
-            <div className="relative z-10 flex items-center gap-4 mt-2">
-              <div className="h-px w-12 bg-gradient-to-r from-transparent to-amber-500/70"></div>
-              <span className="text-[10px] sm:text-xs font-black text-amber-200/90 tracking-[0.4em] uppercase drop-shadow-md">
-                In the name of Allah
+        {mounted && (
+          <motion.div 
+            style={{ y: yText }}
+            initial="hidden" animate="visible" variants={staggerContainer}
+            className="relative z-20 max-w-5xl mx-auto flex flex-col items-center mt-12 pb-10 will-change-transform"
+          >
+            {/* Elite Badge */}
+            <motion.div variants={fadeInUp} className="group cursor-default mb-10 inline-flex flex-col items-center gap-2 px-10 py-5 rounded-full bg-[#030612]/80 border border-amber-500/30 backdrop-blur-3xl shadow-[0_16px_32px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.1)] hover:border-amber-400/80 hover:shadow-[0_0_40px_rgba(245,158,11,0.3)] transition-all duration-700">
+              <span className="relative z-10 text-2xl md:text-3xl font-serif text-amber-400/95 font-medium tracking-wider drop-shadow-[0_0_20px_rgba(245,158,11,0.8)]">
+                بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
               </span>
-              <div className="h-px w-12 bg-gradient-to-l from-transparent to-amber-500/70"></div>
-            </div>
-          </motion.div>
+              <div className="relative z-10 flex items-center gap-4 mt-2">
+                <div className="h-px w-12 bg-gradient-to-r from-transparent to-amber-500/70"></div>
+                <span className="text-[10px] sm:text-xs font-black text-amber-200/90 tracking-[0.4em] uppercase drop-shadow-md">
+                  In the name of Allah
+                </span>
+                <div className="h-px w-12 bg-gradient-to-l from-transparent to-amber-500/70"></div>
+              </div>
+            </motion.div>
 
-          {/* Staggered Chromatic Headline */}
-          <h1 className="text-5xl sm:text-7xl md:text-[7.5rem] font-black text-white tracking-tighter leading-[1.05] mb-8 flex flex-wrap justify-center gap-x-5 drop-shadow-2xl">
-            {["Elevate", "Your", "Spiritual", "Journey"].map((word, i) => (
-              <motion.span 
-                key={i} variants={wordAnimation}
-                className={i >= 2 ? "text-transparent bg-clip-text bg-gradient-to-br from-emerald-300 via-teal-200 to-blue-400 drop-shadow-[0_0_60px_rgba(52,211,153,0.4)] relative inline-block" : "inline-block"}
-              >
-                {word}
-                {i === 3 && <span className="absolute -bottom-4 left-0 w-full h-6 bg-emerald-500/40 blur-2xl rounded-full z-0 pointer-events-none"></span>}
-              </motion.span>
-            ))}
-          </h1>
+            {/* Staggered Chromatic Headline */}
+            <h1 className="text-5xl sm:text-7xl md:text-[7.5rem] font-black text-white tracking-tighter leading-[1.05] mb-8 flex flex-wrap justify-center gap-x-5 drop-shadow-2xl">
+              {["Elevate", "Your", "Spiritual", "Journey"].map((word, i) => (
+                <motion.span 
+                  key={i} variants={wordAnimation}
+                  className={i >= 2 ? "text-transparent bg-clip-text bg-gradient-to-br from-emerald-300 via-teal-200 to-blue-400 drop-shadow-[0_0_60px_rgba(52,211,153,0.4)] relative inline-block" : "inline-block"}
+                >
+                  {word}
+                  {i === 3 && <span className="absolute -bottom-4 left-0 w-full h-6 bg-emerald-500/40 blur-2xl rounded-full z-0 pointer-events-none"></span>}
+                </motion.span>
+              ))}
+            </h1>
 
-          <motion.p variants={fadeInUp} className="max-w-3xl text-lg sm:text-2xl text-slate-300 mb-14 leading-relaxed font-light drop-shadow-lg mix-blend-screen">
-            Experience the profound beauty of Deen through an elite, immersive curriculum. Master <strong className="text-white font-bold drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">Quran, Fiqh, and Sunnah</strong> with world-class scholars.
-          </motion.p>
-          
-          {/* Magnetic CTA Buttons */}
-          <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-6 w-full sm:w-auto items-center mb-10">
-            <Link href="/courses" className="relative group px-14 py-6 text-[17px] font-black text-slate-950 bg-gradient-to-b from-emerald-400 to-teal-500 rounded-full overflow-hidden transition-all duration-500 hover:scale-[1.03] shadow-[0_0_60px_-15px_rgba(52,211,153,0.8),inset_0_1px_1px_rgba(255,255,255,0.8)] ring-1 ring-white/20 active:scale-95">
-              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>
-              <span className="relative flex items-center gap-3 uppercase tracking-widest">
-                Begin Your Path
-                <svg className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 8l4 4m0 0l-4-4m4-4H3" /></svg>
-              </span>
-            </Link>
+            <motion.p variants={fadeInUp} className="max-w-3xl text-lg sm:text-2xl text-slate-300 mb-14 leading-relaxed font-light drop-shadow-lg mix-blend-screen">
+              Experience the profound beauty of Deen through an elite, immersive curriculum. Master <strong className="text-white font-bold drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">Quran, Fiqh, and Sunnah</strong> with world-class scholars.
+            </motion.p>
             
-            <Link href="/dashboard" className="px-14 py-6 text-[17px] font-bold text-white bg-[#040814]/60 backdrop-blur-2xl border border-white/[0.08] rounded-full hover:bg-white/[0.05] hover:border-white/[0.2] transition-all duration-300 shadow-[0_16px_32px_rgba(0,0,0,0.5)] uppercase tracking-widest active:scale-95">
-              Enter Portal
-            </Link>
+            {/* Magnetic CTA Buttons */}
+            <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-6 w-full sm:w-auto items-center mb-10">
+              <Link href="/courses" className="relative group px-14 py-6 text-[17px] font-black text-slate-950 bg-gradient-to-b from-emerald-400 to-teal-500 rounded-full overflow-hidden transition-all duration-500 hover:scale-[1.03] shadow-[0_0_60px_-15px_rgba(52,211,153,0.8),inset_0_1px_1px_rgba(255,255,255,0.8)] ring-1 ring-white/20 active:scale-95">
+                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>
+                <span className="relative flex items-center gap-3 uppercase tracking-widest">
+                  Begin Your Path
+                  <svg className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 8l4 4m0 0l-4-4m4-4H3" /></svg>
+                </span>
+              </Link>
+              
+              <Link href="/dashboard" className="px-14 py-6 text-[17px] font-bold text-white bg-[#040814]/60 backdrop-blur-2xl border border-white/[0.08] rounded-full hover:bg-white/[0.05] hover:border-white/[0.2] transition-all duration-300 shadow-[0_16px_32px_rgba(0,0,0,0.5)] uppercase tracking-widest active:scale-95">
+                Enter Portal
+              </Link>
+            </motion.div>
           </motion.div>
-        </motion.div>
+        )}
 
         {/* Bouncing Discover Node */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2, duration: 1 }} className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-30">
-          <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 drop-shadow-md">Discover</span>
-          <motion.div animate={{ y: [0, 10, 0] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }} className="w-6 h-10 border-2 border-white/[0.1] rounded-full flex justify-center p-1.5 bg-[#010206]/50 backdrop-blur-md">
-            <div className="w-1.5 h-2.5 bg-emerald-400 rounded-full shadow-[0_0_12px_rgba(52,211,153,1)]"></div>
+        {mounted && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2, duration: 1 }} className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-30">
+            <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 drop-shadow-md">Discover</span>
+            <motion.div animate={{ y: [0, 10, 0] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }} className="w-6 h-10 border-2 border-white/[0.1] rounded-full flex justify-center p-1.5 bg-[#010206]/50 backdrop-blur-md">
+              <div className="w-1.5 h-2.5 bg-emerald-400 rounded-full shadow-[0_0_12px_rgba(52,211,153,1)]"></div>
+            </motion.div>
           </motion.div>
-        </motion.div>
+        )}
 
         <div className="absolute bottom-0 w-full h-64 bg-gradient-to-t from-[#010206] via-[#010206]/80 to-transparent z-10 pointer-events-none"></div>
       </section>
