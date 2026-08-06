@@ -4,6 +4,19 @@ import Link from "next/link";
 import { motion, Variants, useScroll, useTransform, useSpring, useMotionValue } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
 
+// --- GLOBAL STYLES & KEYFRAMES (Safe from VS Code parser bugs) ---
+const globalAnimations = `
+  @keyframes shimmer { 
+    100% { transform: translateX(200%); } 
+  }
+  @keyframes liquid-morph {
+    0% { border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; transform: rotate(0deg); }
+    33% { border-radius: 70% 30% 50% 50% / 30% 30% 70% 70%; transform: rotate(120deg); }
+    66% { border-radius: 100% 60% 60% 100% / 100% 100% 60% 60%; transform: rotate(240deg); }
+    100% { border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; transform: rotate(360deg); }
+  }
+`;
+
 // --- 1. Strict Framer Motion Variants ---
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 50, filter: "blur(15px)" },
@@ -424,16 +437,8 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* Global CSS for Animations */}
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes shimmer { 100% { transform: translateX(200%); } }
-        @keyframes liquid-morph {
-          0% { border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; transform: rotate(0deg); }
-          33% { border-radius: 70% 30% 50% 50% / 30% 30% 70% 70%; transform: rotate(120deg); }
-          66% { border-radius: 100% 60% 60% 100% / 100% 100% 60% 60%; transform: rotate(240deg); }
-          100% { border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; transform: rotate(360deg); }
-        }
-      `}} />
+      {/* Global CSS for Animations (Safe string format) */}
+      <style dangerouslySetInnerHTML={{ __html: globalAnimations }} />
     </main>
   );
 }
