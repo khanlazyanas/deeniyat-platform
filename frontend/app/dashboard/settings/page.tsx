@@ -12,7 +12,10 @@ export default function SettingsPage() {
   
   const [loading, setLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
-  const [message, setMessage] = useState({ type: "", text: "" });
+  
+  // Separated message states to avoid conflicts between forms
+  const [profileMessage, setProfileMessage] = useState({ type: "", text: "" });
+  const [passwordMessage, setPasswordMessage] = useState({ type: "", text: "" });
 
   // Load user data safely avoiding the "undefined" JSON bug
   useEffect(() => {
@@ -28,11 +31,11 @@ export default function SettingsPage() {
     }
   }, []);
 
-  // Handle Profile Update (Real API Call)
+  // Handle Profile Update
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setMessage({ type: "", text: "" });
+    setProfileMessage({ type: "", text: "" });
 
     try {
       const token = localStorage.getItem("token");
@@ -48,33 +51,40 @@ export default function SettingsPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage({ type: "success", text: "Profile updated successfully! ✨" });
+        setProfileMessage({ type: "success", text: "Profile updated successfully! ✨" });
         
-        // Safely update localStorage with new name
         const storedUser = localStorage.getItem("user");
         if (storedUser && storedUser !== "undefined") {
           const user = JSON.parse(storedUser);
-          user.name = data.name; // Update with the exact name from backend
+          user.name = data.name; 
           localStorage.setItem("user", JSON.stringify(user));
         }
       } else {
-        setMessage({ type: "error", text: data.message || "Failed to update profile." });
+        setProfileMessage({ type: "error", text: data.message || "Failed to update profile." });
       }
     } catch (error) {
-      setMessage({ type: "error", text: "Network Error. Failed to update profile." });
+      console.error("Profile update network error:", error);
+      setProfileMessage({ type: "error", text: "Network Error. Failed to update profile." });
     } finally {
       setLoading(false);
-      setTimeout(() => setMessage({ type: "", text: "" }), 4000);
+      setTimeout(() => setProfileMessage({ type: "", text: "" }), 4000);
     }
   };
 
-  // Handle Password Update (Real API Call)
+  // Handle Password Update
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentPassword || !newPassword) return;
 
+    // Basic frontend validation
+    if (newPassword.length < 6) {
+      setPasswordMessage({ type: "error", text: "New password must be at least 6 characters long." });
+      setTimeout(() => setPasswordMessage({ type: "", text: "" }), 4000);
+      return;
+    }
+
     setPasswordLoading(true);
-    setMessage({ type: "", text: "" });
+    setPasswordMessage({ type: "", text: "" });
 
     try {
       const token = localStorage.getItem("token");
@@ -90,17 +100,18 @@ export default function SettingsPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage({ type: "success", text: "Password changed successfully! 🔒" });
+        setPasswordMessage({ type: "success", text: "Password changed successfully! 🔒" });
         setCurrentPassword("");
         setNewPassword("");
       } else {
-        setMessage({ type: "error", text: data.message || "Failed to change password." });
+        setPasswordMessage({ type: "error", text: data.message || "Failed to change password." });
       }
     } catch (error) {
-      setMessage({ type: "error", text: "Network Error. Failed to change password." });
+      console.error("Password update network error:", error);
+      setPasswordMessage({ type: "error", text: "Network Error. Failed to change password." });
     } finally {
       setPasswordLoading(false);
-      setTimeout(() => setMessage({ type: "", text: "" }), 4000);
+      setTimeout(() => setPasswordMessage({ type: "", text: "" }), 4000);
     }
   };
 
@@ -119,14 +130,9 @@ export default function SettingsPage() {
           <p className="text-slate-400 font-light">Manage your personal information and security preferences.</p>
         </div>
 
-        {message.text && (
-          <div className={`mb-8 p-4 rounded-xl text-sm font-medium border ${message.type === 'success' ? 'bg-emerald-900/20 border-emerald-500/30 text-emerald-400' : 'bg-red-900/20 border-red-500/30 text-red-400'}`}>
-            {message.text}
-          </div>
-        )}
-
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           
+          {/* Sidebar */}
           <div className="md:col-span-1 space-y-2">
             <button className="w-full text-left px-5 py-3 rounded-xl bg-emerald-900/20 text-emerald-400 border border-emerald-500/30 font-semibold shadow-[0_0_15px_rgba(52,211,153,0.1)]">
               Personal Info & Security
@@ -136,10 +142,19 @@ export default function SettingsPage() {
             </button>
           </div>
 
+          {/* Main Content */}
           <div className="md:col-span-2 space-y-8">
             <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-[2rem] p-8 shadow-2xl">
               
+              {/* Profile Section */}
               <h3 className="text-xl font-bold text-white mb-6 border-b border-slate-800 pb-4">Personal Information</h3>
+              
+              {profileMessage.text && (
+                <div className={`mb-6 p-4 rounded-xl text-sm font-medium border ${profileMessage.type === 'success' ? 'bg-emerald-900/20 border-emerald-500/30 text-emerald-400' : 'bg-red-900/20 border-red-500/30 text-red-400'}`}>
+                  {profileMessage.text}
+                </div>
+              )}
+
               <form onSubmit={handleProfileUpdate} className="space-y-6 mb-12">
                 <div className="flex items-center gap-6">
                   <div className="w-20 h-20 rounded-full bg-slate-800 border-2 border-emerald-500/50 flex items-center justify-center text-2xl font-bold text-emerald-400 uppercase">
@@ -186,7 +201,15 @@ export default function SettingsPage() {
                 </div>
               </form>
 
+              {/* Security Section */}
               <h3 className="text-xl font-bold text-white mb-6 border-b border-slate-800 pb-4">Security</h3>
+              
+              {passwordMessage.text && (
+                <div className={`mb-6 p-4 rounded-xl text-sm font-medium border ${passwordMessage.type === 'success' ? 'bg-emerald-900/20 border-emerald-500/30 text-emerald-400' : 'bg-red-900/20 border-red-500/30 text-red-400'}`}>
+                  {passwordMessage.text}
+                </div>
+              )}
+
               <form onSubmit={handlePasswordUpdate} className="space-y-6">
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Current Password</label>
