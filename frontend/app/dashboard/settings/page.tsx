@@ -62,8 +62,9 @@ export default function SettingsPage() {
   // Holographic Card Config
   const cardRef = useRef<HTMLDivElement>(null);
   const cardSpringConfig = { damping: 40, stiffness: 250, mass: 0.5 };
-  const rotateX = useSpring(useTransform(smoothMouseY, [-50, 50], [2, -2]), cardSpringConfig);
-  const rotateY = useSpring(useTransform(smoothMouseX, [-50, 50], [-2, 2]), cardSpringConfig);
+  // Subtler rotation for a more premium, less dizzying feel
+  const rotateX = useSpring(useTransform(smoothMouseY, [-50, 50], [2.5, -2.5]), cardSpringConfig);
+  const rotateY = useSpring(useTransform(smoothMouseX, [-50, 50], [-2.5, 2.5]), cardSpringConfig);
   const [isHovered, setIsHovered] = useState(false);
   const [glarePosition, setGlarePosition] = useState({ x: 0, y: 0 });
 
@@ -244,36 +245,41 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Ambient Background Glows */}
-      <div className="absolute top-[10%] right-[10%] w-[500px] h-[500px] bg-emerald-900/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen animate-[pulse_10s_ease-in-out_infinite]"></div>
-      <div className="absolute bottom-[10%] left-[10%] w-[600px] h-[600px] bg-cyan-900/10 rounded-full blur-[140px] pointer-events-none mix-blend-screen animate-[pulse_15s_ease-in-out_infinite_reverse]"></div>
+      {/* Ambient Background Glows - intensified for depth */}
+      <div className="absolute top-[10%] right-[10%] w-[600px] h-[600px] bg-emerald-900/15 rounded-full blur-[140px] pointer-events-none mix-blend-screen animate-[pulse_10s_ease-in-out_infinite]"></div>
+      <div className="absolute bottom-[10%] left-[10%] w-[600px] h-[600px] bg-cyan-900/15 rounded-full blur-[140px] pointer-events-none mix-blend-screen animate-[pulse_15s_ease-in-out_infinite_reverse]"></div>
 
       <div className="max-w-5xl w-full mx-auto relative z-10 py-12">
         
         {/* Header Section */}
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-12">
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-14 text-center md:text-left">
           <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/[0.02] border border-white/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_4px_12px_rgba(0,0,0,0.2)] mb-6 backdrop-blur-xl">
-            <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,1)]"></span>
-            <span className="text-[11px] font-black text-slate-300 tracking-[0.3em] uppercase">Account Preferences</span>
+            <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-[pulse_2s_ease-in-out_infinite] shadow-[0_0_10px_rgba(52,211,153,1)]"></span>
+            <span className="text-[11px] font-black text-slate-300 tracking-[0.3em] uppercase">Account Operations</span>
           </div>
-          <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter mb-4 drop-shadow-md">Settings</h2>
-          <p className="text-slate-400 font-light text-[17px] mix-blend-screen max-w-xl">Manage your personal information, update security protocols, and control your notification preferences.</p>
+          <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter mb-4 drop-shadow-xl">Settings</h2>
+          <p className="text-slate-400 font-light text-[17px] mix-blend-screen max-w-xl mx-auto md:mx-0">Manage your digital identity, configure security protocols, and personalize your experience.</p>
         </motion.div>
 
         <div className="flex flex-col lg:flex-row gap-10">
           
-          {/* Sidebar */}
+          {/* Sidebar Navigation */}
           <motion.div 
-            initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
-            className="lg:w-72 shrink-0 space-y-4"
+            initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7, delay: 0.1, type: "spring", stiffness: 100 }}
+            className="lg:w-[300px] shrink-0 space-y-4"
           >
-            <button className="w-full flex items-center justify-between px-6 py-4 rounded-[1.25rem] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-black uppercase tracking-widest text-[11px] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_8px_16px_rgba(52,211,153,0.1)] transition-all">
-              <span>Personal Info & Security</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+            <button className="relative w-full flex items-center justify-between px-6 py-5 rounded-[1.5rem] bg-gradient-to-r from-emerald-500/10 to-transparent border border-emerald-500/30 text-emerald-400 font-black uppercase tracking-widest text-[12px] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_10px_20px_rgba(52,211,153,0.1)] transition-all overflow-hidden group">
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 rounded-l-[1.5rem] shadow-[0_0_10px_rgba(52,211,153,0.8)]"></div>
+              <span className="relative z-10 drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]">Profile & Security</span>
+              <svg className="w-5 h-5 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
             </button>
-            <button className="group w-full flex items-center justify-between px-6 py-4 rounded-[1.25rem] bg-white/[0.02] text-slate-400 border border-white/[0.04] hover:border-white/[0.1] hover:bg-white/[0.04] font-black uppercase tracking-widest text-[11px] transition-all">
-              <span className="group-hover:text-white transition-colors">Notifications</span>
-              <svg className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+            <button className="group w-full flex items-center justify-between px-6 py-5 rounded-[1.5rem] bg-[#030612]/60 backdrop-blur-md text-slate-400 border border-white/[0.04] hover:border-white/[0.12] hover:bg-white/[0.04] font-black uppercase tracking-widest text-[12px] transition-all duration-300 shadow-inner">
+              <span className="group-hover:text-slate-200 transition-colors">Notifications</span>
+              <svg className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+            </button>
+            <button className="group w-full flex items-center justify-between px-6 py-5 rounded-[1.5rem] bg-[#030612]/60 backdrop-blur-md text-slate-400 border border-white/[0.04] hover:border-white/[0.12] hover:bg-white/[0.04] font-black uppercase tracking-widest text-[12px] transition-all duration-300 shadow-inner">
+              <span className="group-hover:text-slate-200 transition-colors">Billing & Plans</span>
+              <svg className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
             </button>
           </motion.div>
 
@@ -281,115 +287,129 @@ export default function SettingsPage() {
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.2, type: "spring" }}
+            transition={{ duration: 0.7, delay: 0.2, type: "spring", bounce: 0.4 }}
             ref={cardRef}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
-            className="flex-1 relative bg-[#030612]/70 backdrop-blur-[40px] backdrop-saturate-[150%] border border-white/[0.06] rounded-[2.5rem] p-8 md:p-12 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.8),inset_0_1px_2px_rgba(255,255,255,0.1),inset_0_-1px_2px_rgba(0,0,0,0.5)] transition-colors duration-700 hover:border-white/[0.12] will-change-transform"
+            className="flex-1 relative bg-gradient-to-br from-[#030612]/90 to-[#02040b]/90 backdrop-blur-[60px] backdrop-saturate-[200%] border border-white/[0.08] rounded-[3rem] p-8 md:p-14 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),inset_0_1px_2px_rgba(255,255,255,0.15),inset_0_-1px_3px_rgba(0,0,0,0.4)] transition-all duration-500 hover:border-white/[0.15] will-change-transform"
           >
             {/* Dynamic Holographic Glare */}
             <div
-              className="pointer-events-none absolute -inset-px opacity-0 transition-opacity duration-500 z-0 mix-blend-color-dodge rounded-[2.5rem]"
+              className="pointer-events-none absolute -inset-px opacity-0 transition-opacity duration-500 z-0 mix-blend-color-dodge rounded-[3rem]"
               style={{
                 opacity: isHovered ? 1 : 0,
-                background: `radial-gradient(800px circle at ${glarePosition.x}px ${glarePosition.y}px, rgba(255,255,255,0.15), transparent 40%)`,
+                background: `radial-gradient(1000px circle at ${glarePosition.x}px ${glarePosition.y}px, rgba(255,255,255,0.12), transparent 40%)`,
               }}
             />
 
-            <div className="relative z-10 w-full h-full transform-gpu" style={{ transform: "translateZ(20px)" }}>
+            <div className="relative z-10 w-full h-full transform-gpu" style={{ transform: "translateZ(30px)" }}>
               
-              {/* Profile Section */}
-              <div className="flex items-center gap-4 mb-8 pb-6 border-b border-white/[0.04]">
-                <div className="w-12 h-12 rounded-[1rem] bg-gradient-to-br from-[#060d20] to-[#040814] border border-white/[0.08] flex items-center justify-center text-emerald-400 shadow-[0_8px_16px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.05)] shrink-0">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+              {/* Profile Section Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10 pb-8 border-b border-white/[0.05]">
+                <div className="flex items-center gap-5">
+                  <div className="w-14 h-14 rounded-[1.2rem] bg-gradient-to-br from-[#060d20] to-[#040814] border border-white/[0.08] flex items-center justify-center text-emerald-400 shadow-[0_8px_16px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.05)] shrink-0">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  </div>
+                  <h3 className="text-3xl font-black text-white tracking-tighter drop-shadow-md">Profile Configuration</h3>
                 </div>
-                <h3 className="text-2xl font-black text-white tracking-tighter">Personal Information</h3>
               </div>
               
               <AnimatePresence>
                 {profileMessage.text && (
                   <motion.div 
-                    initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                    className={`mb-8 p-4 rounded-[1.25rem] text-[13px] font-bold tracking-wide border flex items-center gap-3 ${profileMessage.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-[inset_0_1px_1px_rgba(52,211,153,0.2)]' : 'bg-red-500/10 border-red-500/30 text-red-400 shadow-[inset_0_1px_1px_rgba(239,68,68,0.2)]'}`}
+                    initial={{ opacity: 0, height: 0, scale: 0.95 }} animate={{ opacity: 1, height: 'auto', scale: 1 }} exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                    className={`mb-8 p-5 rounded-[1.5rem] text-[14px] font-bold tracking-wide border flex items-center gap-4 ${profileMessage.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-[inset_0_1px_1px_rgba(52,211,153,0.2)]' : 'bg-red-500/10 border-red-500/30 text-red-400 shadow-[inset_0_1px_1px_rgba(239,68,68,0.2)]'}`}
                   >
                     {profileMessage.type === 'success' ? (
-                        <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                        <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
                     ) : (
-                        <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     )}
                     {profileMessage.text}
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              <form onSubmit={handleProfileUpdate} className="space-y-8 mb-16">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 p-6 rounded-[2rem] bg-[#010206]/50 border border-white/[0.04] shadow-inner">
-                  <div className="w-24 h-24 rounded-full bg-[#020510] border border-white/[0.08] flex items-center justify-center text-3xl font-black text-emerald-400 uppercase shadow-[0_0_20px_rgba(52,211,153,0.2)] shrink-0">
-                    {name ? name.charAt(0) : "U"}
+              <form onSubmit={handleProfileUpdate} className="space-y-10 mb-20">
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-8 p-8 rounded-[2.5rem] bg-gradient-to-r from-white/[0.02] to-transparent border border-white/[0.04] shadow-inner relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
+                  
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-xl group-hover:bg-emerald-500/30 transition-all duration-700"></div>
+                    <div className="relative w-28 h-28 rounded-full bg-gradient-to-br from-[#060d20] to-[#040814] border-2 border-emerald-500/40 flex items-center justify-center text-4xl font-black text-emerald-400 uppercase shadow-[0_0_30px_rgba(52,211,153,0.3),inset_0_2px_4px_rgba(255,255,255,0.1)] shrink-0 z-10 group-hover:scale-105 transition-transform duration-500">
+                        {name ? name.charAt(0) : "U"}
+                    </div>
                   </div>
-                  <div>
-                    <button type="button" className="px-6 py-2.5 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.08] hover:border-emerald-500/50 text-white text-[11px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 mb-3 block">
-                      Change Avatar
+                  
+                  <div className="text-center sm:text-left z-10 pt-2">
+                    <button type="button" className="px-8 py-3.5 bg-white/[0.03] hover:bg-emerald-500/10 border border-white/[0.08] hover:border-emerald-500/50 text-slate-200 hover:text-emerald-400 text-[12px] font-black uppercase tracking-widest rounded-full transition-all duration-300 mb-4 block mx-auto sm:mx-0 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] active:scale-95">
+                      Upload Avatar
                     </button>
-                    <p className="text-[12px] text-slate-500 font-medium">JPG, GIF or PNG. Max size of 2MB.</p>
+                    <p className="text-[12px] text-slate-500 font-bold uppercase tracking-wider">Format: JPG, PNG • Max: 2MB</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div>
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Full Name</label>
+                  <div className="group/input">
+                    <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 group-focus-within/input:text-emerald-400 transition-colors">Legal Name</label>
                     <input 
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1.25rem] px-5 py-4 focus:bg-[#020510] focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all duration-300 text-slate-200 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-bold"
+                      className="w-full bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1.5rem] px-6 py-5 focus:bg-[#020510] focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all duration-300 text-slate-200 shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] font-bold text-lg"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Email Address</label>
+                    <label className="block text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Email Address</label>
                     <input 
                       type="email"
                       value={email}
                       disabled
-                      className="w-full bg-[#010206]/40 border border-white/[0.02] text-slate-500 rounded-[1.25rem] px-5 py-4 outline-none cursor-not-allowed shadow-[inset_0_1px_2px_rgba(0,0,0,0.2)] font-bold"
+                      className="w-full bg-[#010206]/40 border border-white/[0.02] text-slate-600 rounded-[1.5rem] px-6 py-5 outline-none cursor-not-allowed shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)] font-bold text-lg opacity-70"
                     />
-                    <p className="text-[10px] text-amber-500/80 font-bold uppercase tracking-wider mt-3 pl-2">Email address cannot be changed.</p>
+                    <p className="text-[11px] text-amber-500/80 font-bold uppercase tracking-widest mt-3 pl-2 flex items-center gap-2">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                        Identity bound to email.
+                    </p>
                   </div>
                 </div>
 
-                <div className="pt-2 flex justify-end">
+                <div className="pt-6 flex justify-end">
                   <button 
                     type="submit"
                     disabled={loading}
-                    className="group relative px-10 py-4 bg-white/[0.03] border border-white/[0.08] hover:border-emerald-500/50 hover:bg-emerald-500/10 text-emerald-400 text-[12px] font-black uppercase tracking-widest rounded-[1.25rem] transition-all duration-300 disabled:opacity-50 overflow-hidden"
+                    className="group/btn relative px-12 py-5 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 hover:from-emerald-500 hover:to-teal-500 border border-emerald-500/30 text-emerald-400 hover:text-[#010206] text-[13px] font-black uppercase tracking-widest rounded-[1.5rem] transition-all duration-500 disabled:opacity-50 overflow-hidden shadow-[0_0_20px_rgba(52,211,153,0.1),inset_0_1px_1px_rgba(255,255,255,0.1)] active:scale-95"
                   >
-                    <span className="relative z-10 flex items-center gap-2">
-                        {loading ? "Saving..." : "Save Profile"}
-                        {!loading && <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>}
+                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-500 ease-out"></div>
+                    <span className="relative z-10 flex items-center gap-3">
+                        {loading ? "Syncing..." : "Update Profile"}
+                        {!loading && <svg className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                     </span>
                   </button>
                 </div>
               </form>
 
               {/* Security Section */}
-              <div className="flex items-center gap-4 mb-8 pb-6 border-b border-white/[0.04]">
-                <div className="w-12 h-12 rounded-[1rem] bg-gradient-to-br from-[#060d20] to-[#040814] border border-white/[0.08] flex items-center justify-center text-rose-400 shadow-[0_8px_16px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.05)] shrink-0">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10 pb-8 border-b border-white/[0.05]">
+                <div className="flex items-center gap-5">
+                  <div className="w-14 h-14 rounded-[1.2rem] bg-gradient-to-br from-[#060d20] to-[#040814] border border-white/[0.08] flex items-center justify-center text-rose-400 shadow-[0_8px_16px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.05)] shrink-0">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                  </div>
+                  <h3 className="text-3xl font-black text-white tracking-tighter drop-shadow-md">Authentication</h3>
                 </div>
-                <h3 className="text-2xl font-black text-white tracking-tighter">Security Protocols</h3>
               </div>
               
               <AnimatePresence>
                 {passwordMessage.text && (
                   <motion.div 
-                    initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                    className={`mb-8 p-4 rounded-[1.25rem] text-[13px] font-bold tracking-wide border flex items-center gap-3 ${passwordMessage.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-[inset_0_1px_1px_rgba(52,211,153,0.2)]' : 'bg-red-500/10 border-red-500/30 text-red-400 shadow-[inset_0_1px_1px_rgba(239,68,68,0.2)]'}`}
+                    initial={{ opacity: 0, height: 0, scale: 0.95 }} animate={{ opacity: 1, height: 'auto', scale: 1 }} exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                    className={`mb-8 p-5 rounded-[1.5rem] text-[14px] font-bold tracking-wide border flex items-center gap-4 ${passwordMessage.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-[inset_0_1px_1px_rgba(52,211,153,0.2)]' : 'bg-red-500/10 border-red-500/30 text-red-400 shadow-[inset_0_1px_1px_rgba(239,68,68,0.2)]'}`}
                   >
                     {passwordMessage.type === 'success' ? (
-                        <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                        <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
                     ) : (
-                        <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     )}
                     {passwordMessage.text}
                   </motion.div>
@@ -398,37 +418,38 @@ export default function SettingsPage() {
 
               <form onSubmit={handlePasswordUpdate} className="space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div>
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Current Password</label>
-                    <input 
-                        type="password"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1.25rem] px-5 py-4 focus:bg-[#020510] focus:ring-1 focus:ring-rose-500/50 focus:border-rose-500/50 outline-none transition-all duration-300 text-slate-200 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-bold placeholder-slate-600"
-                    />
+                    <div className="group/input">
+                        <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 group-focus-within/input:text-rose-400 transition-colors">Current Key</label>
+                        <input 
+                            type="password"
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            placeholder="••••••••"
+                            className="w-full bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1.5rem] px-6 py-5 focus:bg-[#020510] focus:ring-1 focus:ring-rose-500/50 focus:border-rose-500/50 outline-none transition-all duration-300 text-slate-200 shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] font-bold text-lg placeholder-slate-700 tracking-[0.2em]"
+                        />
                     </div>
-                    <div>
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">New Password</label>
-                    <input 
-                        type="password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1.25rem] px-5 py-4 focus:bg-[#020510] focus:ring-1 focus:ring-rose-500/50 focus:border-rose-500/50 outline-none transition-all duration-300 text-slate-200 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-bold placeholder-slate-600"
-                    />
+                    <div className="group/input">
+                        <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 group-focus-within/input:text-rose-400 transition-colors">New Key</label>
+                        <input 
+                            type="password"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder="••••••••"
+                            className="w-full bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1.5rem] px-6 py-5 focus:bg-[#020510] focus:ring-1 focus:ring-rose-500/50 focus:border-rose-500/50 outline-none transition-all duration-300 text-slate-200 shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] font-bold text-lg placeholder-slate-700 tracking-[0.2em]"
+                        />
                     </div>
                 </div>
 
-                <div className="pt-2 flex justify-end">
+                <div className="pt-6 flex justify-end">
                   <button 
                     type="submit"
                     disabled={passwordLoading || !currentPassword || !newPassword}
-                    className="group relative px-10 py-4 bg-gradient-to-r from-rose-500/10 to-red-600/10 hover:from-rose-500 hover:to-red-600 border border-rose-500/30 text-rose-400 hover:text-white text-[12px] font-black uppercase tracking-widest rounded-[1.25rem] transition-all duration-500 disabled:opacity-50 overflow-hidden shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
+                    className="group/btn relative px-12 py-5 bg-gradient-to-r from-rose-500/10 to-red-600/10 hover:from-rose-500 hover:to-red-600 border border-rose-500/30 text-rose-400 hover:text-white text-[13px] font-black uppercase tracking-widest rounded-[1.5rem] transition-all duration-500 disabled:opacity-50 overflow-hidden shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] active:scale-95"
                   >
-                    <span className="relative z-10 flex items-center gap-2">
-                        {passwordLoading ? "Updating..." : "Update Password"}
-                        {!passwordLoading && <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>}
+                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-500 ease-out"></div>
+                    <span className="relative z-10 flex items-center gap-3">
+                        {passwordLoading ? "Encrypting..." : "Change Password"}
+                        {!passwordLoading && <svg className="w-5 h-5 group-hover/btn:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>}
                     </span>
                   </button>
                 </div>
@@ -439,7 +460,6 @@ export default function SettingsPage() {
         </div>
       </div>
       
-      {/* Global CSS for Animations */}
       <style dangerouslySetInnerHTML={{ __html: globalAnimations }} />
     </div>
   );
