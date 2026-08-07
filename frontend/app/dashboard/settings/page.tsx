@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
 
-// --- GLOBAL STYLES (Safe from VS Code parser bugs) ---
+// --- GLOBAL STYLES ---
 const globalAnimations = `
   .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -34,6 +34,11 @@ export default function SettingsPage() {
   const [email, setEmail] = useState("");
   const [mounted, setMounted] = useState(false);
   
+  // --- NEW: AVATAR STATES ---
+  const [avatarUrl, setAvatarUrl] = useState<string>(""); 
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   // Password States
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -41,7 +46,6 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   
-  // Separated message states to avoid conflicts between forms
   const [profileMessage, setProfileMessage] = useState({ type: "", text: "" });
   const [passwordMessage, setPasswordMessage] = useState({ type: "", text: "" });
 
@@ -59,15 +63,14 @@ export default function SettingsPage() {
   const bgX = useTransform(smoothMouseX, (v) => v * 0.3);
   const bgY = useTransform(smoothMouseY, (v) => v * 0.3);
 
-  // Holographic Card Config
   const cardRef = useRef<HTMLDivElement>(null);
   const cardSpringConfig = { damping: 40, stiffness: 250, mass: 0.5 };
-  // Subtler rotation for a more premium, less dizzying feel
   const rotateX = useSpring(useTransform(smoothMouseY, [-50, 50], [2.5, -2.5]), cardSpringConfig);
   const rotateY = useSpring(useTransform(smoothMouseX, [-50, 50], [-2.5, 2.5]), cardSpringConfig);
   const [isHovered, setIsHovered] = useState(false);
   const [glarePosition, setGlarePosition] = useState({ x: 0, y: 0 });
 
+  // Fetch initial data
   useEffect(() => {
     setMounted(true);
     try {
@@ -76,9 +79,10 @@ export default function SettingsPage() {
         const user = JSON.parse(storedUser);
         setName(user.name || "");
         setEmail(user.email || "");
+        setAvatarUrl(user.avatar || ""); // Backend se jo avatar URL aayega
       }
     } catch (error) {
-      console.error("Error parsing user data from localStorage:", error);
+      console.error("Error parsing user data:", error);
     }
 
     const handleGlobalMouseMove = (e: MouseEvent) => {
@@ -89,10 +93,7 @@ export default function SettingsPage() {
 
       if (cardRef.current && isHovered) {
         const rect = cardRef.current.getBoundingClientRect();
-        setGlarePosition({ 
-          x: e.clientX - rect.left, 
-          y: e.clientY - rect.top 
-        });
+        setGlarePosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
       }
     };
     
@@ -100,7 +101,22 @@ export default function SettingsPage() {
     return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
   }, [mouseX, mouseY, isHovered]);
 
-  // Handle Profile Update
+  // --- NEW: HANDLE FILE SELECTION ---
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Basic validation (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        setProfileMessage({ type: "error", text: "Image size must be less than 2MB." });
+        setTimeout(() => setProfileMessage({ type: "", text: "" }), 4000);
+        return;
+      }
+      setAvatarFile(file);
+      setAvatarUrl(URL.createObjectURL(file)); // Show instant preview
+    }
+  };
+
+  // --- REVISED: HANDLE PROFILE UPDATE (FormData integration for Images) ---
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -108,39 +124,55 @@ export default function SettingsPage() {
 
     try {
       const token = localStorage.getItem("token");
+      
+      // Use FormData to send text AND files to Multer/backend
+      const formData = new FormData();
+      formData.append("name", name);
+      if (avatarFile) {
+        formData.append("avatar", avatarFile); 
+      }
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/profile`, {
         method: "PUT",
         headers: {
-          "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
+          // DO NOT SET "Content-Type": "application/json" HERE. 
+          // Browser will auto-set "multipart/form-data" with correct boundaries for FormData.
         },
-        body: JSON.stringify({ name })
+        body: formData 
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setProfileMessage({ type: "success", text: "Profile updated successfully! ✨" });
+        setProfileMessage({ type: "success", text: "Profile & Avatar updated successfully! ✨" });
         
+        // Safely sync local storage with new backend data
         const storedUser = localStorage.getItem("user");
         if (storedUser && storedUser !== "undefined") {
           const user = JSON.parse(storedUser);
-          user.name = data.name; 
+          user.name = data.user?.name || data.name || name; 
+          
+          if (data.user?.avatar || data.avatar) {
+              user.avatar = data.user?.avatar || data.avatar;
+              setAvatarUrl(user.avatar); // Final URL from DB (Cloudinary/S3 etc)
+          }
+          
           localStorage.setItem("user", JSON.stringify(user));
         }
       } else {
         setProfileMessage({ type: "error", text: data.message || "Failed to update profile." });
       }
     } catch (error) {
-      console.error("Profile update network error:", error);
-      setProfileMessage({ type: "error", text: "Network Error. Failed to update profile." });
+      console.error("Profile update error:", error);
+      setProfileMessage({ type: "error", text: "Network Error. Check server connection." });
     } finally {
       setLoading(false);
-      setTimeout(() => setProfileMessage({ type: "", text: "" }), 4000);
+      setTimeout(() => setProfileMessage({ type: "", text: "" }), 5000);
     }
   };
 
-  // Handle Password Update
+  // Handle Password Update (Remains application/json as no files involved)
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentPassword || !newPassword) return;
@@ -175,8 +207,8 @@ export default function SettingsPage() {
         setPasswordMessage({ type: "error", text: data.message || "Failed to change password." });
       }
     } catch (error) {
-      console.error("Password update network error:", error);
-      setPasswordMessage({ type: "error", text: "Network Error. Failed to change password." });
+      console.error("Password update error:", error);
+      setPasswordMessage({ type: "error", text: "Network Error. Check server connection." });
     } finally {
       setPasswordLoading(false);
       setTimeout(() => setPasswordMessage({ type: "", text: "" }), 4000);
@@ -245,7 +277,7 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Ambient Background Glows - intensified for depth */}
+      {/* Ambient Background Glows */}
       <div className="absolute top-[10%] right-[10%] w-[600px] h-[600px] bg-emerald-900/15 rounded-full blur-[140px] pointer-events-none mix-blend-screen animate-[pulse_10s_ease-in-out_infinite]"></div>
       <div className="absolute bottom-[10%] left-[10%] w-[600px] h-[600px] bg-cyan-900/15 rounded-full blur-[140px] pointer-events-none mix-blend-screen animate-[pulse_15s_ease-in-out_infinite_reverse]"></div>
 
@@ -275,10 +307,6 @@ export default function SettingsPage() {
             </button>
             <button className="group w-full flex items-center justify-between px-6 py-5 rounded-[1.5rem] bg-[#030612]/60 backdrop-blur-md text-slate-400 border border-white/[0.04] hover:border-white/[0.12] hover:bg-white/[0.04] font-black uppercase tracking-widest text-[12px] transition-all duration-300 shadow-inner">
               <span className="group-hover:text-slate-200 transition-colors">Notifications</span>
-              <svg className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
-            </button>
-            <button className="group w-full flex items-center justify-between px-6 py-5 rounded-[1.5rem] bg-[#030612]/60 backdrop-blur-md text-slate-400 border border-white/[0.04] hover:border-white/[0.12] hover:bg-white/[0.04] font-black uppercase tracking-widest text-[12px] transition-all duration-300 shadow-inner">
-              <span className="group-hover:text-slate-200 transition-colors">Billing & Plans</span>
               <svg className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
             </button>
           </motion.div>
@@ -335,16 +363,36 @@ export default function SettingsPage() {
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-8 p-8 rounded-[2.5rem] bg-gradient-to-r from-white/[0.02] to-transparent border border-white/[0.04] shadow-inner relative overflow-hidden group">
                   <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
                   
+                  {/* Avatar Upload Container */}
                   <div className="relative">
                     <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-xl group-hover:bg-emerald-500/30 transition-all duration-700"></div>
-                    <div className="relative w-28 h-28 rounded-full bg-gradient-to-br from-[#060d20] to-[#040814] border-2 border-emerald-500/40 flex items-center justify-center text-4xl font-black text-emerald-400 uppercase shadow-[0_0_30px_rgba(52,211,153,0.3),inset_0_2px_4px_rgba(255,255,255,0.1)] shrink-0 z-10 group-hover:scale-105 transition-transform duration-500">
-                        {name ? name.charAt(0) : "U"}
+                    
+                    {/* Render Avatar Image or Placeholder text */}
+                    <div className="relative w-28 h-28 rounded-full bg-gradient-to-br from-[#060d20] to-[#040814] border-2 border-emerald-500/40 flex items-center justify-center text-4xl font-black text-emerald-400 uppercase shadow-[0_0_30px_rgba(52,211,153,0.3),inset_0_2px_4px_rgba(255,255,255,0.1)] shrink-0 z-10 group-hover:scale-105 transition-transform duration-500 overflow-hidden">
+                        {avatarUrl ? (
+                            <img src={avatarUrl} alt="Avatar Preview" className="w-full h-full object-cover" />
+                        ) : (
+                            name ? name.charAt(0) : "U"
+                        )}
                     </div>
                   </div>
                   
                   <div className="text-center sm:text-left z-10 pt-2">
-                    <button type="button" className="px-8 py-3.5 bg-white/[0.03] hover:bg-emerald-500/10 border border-white/[0.08] hover:border-emerald-500/50 text-slate-200 hover:text-emerald-400 text-[12px] font-black uppercase tracking-widest rounded-full transition-all duration-300 mb-4 block mx-auto sm:mx-0 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] active:scale-95">
-                      Upload Avatar
+                    {/* Hidden File Input */}
+                    <input 
+                       type="file" 
+                       accept="image/jpeg, image/png, image/gif" 
+                       hidden 
+                       ref={fileInputRef} 
+                       onChange={handleFileChange} 
+                    />
+                    {/* Button triggers the hidden input */}
+                    <button 
+                      type="button" 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-8 py-3.5 bg-white/[0.03] hover:bg-emerald-500/10 border border-white/[0.08] hover:border-emerald-500/50 text-slate-200 hover:text-emerald-400 text-[12px] font-black uppercase tracking-widest rounded-full transition-all duration-300 mb-4 block mx-auto sm:mx-0 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] active:scale-95"
+                    >
+                      {avatarFile ? "Change Image" : "Upload Avatar"}
                     </button>
                     <p className="text-[12px] text-slate-500 font-bold uppercase tracking-wider">Format: JPG, PNG • Max: 2MB</p>
                   </div>
@@ -383,7 +431,7 @@ export default function SettingsPage() {
                   >
                     <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-500 ease-out"></div>
                     <span className="relative z-10 flex items-center gap-3">
-                        {loading ? "Syncing..." : "Update Profile"}
+                        {loading ? "Syncing Data..." : "Update Profile"}
                         {!loading && <svg className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                     </span>
                   </button>
