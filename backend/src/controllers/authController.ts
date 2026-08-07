@@ -53,6 +53,7 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      avatar: user.avatar, // Added avatar in login response
       token: generateToken(user.id),
     });
   } else {
@@ -60,14 +61,22 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
   }
 });
 
-// @desc    Update user profile (Name)
+// @desc    Update user profile (Name and Avatar)
 // @route   PUT /api/v1/auth/profile
 // @access  Private
 export const updateProfile = catchAsync(async (req: any, res: Response) => {
   const user = await User.findById(req.user._id);
 
   if (user) {
+    // Update name if provided
     user.name = req.body.name || user.name;
+
+    // Check if a file was uploaded by Multer
+    if (req.file) {
+      // Create a relative path to store in DB
+      user.avatar = `/uploads/${req.file.filename}`; 
+    }
+
     const updatedUser = await user.save();
 
     res.json({
@@ -75,6 +84,7 @@ export const updateProfile = catchAsync(async (req: any, res: Response) => {
       name: updatedUser.name,
       email: updatedUser.email,
       role: updatedUser.role,
+      avatar: updatedUser.avatar, // Send back the updated avatar URL
     });
   } else {
     res.status(404);

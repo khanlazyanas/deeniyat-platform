@@ -7,6 +7,7 @@ export interface IUser extends Document {
   password: string;
   role: 'Admin' | 'Ustad' | 'Student';
   profileImage?: string;
+  avatar?: string;
 }
 
 // Mongoose Schema
@@ -38,6 +39,10 @@ const userSchema = new Schema<IUser>(
       type: String,
       default: '',
     },
+    avatar: {
+  type: String,
+  default: "", // Default empty string
+},
   },
   {
     timestamps: true, // Yeh database mein createdAt aur updatedAt ki details apne aap save karega
