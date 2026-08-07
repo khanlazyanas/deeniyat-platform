@@ -82,8 +82,8 @@ export default function SubmitAssignmentPage() {
   const bgX = useTransform(smoothMouseX, (v) => v * 0.3);
   const bgY = useTransform(smoothMouseY, (v) => v * 0.3);
 
-  // Holographic Card Config
-  const cardRef = useRef<HTMLDivElement>(null);
+  // Holographic Card Config - FIXED: HTMLFormElement instead of HTMLDivElement
+  const cardRef = useRef<HTMLFormElement>(null); 
   const cardSpringConfig = { damping: 40, stiffness: 250, mass: 0.5 };
   const rotateX = useSpring(useTransform(smoothMouseY, [-50, 50], [4, -4]), cardSpringConfig);
   const rotateY = useSpring(useTransform(smoothMouseX, [-50, 50], [-4, 4]), cardSpringConfig);
