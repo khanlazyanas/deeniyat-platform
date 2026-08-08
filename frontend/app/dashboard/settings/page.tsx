@@ -164,10 +164,13 @@ export default function SettingsPage() {
         const storedUser = localStorage.getItem("user");
         if (storedUser && storedUser !== "undefined") {
           const user = JSON.parse(storedUser);
-          user.name = data.user?.name || data.name || name; 
           
-          if (data.user?.avatar || data.avatar) {
-              user.avatar = data.user?.avatar || data.avatar;
+        
+          user.name = data.name || name; 
+          
+          
+          if (data.avatar) {
+              user.avatar = data.avatar;
               setAvatarUrl(user.avatar); // Final URL from DB 
           }
           
