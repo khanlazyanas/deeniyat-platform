@@ -29,6 +29,20 @@ const generateBubbles = (count: number) => {
 
 const ambientBubbles = generateBubbles(45);
 
+// --- NEW HELPER: GET FULL IMAGE URL ---
+// Ye function ensure karega ki image humesha backend server se fetch ho (e.g., http://localhost:5000/uploads/...)
+const getFullImageUrl = (url: string) => {
+  if (!url) return "";
+  if (url.startsWith("http") || url.startsWith("blob")) return url;
+  
+  // Apne API URL se base part nikalo (e.g., "http://localhost:5000" instead of "http://localhost:5000/api/v1")
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL 
+      ? new URL(process.env.NEXT_PUBLIC_API_URL).origin 
+      : "http://localhost:5000"; // Fallback to your backend port
+      
+  return `${baseUrl}${url}`;
+};
+
 export default function SettingsPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -79,7 +93,7 @@ export default function SettingsPage() {
         const user = JSON.parse(storedUser);
         setName(user.name || "");
         setEmail(user.email || "");
-        setAvatarUrl(user.avatar || ""); // Backend se jo avatar URL aayega
+        setAvatarUrl(user.avatar || ""); // Set backend URL (which we will format in the render method)
       }
     } catch (error) {
       console.error("Error parsing user data:", error);
@@ -137,7 +151,6 @@ export default function SettingsPage() {
         headers: {
           "Authorization": `Bearer ${token}`
           // DO NOT SET "Content-Type": "application/json" HERE. 
-          // Browser will auto-set "multipart/form-data" with correct boundaries for FormData.
         },
         body: formData 
       });
@@ -145,7 +158,7 @@ export default function SettingsPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setProfileMessage({ type: "success", text: "Profile & Avatar updated successfully! ✨" });
+        setProfileMessage({ type: "success", text: "Profile updated successfully! ✨" });
         
         // Safely sync local storage with new backend data
         const storedUser = localStorage.getItem("user");
@@ -155,7 +168,7 @@ export default function SettingsPage() {
           
           if (data.user?.avatar || data.avatar) {
               user.avatar = data.user?.avatar || data.avatar;
-              setAvatarUrl(user.avatar); // Final URL from DB (Cloudinary/S3 etc)
+              setAvatarUrl(user.avatar); // Final URL from DB 
           }
           
           localStorage.setItem("user", JSON.stringify(user));
@@ -172,7 +185,7 @@ export default function SettingsPage() {
     }
   };
 
-  // Handle Password Update (Remains application/json as no files involved)
+  // Handle Password Update 
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentPassword || !newPassword) return;
@@ -367,10 +380,10 @@ export default function SettingsPage() {
                   <div className="relative">
                     <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-xl group-hover:bg-emerald-500/30 transition-all duration-700"></div>
                     
-                    {/* Render Avatar Image or Placeholder text */}
+                    {/* Render Avatar Image with getFullImageUrl Helper */}
                     <div className="relative w-28 h-28 rounded-full bg-gradient-to-br from-[#060d20] to-[#040814] border-2 border-emerald-500/40 flex items-center justify-center text-4xl font-black text-emerald-400 uppercase shadow-[0_0_30px_rgba(52,211,153,0.3),inset_0_2px_4px_rgba(255,255,255,0.1)] shrink-0 z-10 group-hover:scale-105 transition-transform duration-500 overflow-hidden">
                         {avatarUrl ? (
-                            <img src={avatarUrl} alt="Avatar Preview" className="w-full h-full object-cover" />
+                            <img src={getFullImageUrl(avatarUrl)} alt="Avatar Preview" className="w-full h-full object-cover" />
                         ) : (
                             name ? name.charAt(0) : "U"
                         )}
