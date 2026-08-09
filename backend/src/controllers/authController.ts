@@ -62,12 +62,6 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
 // @route   PUT /api/v1/auth/profile
 // @access  Private
 export const updateProfile = catchAsync(async (req: any, res: Response) => {
-  
-  // Vercel logs ke liye markers taaki clearly dikhe
-  console.log("=== PROFILE UPDATE INITIATED ===");
-  console.log("FILE DATA FROM CLOUDINARY:", req.file ? req.file.path : "NO FILE RECEIVED");
-  console.log("BODY DATA:", req.body);
-  
   const user = await User.findById(req.user._id);
 
   if (!user) {
@@ -75,13 +69,18 @@ export const updateProfile = catchAsync(async (req: any, res: Response) => {
     throw new Error('User not found');
   }
 
+  // 🚨 STRICT CHECK: Agar req.file nahi aayi, toh hum silent fail nahi karenge!
+  if (!req.file) {
+    return res.status(400).json({
+      message: "BACKEND BLOCK: File Cloudinary tak nahi pahuchi. Ya toh file 2MB se badi hai, ya Render par Cloudinary variables galat hain."
+    });
+  }
+
   // Update name if provided
   user.name = req.body.name || user.name;
 
-  // Agar multer aur Cloudinary ne file successfully process ki hai
-  if (req.file && req.file.path) {
-    user.avatar = req.file.path; 
-  }
+  // Cloudinary se jo link aayi, usko DB mein save karo
+  user.avatar = req.file.path; 
 
   const updatedUser = await user.save();
 
