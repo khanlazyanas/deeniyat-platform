@@ -14,9 +14,9 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: async (req, file) => {
     return {
-      folder: 'deeniyat_avatars', // Cloudinary mein is naam se folder ban jayega
-      allowed_formats: ['jpeg', 'png', 'jpg', 'gif'],
-      public_id: `avatar-${Date.now()}-${Math.round(Math.random() * 1e9)}`, // Unique name
+      folder: 'deeniyat_avatars', 
+      allowedFormats: ['jpeg', 'png', 'jpg', 'gif'], // 👈 YAHAN CHANGE KIYA HAI (camelCase)
+      public_id: `avatar-${Date.now()}-${Math.round(Math.random() * 1e9)}`, 
     };
   },
 });
