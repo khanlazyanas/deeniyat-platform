@@ -62,18 +62,26 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
 // @route   PUT /api/v1/auth/profile
 // @access  Private
 export const updateProfile = catchAsync(async (req: any, res: Response) => {
+  
+  // 🚨 EXTREME DEBUGGING BLOCK: Agar file Render par fail hui, toh sachai bahar aayegi
+  if (!req.file) {
+    return res.status(400).json({
+      message: "BACKEND BLOCK: File Cloudinary tak nahi pahuchi. Render par Cloudinary variables missing hain!",
+      DEBUG_INFO: {
+        cloudinaryKeysExist: {
+          cloudName: !!process.env.CLOUDINARY_CLOUD_NAME,
+          apiKey: !!process.env.CLOUDINARY_API_KEY,
+          apiSecret: !!process.env.CLOUDINARY_API_SECRET
+        }
+      }
+    });
+  }
+
   const user = await User.findById(req.user._id);
 
   if (!user) {
     res.status(404);
     throw new Error('User not found');
-  }
-
-  // 🚨 STRICT CHECK: Agar req.file nahi aayi, toh hum silent fail nahi karenge!
-  if (!req.file) {
-    return res.status(400).json({
-      message: "BACKEND BLOCK: File Cloudinary tak nahi pahuchi. Ya toh file 2MB se badi hai, ya Render par Cloudinary variables galat hain."
-    });
   }
 
   // Update name if provided
@@ -90,7 +98,6 @@ export const updateProfile = catchAsync(async (req: any, res: Response) => {
     email: updatedUser.email,
     role: updatedUser.role,
     avatar: updatedUser.avatar, 
-    RENDER_CHECK: "YEH MERA NAYA CODE HAI!"
   });
 });
 
