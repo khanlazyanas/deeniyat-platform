@@ -1,6 +1,10 @@
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import dotenv from 'dotenv';
+
+// 🚨 FIX 1: Ensure env variables are loaded before Cloudinary configures
+dotenv.config();
 
 // Cloudinary Configuration
 cloudinary.config({
@@ -15,9 +19,12 @@ const storage = new CloudinaryStorage({
   params: async (req, file) => {
     return {
       folder: 'deeniyat_avatars', 
-      allowedFormats: ['jpeg', 'png', 'jpg', 'gif'], // 👈 YAHAN CHANGE KIYA HAI (camelCase)
+      
+      // 🚨 FIX 2: Cloudinary STRICTLY needs snake_case 'allowed_formats'
+      allowed_formats: ['jpeg', 'png', 'jpg', 'gif', 'webp'], 
+      
       public_id: `avatar-${Date.now()}-${Math.round(Math.random() * 1e9)}`, 
-    };
+    } as any; // 👈 'as any' lagaya hai taaki VS Code TypeScript error na de
   },
 });
 
