@@ -30,15 +30,13 @@ const generateBubbles = (count: number) => {
 const ambientBubbles = generateBubbles(45);
 
 // --- NEW HELPER: GET FULL IMAGE URL ---
-// Ye function ensure karega ki image humesha backend server se fetch ho (e.g., http://localhost:5000/uploads/...)
 const getFullImageUrl = (url: string) => {
   if (!url) return "";
   if (url.startsWith("http") || url.startsWith("blob")) return url;
   
-  // Apne API URL se base part nikalo (e.g., "http://localhost:5000" instead of "http://localhost:5000/api/v1")
   const baseUrl = process.env.NEXT_PUBLIC_API_URL 
       ? new URL(process.env.NEXT_PUBLIC_API_URL).origin 
-      : "http://localhost:5000"; // Fallback to your backend port
+      : "http://localhost:5000";
       
   return `${baseUrl}${url}`;
 };
@@ -48,7 +46,7 @@ export default function SettingsPage() {
   const [email, setEmail] = useState("");
   const [mounted, setMounted] = useState(false);
   
-  // --- NEW: AVATAR STATES ---
+  // --- AVATAR STATES ---
   const [avatarUrl, setAvatarUrl] = useState<string>(""); 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -93,7 +91,7 @@ export default function SettingsPage() {
         const user = JSON.parse(storedUser);
         setName(user.name || "");
         setEmail(user.email || "");
-        setAvatarUrl(user.avatar || ""); // Set backend URL (which we will format in the render method)
+        setAvatarUrl(user.avatar || ""); 
       }
     } catch (error) {
       console.error("Error parsing user data:", error);
@@ -115,22 +113,21 @@ export default function SettingsPage() {
     return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
   }, [mouseX, mouseY, isHovered]);
 
-  // --- NEW: HANDLE FILE SELECTION ---
+  // --- HANDLE FILE SELECTION ---
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Basic validation (max 2MB)
       if (file.size > 2 * 1024 * 1024) {
         setProfileMessage({ type: "error", text: "Image size must be less than 2MB." });
         setTimeout(() => setProfileMessage({ type: "", text: "" }), 4000);
         return;
       }
       setAvatarFile(file);
-      setAvatarUrl(URL.createObjectURL(file)); // Show instant preview
+      setAvatarUrl(URL.createObjectURL(file)); 
     }
   };
 
-  // --- REVISED: HANDLE PROFILE UPDATE (FormData integration for Images) ---
+  // --- REVISED: HANDLE PROFILE UPDATE ---
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -139,18 +136,18 @@ export default function SettingsPage() {
     try {
       const token = localStorage.getItem("token");
       
-      // Use FormData to send text AND files to Multer/backend
       const formData = new FormData();
-      formData.append("name", name);
+      formData.append("name", name || "");
+      
+      // 🚨 FIX: Explicitly pass the third parameter (filename) so backend Multer reads it as a File!
       if (avatarFile) {
-        formData.append("avatar", avatarFile); 
+        formData.append("avatar", avatarFile, avatarFile.name); 
       }
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/profile`, {
         method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`
-          // DO NOT SET "Content-Type": "application/json" HERE. 
         },
         body: formData 
       });
@@ -159,19 +156,17 @@ export default function SettingsPage() {
 
       if (response.ok) {
         setProfileMessage({ type: "success", text: "Profile updated successfully! ✨" });
+        setAvatarFile(null); // Reset pending file state
         
         // Safely sync local storage with new backend data
         const storedUser = localStorage.getItem("user");
         if (storedUser && storedUser !== "undefined") {
           const user = JSON.parse(storedUser);
-          
-        
           user.name = data.name || name; 
-          
           
           if (data.avatar) {
               user.avatar = data.avatar;
-              setAvatarUrl(user.avatar); // Final URL from DB 
+              setAvatarUrl(user.avatar); 
           }
           
           localStorage.setItem("user", JSON.stringify(user));
@@ -383,7 +378,7 @@ export default function SettingsPage() {
                   <div className="relative">
                     <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-xl group-hover:bg-emerald-500/30 transition-all duration-700"></div>
                     
-                    {/* Render Avatar Image with getFullImageUrl Helper */}
+                    {/* Render Avatar Image */}
                     <div className="relative w-28 h-28 rounded-full bg-gradient-to-br from-[#060d20] to-[#040814] border-2 border-emerald-500/40 flex items-center justify-center text-4xl font-black text-emerald-400 uppercase shadow-[0_0_30px_rgba(52,211,153,0.3),inset_0_2px_4px_rgba(255,255,255,0.1)] shrink-0 z-10 group-hover:scale-105 transition-transform duration-500 overflow-hidden">
                         {avatarUrl ? (
                             <img src={getFullImageUrl(avatarUrl)} alt="Avatar Preview" className="w-full h-full object-cover" />
@@ -397,7 +392,8 @@ export default function SettingsPage() {
                     {/* Hidden File Input */}
                     <input 
                        type="file" 
-                       accept="image/jpeg, image/png, image/gif" 
+                       name="avatar" // 🚨 FIX: Added HTML name property
+                       accept="image/jpeg, image/png, image/gif, image/webp" 
                        hidden 
                        ref={fileInputRef} 
                        onChange={handleFileChange} 
