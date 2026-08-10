@@ -40,9 +40,9 @@ const userSchema = new Schema<IUser>(
       default: '',
     },
     avatar: {
-  type: String,
-  default: "", // Default empty string
-},
+      type: String,
+      default: '', // Default empty string zaroori hai
+    },
   },
   {
     timestamps: true, // Yeh database mein createdAt aur updatedAt ki details apne aap save karega
