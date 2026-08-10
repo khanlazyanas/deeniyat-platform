@@ -90,6 +90,7 @@ export const updateProfile = catchAsync(async (req: any, res: Response) => {
     email: updatedUser.email,
     role: updatedUser.role,
     avatar: updatedUser.avatar, 
+    RENDER_CHECK: "YEH MERA NAYA CODE HAI!"
   });
 });
 
