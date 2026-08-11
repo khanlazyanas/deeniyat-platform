@@ -5,10 +5,27 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
 
+// 👇 1. YAHAN AUTH CONTEXT IMPORT KIYA
+import { useAuth } from '../context/AuthContext';
+
 const smoothEase: [number, number, number, number] = [0.23, 1, 0.32, 1];
 
+// --- NEW HELPER: GET FULL IMAGE URL ---
+const getFullImageUrl = (url: string) => {
+  if (!url) return "";
+  if (url.startsWith("http") || url.startsWith("blob")) return url;
+  
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL 
+      ? new URL(process.env.NEXT_PUBLIC_API_URL).origin 
+      : "http://localhost:5000";
+      
+  return `${baseUrl}${url}`;
+};
+
 export default function Navbar() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // 👇 2. CONTEXT SE USER AUR LOGOUT FUNCTION NIKALA
+  const { user, logout } = useAuth();
+  
   const [scrolled, setScrolled] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -34,11 +51,6 @@ export default function Navbar() {
       icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /> 
     }
   ];
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    setIsLoggedIn(!!token);
-  }, [pathname]);
 
   useMotionValueEvent(scrollY, "change", (latest) => {
     const previous = scrollY.getPrevious() ?? 0;
@@ -130,15 +142,33 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* 3. AUTH BUTTONS */}
+          {/* 3. AUTH BUTTONS (Now with Context & Avatar) */}
           <div className="hidden md:flex items-center space-x-3 pr-1 relative z-10">
-            {isLoggedIn ? (
-              <Link 
-                href="/dashboard" 
-                className="px-6 py-2.5 text-[14px] font-black text-[#010206] bg-white rounded-full hover:bg-slate-100 transition-all duration-300 hover:scale-105 shadow-[0_0_25px_rgba(255,255,255,0.3)] flex items-center gap-2"
-              >
-                Dashboard
-              </Link>
+            {user ? (
+              <div className="flex items-center gap-3">
+                <Link 
+                  href="/dashboard" 
+                  className="px-6 py-2.5 text-[14px] font-black text-[#010206] bg-white rounded-full hover:bg-slate-100 transition-all duration-300 hover:scale-105 shadow-[0_0_25px_rgba(255,255,255,0.3)] flex items-center gap-2"
+                >
+                  {/* 👇 Mini Avatar inside Dashboard button */}
+                  <div className="w-6 h-6 rounded-full bg-[#030612] overflow-hidden flex items-center justify-center text-white text-xs border border-slate-200">
+                      {user.avatar ? (
+                          <img src={getFullImageUrl(user.avatar)} alt="Avatar" className="w-full h-full object-cover" />
+                      ) : (
+                          user.name ? user.name.charAt(0) : "U"
+                      )}
+                  </div>
+                  Dashboard
+                </Link>
+                {/* 👇 Logout Button Desktop */}
+                <button 
+                  onClick={logout}
+                  className="p-2.5 text-slate-400 hover:text-rose-400 bg-white/[0.03] hover:bg-rose-500/10 border border-white/[0.05] hover:border-rose-500/30 rounded-full transition-all duration-300"
+                  title="Logout"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                </button>
+              </div>
             ) : (
               <>
                 <Link href="/login" className="px-5 py-2.5 text-[14px] font-bold text-slate-300 hover:text-white transition-colors">
@@ -162,18 +192,29 @@ export default function Navbar() {
               className="relative flex items-center justify-center w-11 h-11 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] rounded-full transition-all duration-300 focus:outline-none shadow-md active:scale-95"
               aria-label="Toggle Menu"
             >
-              <div className="flex flex-col items-center justify-center w-4 h-4 relative">
-                <motion.span
-                  animate={mobileMenuOpen ? { y: 0, rotate: 45 } : { y: -4, rotate: 0 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  className="absolute block h-[2px] w-5 bg-slate-200 rounded-full"
-                ></motion.span>
-                <motion.span
-                  animate={mobileMenuOpen ? { y: 0, rotate: -45 } : { y: 4, rotate: 0 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  className="absolute block h-[2px] w-5 bg-slate-200 rounded-full"
-                ></motion.span>
-              </div>
+              {/* Show Avatar instead of hamburger lines if user is logged in and menu is closed */}
+              {user && !mobileMenuOpen ? (
+                 <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-emerald-400 bg-black border border-white/[0.1]">
+                    {user.avatar ? (
+                        <img src={getFullImageUrl(user.avatar)} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                        user.name ? user.name.charAt(0) : "U"
+                    )}
+                 </div>
+              ) : (
+                  <div className="flex flex-col items-center justify-center w-4 h-4 relative">
+                    <motion.span
+                      animate={mobileMenuOpen ? { y: 0, rotate: 45 } : { y: -4, rotate: 0 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                      className="absolute block h-[2px] w-5 bg-slate-200 rounded-full"
+                    ></motion.span>
+                    <motion.span
+                      animate={mobileMenuOpen ? { y: 0, rotate: -45 } : { y: 4, rotate: 0 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                      className="absolute block h-[2px] w-5 bg-slate-200 rounded-full"
+                    ></motion.span>
+                  </div>
+              )}
             </button>
           </div>
         </motion.nav>
@@ -203,8 +244,25 @@ export default function Navbar() {
                 <div className="w-12 h-1.5 bg-white/[0.15] rounded-full"></div>
               </div>
 
+              {/* User Greeting in Mobile Menu */}
+              {user && (
+                  <div className="flex items-center gap-4 px-4 py-3 mb-2 rounded-[20px] bg-emerald-500/10 border border-emerald-500/20">
+                      <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center text-emerald-400 bg-black border border-emerald-500/40">
+                          {user.avatar ? (
+                              <img src={getFullImageUrl(user.avatar)} alt="Avatar" className="w-full h-full object-cover" />
+                          ) : (
+                              user.name ? user.name.charAt(0) : "U"
+                          )}
+                      </div>
+                      <div>
+                          <p className="text-[12px] font-bold text-emerald-500 uppercase tracking-widest leading-none mb-1">Welcome</p>
+                          <p className="text-white font-black text-lg leading-none">{user.name}</p>
+                      </div>
+                  </div>
+              )}
+
               <div className="flex flex-col gap-1.5 px-1">
-                <p className="text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] px-3 mb-1">Navigation</p>
+                <p className="text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] px-3 mb-1 mt-2">Navigation</p>
                 {navLinks.map((link, i) => {
                   const isActive = pathname === link.path;
                   return (
@@ -250,11 +308,21 @@ export default function Navbar() {
                 transition={{ delay: 0.25, ease: smoothEase }}
                 className="flex flex-col gap-3 p-1"
               >
-                {isLoggedIn ? (
-                  <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="w-full flex justify-center items-center gap-2 text-center py-4 text-[16px] font-black text-[#010206] bg-white rounded-[22px] shadow-[0_0_30px_rgba(255,255,255,0.3)] active:scale-[0.98] transition-transform duration-300 ease-out">
-                    Dashboard
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 8l4 4m0 0l-4-4m4-4H3" /></svg>
-                  </Link>
+                {user ? (
+                  <>
+                    <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="w-full flex justify-center items-center gap-2 text-center py-4 text-[16px] font-black text-[#010206] bg-white rounded-[22px] shadow-[0_0_30px_rgba(255,255,255,0.3)] active:scale-[0.98] transition-transform duration-300 ease-out">
+                      Dashboard
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 8l4 4m0 0l-4-4m4-4H3" /></svg>
+                    </Link>
+                    {/* 👇 Logout Button Mobile */}
+                    <button 
+                        onClick={() => { logout(); setMobileMenuOpen(false); }} 
+                        className="w-full flex items-center justify-center gap-2 py-4 text-[16px] font-bold text-rose-400 bg-rose-500/10 rounded-[22px] border border-rose-500/20 hover:bg-rose-500/20 transition-all active:scale-[0.98] duration-300 ease-out"
+                    >
+                        Log Out
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                    </button>
+                  </>
                 ) : (
                   <>
                     <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="w-full flex items-center justify-center gap-2 py-4 text-[16px] font-bold text-slate-300 bg-white/[0.03] rounded-[22px] border border-white/[0.06] hover:bg-white/[0.08] hover:text-white transition-all active:scale-[0.98] duration-300 ease-out">
