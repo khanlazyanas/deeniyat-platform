@@ -139,7 +139,6 @@ export default function SettingsPage() {
       const formData = new FormData();
       formData.append("name", name || "");
       
-      // 🚨 FIX: Explicitly pass the third parameter (filename) so backend Multer reads it as a File!
       if (avatarFile) {
         formData.append("avatar", avatarFile, avatarFile.name); 
       }
@@ -158,18 +157,23 @@ export default function SettingsPage() {
         setProfileMessage({ type: "success", text: "Profile updated successfully! ✨" });
         setAvatarFile(null); // Reset pending file state
         
-        // Safely sync local storage with new backend data
-        const storedUser = localStorage.getItem("user");
-        if (storedUser && storedUser !== "undefined") {
-          const user = JSON.parse(storedUser);
-          user.name = data.name || name; 
+        // 🚨 ZABARDASTI LOCAL STORAGE UPDATE FIX 🚨
+        try {
+          const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+          
+          const updatedUser = {
+             ...storedUser, 
+             name: data.name || name,
+             avatar: data.avatar || storedUser.avatar 
+          };
+          
+          localStorage.setItem("user", JSON.stringify(updatedUser));
           
           if (data.avatar) {
-              user.avatar = data.avatar;
-              setAvatarUrl(user.avatar); 
+             setAvatarUrl(data.avatar);
           }
-          
-          localStorage.setItem("user", JSON.stringify(user));
+        } catch (error) {
+          console.error("Local storage sync error:", error);
         }
       } else {
         setProfileMessage({ type: "error", text: data.message || "Failed to update profile." });
