@@ -63,44 +63,40 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
 // @access  Private
 export const updateProfile = catchAsync(async (req: any, res: Response) => {
   
-  // 🚨 EXTREME DEBUGGING BLOCK: Agar file Render par fail hui, toh sachai bahar aayegi
   if (!req.file) {
     return res.status(400).json({
-      message: "BACKEND BLOCK: File Cloudinary tak nahi pahuchi. Render par Cloudinary variables missing hain!",
-      DEBUG_INFO: {
-        cloudinaryKeysExist: {
-          cloudName: !!process.env.CLOUDINARY_CLOUD_NAME,
-          apiKey: !!process.env.CLOUDINARY_API_KEY,
-          apiSecret: !!process.env.CLOUDINARY_API_SECRET
-        }
-      }
+      message: "BACKEND BLOCK: File Cloudinary tak nahi pahuchi."
     });
   }
 
-  const user = await User.findById(req.user._id);
+  // 1. Naya data prepare karo
+  const updateData: any = {};
+  if (req.body.name) updateData.name = req.body.name;
+  if (req.file) updateData.avatar = req.file.path; // Yeh naya link hai
 
-  if (!user) {
+  // 2. THE HAMMER: Mongoose ko zabardasti $set karne bolo
+  const updatedUser = await User.findByIdAndUpdate(
+    req.user._id,
+    { $set: updateData }, // $set command sidha DB mein value overwrite karta hai
+    { new: true, runValidators: true } // new: true matlab update hone ke baad naya data wapas do
+  );
+
+  if (!updatedUser) {
     res.status(404);
     throw new Error('User not found');
   }
 
-  // Update name if provided
-  user.name = req.body.name || user.name;
-
-  // Cloudinary se jo link aayi, usko DB mein save karo
-  user.avatar = req.file.path; 
-
-  const updatedUser = await user.save();
-
+  // 3. Frontend ko naya data bhej do
   res.json({
     _id: updatedUser._id,
     name: updatedUser.name,
     email: updatedUser.email,
     role: updatedUser.role,
     avatar: updatedUser.avatar, 
-    CLOUDINARY_NEW_LINK: req.file ? req.file.path : "File gayab hai"
+    CLOUDINARY_NEW_LINK: req.file ? req.file.path : "File gayab hai" 
   });
 });
+
 
 // @desc    Update user password
 // @route   PUT /api/v1/auth/password
