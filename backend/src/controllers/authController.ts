@@ -30,6 +30,7 @@ export const registerUser = catchAsync(async (req: Request, res: Response) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      avatar: user.avatar,
       token: generateToken(user.id),
     });
   } else {
@@ -62,23 +63,15 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
 // @route   PUT /api/v1/auth/profile
 // @access  Private
 export const updateProfile = catchAsync(async (req: any, res: Response) => {
-  
-  if (!req.file) {
-    return res.status(400).json({
-      message: "BACKEND BLOCK: File Cloudinary tak nahi pahuchi."
-    });
-  }
-
-  // 1. Naya data prepare karo
   const updateData: any = {};
+  
   if (req.body.name) updateData.name = req.body.name;
-  if (req.file) updateData.avatar = req.file.path; // Yeh naya link hai
+  if (req.file) updateData.avatar = req.file.path;
 
-  // 2. THE HAMMER: Mongoose ko zabardasti $set karne bolo
   const updatedUser = await User.findByIdAndUpdate(
     req.user._id,
-    { $set: updateData }, // $set command sidha DB mein value overwrite karta hai
-    { new: true, runValidators: true } // new: true matlab update hone ke baad naya data wapas do
+    { $set: updateData },
+    { new: true, runValidators: true }
   );
 
   if (!updatedUser) {
@@ -86,17 +79,14 @@ export const updateProfile = catchAsync(async (req: any, res: Response) => {
     throw new Error('User not found');
   }
 
-  // 3. Frontend ko naya data bhej do
   res.json({
     _id: updatedUser._id,
     name: updatedUser.name,
     email: updatedUser.email,
     role: updatedUser.role,
     avatar: updatedUser.avatar, 
-    CLOUDINARY_NEW_LINK: req.file ? req.file.path : "File gayab hai" 
   });
 });
-
 
 // @desc    Update user password
 // @route   PUT /api/v1/auth/password
