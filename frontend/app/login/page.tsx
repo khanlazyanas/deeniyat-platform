@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 
+// 👇 1. YAHAN AUTH CONTEXT IMPORT KIYA
+import { useAuth } from "../../context/AuthContext";
+
 // --- GLOBAL STYLES (Safe from VS Code parser bugs) ---
 const globalAnimations = `
   .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -34,6 +37,9 @@ const ambientBubbles = generateBubbles(45);
 export default function LoginPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  
+  // 👇 2. AUTH CONTEXT SE LOGIN FUNCTION NIKALA
+  const { login } = useAuth();
   
   // States
   const [formData, setFormData] = useState({
@@ -116,10 +122,6 @@ export default function LoginPage() {
         throw new Error(data.message || "Invalid email or password");
       }
 
-      // Login success
-      localStorage.setItem("token", data.token);
-      
-      // 🚨 FIX: YAHAN THA ASLI CHOR! data.user nahi, seedha data extract karna hai
       const userData = {
         _id: data._id,
         name: data.name,
@@ -128,7 +130,8 @@ export default function LoginPage() {
         avatar: data.avatar || ""
       };
       
-      localStorage.setItem("user", JSON.stringify(userData));
+      // 👇 3. YAHAN LOCAL STORAGE HATA KAR SEEDHA CONTEXT USE KIYA
+      login(userData, data.token);
 
       // Redirect securely to the God-Tier Dashboard
       router.push("/dashboard");
