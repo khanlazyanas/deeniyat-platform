@@ -98,6 +98,7 @@ export const updateProfile = catchAsync(async (req: any, res: Response) => {
     email: updatedUser.email,
     role: updatedUser.role,
     avatar: updatedUser.avatar, 
+    CLOUDINARY_NEW_LINK: req.file ? req.file.path : "File gayab hai"
   });
 });
 
