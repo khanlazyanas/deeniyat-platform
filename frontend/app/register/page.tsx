@@ -121,7 +121,16 @@ export default function RegisterPage() {
 
       // Registration success
       localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      
+      // 🚨 FIX: Extract exactly what is needed so we don't save "undefined"
+      const userData = {
+        _id: data._id,
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        avatar: data.avatar || ""
+      };
+      localStorage.setItem("user", JSON.stringify(userData));
 
       // Redirect securely
       router.push("/dashboard");
