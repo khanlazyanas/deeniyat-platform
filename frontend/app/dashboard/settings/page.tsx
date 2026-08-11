@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
+// 👇 1. YAHAN AUTH CONTEXT IMPORT KIYA
+import { useAuth } from "../../../context/AuthContext";
 
 // --- GLOBAL STYLES ---
 const globalAnimations = `
@@ -42,6 +44,9 @@ const getFullImageUrl = (url: string) => {
 };
 
 export default function SettingsPage() {
+  // 👇 2. Context se 'user' aur 'updateUser' function nikala
+  const { user, updateUser } = useAuth();
+  
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [mounted, setMounted] = useState(false);
@@ -85,16 +90,11 @@ export default function SettingsPage() {
   // Fetch initial data
   useEffect(() => {
     setMounted(true);
-    try {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser && storedUser !== "undefined") {
-        const user = JSON.parse(storedUser);
-        setName(user.name || "");
-        setEmail(user.email || "");
-        setAvatarUrl(user.avatar || ""); 
-      }
-    } catch (error) {
-      console.error("Error parsing user data:", error);
+    // 👇 3. Ab Initial data seedha Context ke 'user' object se aa raha hai
+    if (user) {
+      setName(user.name || "");
+      setEmail(user.email || "");
+      setAvatarUrl(user.avatar || "");
     }
 
     const handleGlobalMouseMove = (e: MouseEvent) => {
@@ -111,7 +111,7 @@ export default function SettingsPage() {
     
     window.addEventListener('mousemove', handleGlobalMouseMove);
     return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
-  }, [mouseX, mouseY, isHovered]);
+  }, [mouseX, mouseY, isHovered, user]); // Added user to dependency array
 
   // --- HANDLE FILE SELECTION ---
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,7 +134,7 @@ export default function SettingsPage() {
     setProfileMessage({ type: "", text: "" });
 
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token"); // Note: You can also use the token from useAuth if you want
       
       const formData = new FormData();
       formData.append("name", name || "");
@@ -157,24 +157,20 @@ export default function SettingsPage() {
         setProfileMessage({ type: "success", text: "Profile updated successfully! ✨" });
         setAvatarFile(null); // Reset pending file state
         
-        // 🚨 ZABARDASTI LOCAL STORAGE UPDATE FIX 🚨
-        try {
-          const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-          
-          const updatedUser = {
-             ...storedUser, 
-             name: data.name || name,
-             avatar: data.avatar || storedUser.avatar 
-          };
-          
-          localStorage.setItem("user", JSON.stringify(updatedUser));
-          
-          if (data.avatar) {
-             setAvatarUrl(data.avatar);
-          }
-        } catch (error) {
-          console.error("Local storage sync error:", error);
+        // 👇 4. YAHAN ZABARDASTI WALA KACHRA HATA DIYA! SEEDHA CONTEXT UPDATE
+        if (user) {
+            const updatedUserData = {
+                ...user,
+                name: data.name || name,
+                avatar: data.avatar || user.avatar
+            };
+            updateUser(updatedUserData);
         }
+
+        if (data.avatar) {
+             setAvatarUrl(data.avatar);
+        }
+
       } else {
         setProfileMessage({ type: "error", text: data.message || "Failed to update profile." });
       }
