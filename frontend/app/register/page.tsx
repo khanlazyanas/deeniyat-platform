@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 
+// 👇 1. YAHAN AUTH CONTEXT IMPORT KIYA
+import { useAuth } from "../../context/AuthContext"; 
+
 // --- GLOBAL STYLES (Safe from VS Code parser bugs) ---
 const globalAnimations = `
   .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -34,6 +37,9 @@ const ambientBubbles = generateBubbles(45);
 export default function RegisterPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  
+  // 👇 2. AUTH CONTEXT SE LOGIN FUNCTION NIKALA
+  const { login } = useAuth();
   
   // States
   const [formData, setFormData] = useState({
@@ -119,9 +125,6 @@ export default function RegisterPage() {
         throw new Error(data.message || "Something went wrong during registration");
       }
 
-      // Registration success
-      localStorage.setItem("token", data.token);
-      
       // 🚨 FIX: Extract exactly what is needed so we don't save "undefined"
       const userData = {
         _id: data._id,
@@ -130,7 +133,9 @@ export default function RegisterPage() {
         role: data.role,
         avatar: data.avatar || ""
       };
-      localStorage.setItem("user", JSON.stringify(userData));
+      
+      // 👇 3. YAHAN LOCAL STORAGE HATA KAR SEEDHA CONTEXT USE KIYA
+      login(userData, data.token);
 
       // Redirect securely
       router.push("/dashboard");
