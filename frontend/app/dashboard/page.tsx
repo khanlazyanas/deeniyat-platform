@@ -2,7 +2,11 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, Variants, useMotionValue, useSpring, useTransform } from "framer-motion";
+
+// 👇 1. AUTH CONTEXT IMPORT KIYA
+import { useAuth } from "../../context/AuthContext";
 
 // --- Types ---
 interface Activity {
@@ -40,7 +44,7 @@ const itemVariants: Variants = {
   }
 };
 
-// --- 100,000x UPGRADE: Holographic Spatial Card ---
+// --- Holographic Spatial Card ---
 function HolographicCard({ children, className = "" }: { children: React.ReactNode, className?: string }) {
   const cardRef = useRef<HTMLDivElement>(null);
   
@@ -87,7 +91,6 @@ function HolographicCard({ children, className = "" }: { children: React.ReactNo
       }}
       className={`relative overflow-hidden rounded-[2.5rem] bg-[#030612]/70 backdrop-blur-[40px] backdrop-saturate-[150%] border border-white/[0.06] shadow-[0_32px_64px_-20px_rgba(0,0,0,0.7),inset_0_1px_2px_rgba(255,255,255,0.1),inset_0_-1px_2px_rgba(0,0,0,0.5)] transition-colors duration-700 hover:border-white/[0.12] will-change-transform ${className}`}
     >
-      {/* Deep Holographic Glare */}
       <div
         className="pointer-events-none absolute -inset-px opacity-0 transition-opacity duration-500 z-0 mix-blend-color-dodge"
         style={{
@@ -95,7 +98,6 @@ function HolographicCard({ children, className = "" }: { children: React.ReactNo
           background: `radial-gradient(1200px circle at ${glarePosition.x}px ${glarePosition.y}px, rgba(255,255,255,0.1), transparent 45%)`,
         }}
       />
-      {/* Chromatic Aberration Edge (Fake Reflection) */}
       <div 
         className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 z-0"
         style={{
@@ -110,7 +112,7 @@ function HolographicCard({ children, className = "" }: { children: React.ReactNo
   );
 }
 
-// --- UPGRADE: Variable Weight Number Interpolation ---
+// --- Variable Weight Number Interpolation ---
 function CinematicNumber({ value, suffix = "" }: { value: number, suffix?: string }) {
   const [displayValue, setDisplayValue] = useState(0);
   
@@ -128,8 +130,6 @@ function CinematicNumber({ value, suffix = "" }: { value: number, suffix?: strin
     const animate = (currentTime: number) => {
       const elapsedTime = currentTime - startTime;
       const progress = Math.min(elapsedTime / duration, 1);
-      
-      // Quartic Ease Out for dramatic slowing
       const easeProgress = 1 - Math.pow(1 - progress, 4);
       
       setDisplayValue(Math.floor(easeProgress * end));
@@ -142,10 +142,9 @@ function CinematicNumber({ value, suffix = "" }: { value: number, suffix?: strin
     requestAnimationFrame(animate);
   }, [value]);
 
-  // Dynamically calculate font weight and letter spacing based on progress
   const progressRatio = value > 0 ? displayValue / value : 1;
-  const fontWeight = 300 + (progressRatio * 600); // 300 to 900
-  const letterSpacing = -0.1 + (progressRatio * 0.05); // Tighter as it finishes
+  const fontWeight = 300 + (progressRatio * 600);
+  const letterSpacing = -0.1 + (progressRatio * 0.05);
 
   return (
     <span style={{ fontWeight, letterSpacing: `${letterSpacing}em`, transition: 'font-weight 0.1s ease-out' }}>
@@ -154,8 +153,11 @@ function CinematicNumber({ value, suffix = "" }: { value: number, suffix?: strin
   );
 }
 
-export default function DashboardOverview() {
-  const [userName, setUserName] = useState("Scholar");
+export default function Dashboard() {
+  // 👇 2. HOOKS SETUP
+  const { user, token, loading: authLoading } = useAuth();
+  const router = useRouter();
+
   const [timeState, setTimeState] = useState({ greeting: "Welcome back", icon: "✨", gradient: "from-emerald-400 to-teal-400" });
   const [stats, setStats] = useState<DashboardStats>({
     enrolledCourses: 0,
@@ -164,14 +166,18 @@ export default function DashboardOverview() {
     recentActivities: []
   });
   const [loading, setLoading] = useState(true);
-  
-  // Custom Cursor Particle System state
   const [cursorPos, setCursorPos] = useState({ x: -100, y: -100 });
 
-  // SVG Radial Math
   const radius = 50;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (stats.attendanceRate / 100) * circumference;
+
+  // 👇 3. TRAFFIC COP LOGIC: Agar user nahi hai toh bahar nikaalo
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login");
+    }
+  }, [user, authLoading, router]);
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -179,18 +185,10 @@ export default function DashboardOverview() {
     else if (hour < 18) setTimeState({ greeting: "Good afternoon", icon: "☀️", gradient: "from-cyan-400 via-teal-400 to-emerald-500" });
     else setTimeState({ greeting: "Good evening", icon: "🌙", gradient: "from-indigo-400 via-purple-400 to-pink-500" });
 
-    const storedUser = localStorage.getItem("user");
-    if (storedUser && storedUser !== "undefined") {
-      try {
-        const user = JSON.parse(storedUser);
-        if (user && user.name) setUserName(user.name.split(" ")[0]); 
-      } catch (error) { console.error(error); }
-    }
-
+    // 👇 4. API CALL MEIN CONTEXT WALA TOKEN USE KIYA
     const fetchStats = async () => {
+      if (!token) return;
       try {
-        const token = localStorage.getItem("token");
-        if (!token) return;
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dashboard/stats`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
@@ -204,17 +202,20 @@ export default function DashboardOverview() {
           });
         }
       } catch (error) { console.error(error); } 
-      finally { setTimeout(() => setLoading(false), 1200); } // Dramatic Reveal Delay
+      finally { setTimeout(() => setLoading(false), 1200); }
     };
-    fetchStats();
+    
+    // Sirf tabhi fetch karo jab token ho
+    if (token) {
+        fetchStats();
+    }
 
-    // Mouse tracker for ambient particles
     const handleGlobalMouseMove = (e: MouseEvent) => {
       setCursorPos({ x: e.clientX, y: e.clientY });
     };
     window.addEventListener('mousemove', handleGlobalMouseMove);
     return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
-  }, []);
+  }, [token]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -225,8 +226,34 @@ export default function DashboardOverview() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  // Agar global auth load ho raha hai, ya user redirect ho raha hai, toh loader dikhao
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen bg-[#010206] flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  // 👇 5. USTAD DASHBOARD PLACEHOLDER
+  if (user.role === "Ustad") {
+      return (
+        <div className="min-h-screen pt-32 pb-12 bg-[#010206] text-white flex flex-col items-center justify-center text-center px-4">
+            <div className="w-24 h-24 bg-blue-500/10 border border-blue-500/20 rounded-3xl flex items-center justify-center text-blue-400 mb-8 shadow-[0_0_50px_rgba(59,130,246,0.2)]">
+                <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+            </div>
+            <h1 className="text-5xl font-black mb-4">Ustad Portal</h1>
+            <p className="text-slate-400 text-xl max-w-lg mb-8">Welcome {user.name}, your teaching dashboard is currently under construction. Check back soon!</p>
+            <Link href="/dashboard/settings" className="px-8 py-3 bg-white text-black font-bold rounded-full hover:bg-slate-200 transition-colors">Go to Settings</Link>
+        </div>
+      );
+  }
+
+  // 👇 6. STUDENT DASHBOARD (TERA EPIC UI)
+  const firstName = user.name.split(" ")[0] || "Scholar";
+
   return (
-    <div className="p-4 sm:p-6 lg:p-10 relative min-h-full w-full bg-[#010206] overflow-hidden selection:bg-emerald-500/30 selection:text-emerald-200 text-slate-50 font-sans perspective-[2000px]">
+    <div className="p-4 sm:p-6 lg:p-10 relative min-h-full w-full bg-[#010206] overflow-hidden selection:bg-emerald-500/30 selection:text-emerald-200 text-slate-50 font-sans perspective-[2000px] pt-32">
       
       {/* --- HYPER-REALISTIC VOLUMETRIC BACKGROUND --- */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden flex items-center justify-center mix-blend-screen opacity-70">
@@ -257,7 +284,7 @@ export default function DashboardOverview() {
             <h1 className="text-6xl sm:text-7xl lg:text-[6.5rem] font-black text-white tracking-tighter leading-[1.05] relative z-10">
               Welcome back,<br className="hidden sm:block lg:hidden" />
               <span className={`bg-clip-text text-transparent bg-gradient-to-r ${timeState.gradient} drop-shadow-[0_0_80px_rgba(255,255,255,0.15)] ml-0 sm:ml-4 lg:ml-0 inline-block`}>
-                {userName}.
+                {firstName}.
               </span>
             </h1>
           </div>
@@ -276,10 +303,9 @@ export default function DashboardOverview() {
           </div>
         </motion.div>
 
-        {/* --- 100,000x SPATIAL BENTO GRID --- */}
+        {/* --- SPATIAL BENTO GRID --- */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* 1. Epic Resume Card */}
           <HolographicCard className="lg:col-span-2 group">
             <div className="p-12 sm:p-16 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-14 h-full relative z-10">
               <div className="flex-1">
@@ -300,7 +326,6 @@ export default function DashboardOverview() {
             </div>
           </HolographicCard>
 
-          {/* 2. Glass-morphic Attendance Ring */}
           <HolographicCard className="group flex flex-col items-center justify-center text-center p-12">
             <p className="text-slate-400 text-[12px] font-black uppercase tracking-[0.3em] mb-12 flex items-center gap-3 bg-[#030612]/50 px-6 py-3 rounded-full border border-white/[0.08] shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
               <span className="w-2.5 h-2.5 rounded-full bg-teal-400 shadow-[0_0_16px_rgba(45,212,191,1)] animate-pulse"></span>
@@ -425,7 +450,7 @@ export default function DashboardOverview() {
 
         </div>
 
-        {/* --- 100,000x LIQUID GRADIENT TIMELINE --- */}
+        {/* --- LIQUID GRADIENT TIMELINE --- */}
         <HolographicCard className="p-10 sm:p-16">
           <div className="flex justify-between items-center mb-20 pb-10 border-b border-white/[0.05] relative z-10">
             <h3 className="text-4xl font-black flex items-center gap-6 text-white tracking-tight drop-shadow-lg">
@@ -468,7 +493,6 @@ export default function DashboardOverview() {
                       key={act.id} 
                       className="group relative pl-16"
                     >
-                      {/* Timeline Glowing Orb */}
                       <div className="absolute left-[2px] top-3 w-[10px] h-[10px] rounded-full bg-white shadow-[0_0_30px_rgba(255,255,255,1)] group-hover:scale-[2.5] transition-transform duration-700 z-10" />
                       <div className="absolute left-[-4px] top-1.5 w-[22px] h-[22px] rounded-full bg-[#030612] border-[3px] border-emerald-400 shadow-[0_0_0_6px_#010206]" />
                       
