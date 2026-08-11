@@ -118,7 +118,17 @@ export default function LoginPage() {
 
       // Login success
       localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      
+      // 🚨 FIX: YAHAN THA ASLI CHOR! data.user nahi, seedha data extract karna hai
+      const userData = {
+        _id: data._id,
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        avatar: data.avatar || ""
+      };
+      
+      localStorage.setItem("user", JSON.stringify(userData));
 
       // Redirect securely to the God-Tier Dashboard
       router.push("/dashboard");
