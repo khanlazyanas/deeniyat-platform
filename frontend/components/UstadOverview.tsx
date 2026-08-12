@@ -25,7 +25,7 @@ const itemVariants: Variants = {
   }
 };
 
-// --- Epic Holographic Spatial Card (Matched to Screenshot Deep Blue Theme) ---
+// --- Epic Holographic Spatial Card (HALKA GREEN THEME) ---
 function TeacherCard({ children, className = "" }: { children: React.ReactNode, className?: string }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const mouseX = useMotionValue(0);
@@ -62,20 +62,20 @@ function TeacherCard({ children, className = "" }: { children: React.ReactNode, 
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={handleMouseLeave}
       style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
-      className={`relative overflow-hidden rounded-[2.5rem] bg-[#050B14]/80 backdrop-blur-[40px] backdrop-saturate-[150%] border border-blue-500/[0.12] shadow-[0_32px_64px_-20px_rgba(0,0,0,0.8),inset_0_1px_2px_rgba(255,255,255,0.05),inset_0_-1px_2px_rgba(0,0,0,0.5)] transition-colors duration-700 hover:border-blue-400/[0.25] will-change-transform ${className}`}
+      className={`relative overflow-hidden rounded-[2.5rem] bg-[#030612]/70 backdrop-blur-[40px] backdrop-saturate-[150%] border border-white/[0.06] shadow-[0_32px_64px_-20px_rgba(0,0,0,0.7),inset_0_1px_2px_rgba(255,255,255,0.1),inset_0_-1px_2px_rgba(0,0,0,0.5)] transition-colors duration-700 hover:border-emerald-500/[0.25] will-change-transform ${className}`}
     >
       <div
         className="pointer-events-none absolute -inset-px opacity-0 transition-opacity duration-500 z-0 mix-blend-color-dodge"
         style={{
           opacity: isHovered ? 1 : 0,
-          background: `radial-gradient(1000px circle at ${glarePosition.x}px ${glarePosition.y}px, rgba(59,130,246,0.15), transparent 45%)`,
+          background: `radial-gradient(1200px circle at ${glarePosition.x}px ${glarePosition.y}px, rgba(52,211,153,0.15), transparent 45%)`,
         }}
       />
       <div 
         className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 z-0"
         style={{
-          opacity: isHovered ? 0.4 : 0,
-          boxShadow: `inset 0 0 50px rgba(59,130,246,0.1), inset 0 0 20px rgba(168,85,247,0.1)`
+          opacity: isHovered ? 0.3 : 0,
+          boxShadow: `inset 0 0 50px rgba(52,211,153,0.1), inset 0 0 20px rgba(45,212,191,0.1)`
         }}
       />
       <div className="relative z-10 w-full h-full transform-gpu" style={{ transform: "translateZ(30px)" }}>
@@ -124,7 +124,7 @@ export default function UstadOverview() {
   const { user, token } = useAuth();
   const [loading, setLoading] = useState(true);
   
-  // State for purely API driven data (NO DUMMY DATA)
+  // Real API Data State
   const [stats, setStats] = useState({ 
     totalStudents: 0, 
     activeCourses: 0, 
@@ -132,18 +132,19 @@ export default function UstadOverview() {
     recentActivities: [] as any[]
   });
   
+  const [timeState, setTimeState] = useState({ greeting: "Welcome back", icon: "✨", gradient: "from-emerald-400 to-teal-400" });
   const [cursorPos, setCursorPos] = useState({ x: -100, y: -100 });
 
-  // Math for the Circular Gauge (Matches screenshot purple-blue ring)
   const radius = 90;
   const circumference = 2 * Math.PI * radius;
-  // Calculate dynamic fill (capping at 85% for pure visual aesthetics if it's 100%, or dynamic based on active vs total)
-  // For the screenshot match, we'll keep it looking mostly full
-  const fillPercentage = stats.totalStudents > 0 ? 0.85 : 0; 
-  const strokeDashoffset = circumference - fillPercentage * circumference; 
+  const strokeDashoffset = circumference - 0.85 * circumference; 
 
-  // Real API Data Fetch
   useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) setTimeState({ greeting: "Good morning", icon: "🌤️", gradient: "from-emerald-300 via-teal-400 to-cyan-500" });
+    else if (hour < 18) setTimeState({ greeting: "Good afternoon", icon: "☀️", gradient: "from-emerald-400 via-teal-400 to-emerald-500" });
+    else setTimeState({ greeting: "Good evening", icon: "🌙", gradient: "from-teal-400 via-emerald-400 to-cyan-500" });
+
     const fetchUstadStats = async () => {
       if (!token) return;
       try {
@@ -156,7 +157,7 @@ export default function UstadOverview() {
             totalStudents: data.totalStudents || 0, 
             activeCourses: data.activeCourses || 0, 
             pendingSubmissions: data.pendingSubmissions || 0,
-            recentActivities: data.recentActivities || [] // Live timeline data
+            recentActivities: data.recentActivities || [] 
           });
         }
       } catch (error) {
@@ -183,27 +184,59 @@ export default function UstadOverview() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  const firstName = user?.name?.split(" ")[0] || "Ustad";
+
   return (
     <div className="relative w-full z-10 pt-4">
-      {/* Subtle Cursor Tracker Orb (Deep Blue Theme) */}
+      {/* Subtle Cursor Tracker Orb (Green Theme) */}
       <motion.div 
-        className="fixed w-[400px] h-[400px] bg-blue-600/10 rounded-full blur-[100px] pointer-events-none z-0 mix-blend-screen"
+        className="fixed w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none z-0 mix-blend-screen"
         animate={{ x: cursorPos.x - 200, y: cursorPos.y - 200 }}
         transition={{ type: "spring", stiffness: 40, damping: 30, mass: 1 }}
       />
 
       <motion.div variants={containerVariants} initial="hidden" animate="visible" className="relative z-10 max-w-7xl mx-auto space-y-8">
         
-        {/* --- ROW 1: SPATIAL BENTO GRID (MATCHES SCREENSHOT EXACTLY) --- */}
+        {/* --- CINEMATIC HEADER (Admin Name & Date) --- */}
+        <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
+          <div className="relative">
+            <motion.div initial={{ opacity: 0, scale: 0.8, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ delay: 0.5, type: "spring", bounce: 0.6 }}
+              className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/[0.02] border border-white/[0.05] shadow-[inset_0_1px_2px_rgba(255,255,255,0.05),0_8px_24px_rgba(0,0,0,0.4)] mb-8 backdrop-blur-2xl"
+            >
+              <span className="text-xl drop-shadow-xl filter animate-pulse">{timeState.icon}</span>
+              <span className="text-slate-300 font-bold tracking-[0.35em] text-[11px] uppercase bg-clip-text text-transparent bg-gradient-to-r from-slate-200 to-slate-400">{timeState.greeting}</span>
+            </motion.div>
+            
+            <h1 className="text-6xl sm:text-7xl lg:text-[6.5rem] font-black text-white tracking-tighter leading-[1.05] relative z-10">
+              Welcome back,<br className="hidden sm:block lg:hidden" />
+              <span className={`bg-clip-text text-transparent bg-gradient-to-r ${timeState.gradient} drop-shadow-[0_0_80px_rgba(255,255,255,0.15)] ml-0 sm:ml-4 lg:ml-0 inline-block`}>
+                {firstName}.
+              </span>
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-5 bg-[#030612]/90 backdrop-blur-3xl px-8 py-5 rounded-[1.5rem] border border-white/[0.05] shadow-[0_32px_64px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.08)] transform-gpu hover:scale-105 transition-transform duration-500">
+            <div className="relative flex h-4 w-4">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+              <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 shadow-[0_0_16px_rgba(52,211,153,1)]"></span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black text-slate-500 tracking-[0.2em] uppercase mb-0.5">Current Date</span>
+              <span className="text-[14px] font-bold text-slate-200 tracking-wider">
+                {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' })}
+              </span>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* --- ROW 1: SPATIAL BENTO GRID --- */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* 1. Epic Command Banner */}
           <TeacherCard className="lg:col-span-2 group">
-            <div className="p-12 sm:p-14 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-12 h-full relative z-10">
+            <div className="p-12 sm:p-16 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-12 h-full relative z-10">
               
               <div className="flex-1 max-w-xl">
-                {/* Glowing Outline Icon matching the screenshot */}
-                <div className="w-[84px] h-[84px] rounded-[1.5rem] bg-[#020617] border border-blue-500/40 flex items-center justify-center mb-8 shadow-[0_0_30px_rgba(59,130,246,0.3),inset_0_2px_10px_rgba(59,130,246,0.2)] group-hover:scale-110 group-hover:border-blue-400 group-hover:shadow-[0_0_50px_rgba(59,130,246,0.5)] transition-all duration-700 text-blue-500">
+                <div className="w-[84px] h-[84px] rounded-[1.5rem] bg-[#020617] border border-emerald-500/40 flex items-center justify-center mb-8 shadow-[0_0_30px_rgba(52,211,153,0.3),inset_0_2px_10px_rgba(52,211,153,0.2)] group-hover:scale-110 group-hover:border-emerald-400 group-hover:shadow-[0_0_50px_rgba(52,211,153,0.5)] transition-all duration-700 text-emerald-500">
                   <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                   </svg>
@@ -217,9 +250,8 @@ export default function UstadOverview() {
                 </p>
               </div>
               
-              {/* Exact Screenshot Button Layout */}
               <div className="flex flex-col gap-5 w-full xl:w-[240px] shrink-0">
-                <Link href="/dashboard/create-course" className="w-full py-5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white font-black rounded-full text-center transition-all flex items-center justify-center gap-3 shadow-[0_0_40px_rgba(59,130,246,0.4)] hover:shadow-[0_0_60px_rgba(99,102,241,0.6)] hover:scale-[1.03] active:scale-95 group/btn">
+                <Link href="/dashboard/create-course" className="w-full py-5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black rounded-full text-center transition-all flex items-center justify-center gap-3 shadow-[0_0_40px_rgba(52,211,153,0.4)] hover:shadow-[0_0_60px_rgba(52,211,153,0.6)] hover:scale-[1.03] active:scale-95 group/btn">
                   <svg className="w-5 h-5 group-hover/btn:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
                   <span className="text-[13px] uppercase tracking-[0.2em] pt-0.5">New Course</span>
                 </Link>
@@ -232,22 +264,21 @@ export default function UstadOverview() {
             </div>
           </TeacherCard>
 
-          {/* 2. Global Reach Ring (Matches Screenshot) */}
+          {/* 2. Global Reach Ring */}
           <TeacherCard className="group flex flex-col items-center justify-between text-center p-12">
             
-            <p className="text-slate-400 text-[11px] font-black uppercase tracking-[0.3em] flex items-center gap-3 bg-[#020510]/80 px-6 py-3 rounded-full border border-blue-500/[0.15] shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_12px_rgba(59,130,246,1)] animate-pulse"></span>
+            <p className="text-slate-400 text-[11px] font-black uppercase tracking-[0.3em] flex items-center gap-3 bg-[#020510]/80 px-6 py-3 rounded-full border border-emerald-500/[0.15] shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(52,211,153,1)] animate-pulse"></span>
               Global Reach
             </p>
 
             <div className="relative flex items-center justify-center w-64 h-64 my-6">
               <svg className="absolute w-0 h-0">
                 <defs>
-                  {/* Exact Blue to Magenta Gradient from your screenshot */}
                   <linearGradient id="globalReachGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#3b82f6" /> {/* Blue */}
-                    <stop offset="50%" stopColor="#8b5cf6" /> {/* Violet */}
-                    <stop offset="100%" stopColor="#d946ef" /> {/* Fuchsia */}
+                    <stop offset="0%" stopColor="#10b981" /> 
+                    <stop offset="50%" stopColor="#14b8a6" /> 
+                    <stop offset="100%" stopColor="#06b6d4" /> 
                   </linearGradient>
                   <filter id="glowEffect" x="-50%" y="-50%" width="200%" height="200%">
                     <feGaussianBlur stdDeviation="12" result="blur" />
@@ -256,7 +287,6 @@ export default function UstadOverview() {
                 </defs>
               </svg>
               
-              {/* Background Track */}
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 256 256">
                 <circle cx="128" cy="128" r={radius} stroke="currentColor" strokeWidth="20" fill="transparent" className="text-[#0a1228]" />
                 {!loading && (
@@ -295,23 +325,23 @@ export default function UstadOverview() {
           
           {/* Active Courses */}
           <TeacherCard className="group p-12">
-            <div className="absolute bottom-0 right-0 w-[180%] h-48 text-indigo-500/10 group-hover:text-indigo-500/20 transition-colors duration-700 pointer-events-none">
-              <svg className="w-full h-full filter drop-shadow-[0_0_20px_rgba(99,102,241,0.6)]" viewBox="0 0 200 50" preserveAspectRatio="none">
+            <div className="absolute bottom-0 right-0 w-[180%] h-48 text-emerald-500/10 group-hover:text-emerald-500/20 transition-colors duration-700 pointer-events-none">
+              <svg className="w-full h-full filter drop-shadow-[0_0_20px_rgba(52,211,153,0.6)]" viewBox="0 0 200 50" preserveAspectRatio="none">
                 <path d="M0 50 Q 40 30, 80 40 T 160 20 L 200 10 L 200 50 Z" fill="currentColor" />
                 {!loading && (
                   <motion.path 
                     initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 1 }} transition={{ duration: 3, ease: [0.16, 1, 0.3, 1], delay: 0.9 }}
-                    d="M0 50 Q 40 30, 80 40 T 160 20 L 200 10" fill="none" stroke="url(#indigoGradExtra)" strokeWidth="3" strokeLinecap="round"
+                    d="M0 50 Q 40 30, 80 40 T 160 20 L 200 10" fill="none" stroke="url(#emeraldGradExtra)" strokeWidth="3" strokeLinecap="round"
                   />
                 )}
                 <defs>
-                  <linearGradient id="indigoGradExtra" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stopColor="transparent" /><stop offset="100%" stopColor="#818cf8" /></linearGradient>
+                  <linearGradient id="emeraldGradExtra" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stopColor="transparent" /><stop offset="100%" stopColor="#34d399" /></linearGradient>
                 </defs>
               </svg>
             </div>
             
             <div className="relative z-10 flex flex-col h-full justify-between">
-              <div className="w-20 h-20 rounded-[1.5rem] bg-[#020617] flex items-center justify-center border border-indigo-500/30 text-indigo-400 mb-12 shadow-[0_0_40px_rgba(99,102,241,0.2),inset_0_2px_4px_rgba(255,255,255,0.05)] group-hover:border-indigo-400 group-hover:scale-110 transition-all duration-500">
+              <div className="w-20 h-20 rounded-[1.5rem] bg-[#020617] flex items-center justify-center border border-emerald-500/30 text-emerald-400 mb-12 shadow-[0_0_40px_rgba(52,211,153,0.2),inset_0_2px_4px_rgba(255,255,255,0.05)] group-hover:border-emerald-400 group-hover:scale-110 transition-all duration-500">
                 <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
               </div>
               <div>
@@ -325,29 +355,29 @@ export default function UstadOverview() {
 
           {/* Pending Submissions */}
           <TeacherCard className="group p-12">
-            <div className="absolute bottom-0 right-0 w-[180%] h-48 text-amber-500/10 group-hover:text-amber-500/20 transition-colors duration-700 pointer-events-none">
-              <svg className="w-full h-full filter drop-shadow-[0_0_20px_rgba(245,158,11,0.6)]" viewBox="0 0 200 50" preserveAspectRatio="none">
+            <div className="absolute bottom-0 right-0 w-[180%] h-48 text-teal-500/10 group-hover:text-teal-500/20 transition-colors duration-700 pointer-events-none">
+              <svg className="w-full h-full filter drop-shadow-[0_0_20px_rgba(20,184,166,0.6)]" viewBox="0 0 200 50" preserveAspectRatio="none">
                 <path d="M0 50 Q 30 20, 60 35 T 140 15 L 200 5 L 200 50 Z" fill="currentColor" />
                 {!loading && (
                   <motion.path 
                     initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 1 }} transition={{ duration: 3, ease: [0.16, 1, 0.3, 1], delay: 1.1 }}
-                    d="M0 50 Q 30 20, 60 35 T 140 15 L 200 5" fill="none" stroke="url(#amberGradExtra)" strokeWidth="3" strokeLinecap="round"
+                    d="M0 50 Q 30 20, 60 35 T 140 15 L 200 5" fill="none" stroke="url(#tealGradExtra)" strokeWidth="3" strokeLinecap="round"
                   />
                 )}
                 <defs>
-                  <linearGradient id="amberGradExtra" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stopColor="transparent" /><stop offset="100%" stopColor="#fbbf24" /></linearGradient>
+                  <linearGradient id="tealGradExtra" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stopColor="transparent" /><stop offset="100%" stopColor="#2dd4bf" /></linearGradient>
                 </defs>
               </svg>
             </div>
 
             <div className="relative z-10 flex flex-col h-full justify-between">
               <div className="flex justify-between items-start mb-12">
-                <div className="w-20 h-20 rounded-[1.5rem] bg-[#020617] flex items-center justify-center border border-amber-500/30 text-amber-400 shadow-[0_0_40px_rgba(245,158,11,0.2),inset_0_2px_4px_rgba(255,255,255,0.05)] group-hover:border-amber-400 group-hover:scale-110 transition-all duration-500">
+                <div className="w-20 h-20 rounded-[1.5rem] bg-[#020617] flex items-center justify-center border border-teal-500/30 text-teal-400 shadow-[0_0_40px_rgba(20,184,166,0.2),inset_0_2px_4px_rgba(255,255,255,0.05)] group-hover:border-teal-400 group-hover:scale-110 transition-all duration-500">
                   <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
                 </div>
                 {!loading && stats.pendingSubmissions > 0 && (
-                  <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 1.5 }} className="bg-amber-500/10 text-amber-400 text-[12px] font-black uppercase tracking-widest px-5 py-2.5 rounded-full border border-amber-500/30 shadow-[0_0_30px_rgba(245,158,11,0.3)] flex items-center gap-3 backdrop-blur-md">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+                  <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 1.5 }} className="bg-teal-500/10 text-teal-400 text-[12px] font-black uppercase tracking-widest px-5 py-2.5 rounded-full border border-teal-500/30 shadow-[0_0_30px_rgba(20,184,166,0.3)] flex items-center gap-3 backdrop-blur-md">
+                    <span className="w-2.5 h-2.5 rounded-full bg-teal-400 animate-ping"></span>
                     Action Required
                   </motion.span>
                 )}
@@ -377,7 +407,7 @@ export default function UstadOverview() {
           
           <div className="relative z-10">
             {/* Glowing Line for Timeline */}
-            <div className="absolute left-[15px] top-6 bottom-6 w-1.5 bg-gradient-to-b from-blue-400 via-indigo-500 to-transparent rounded-full shadow-[0_0_30px_rgba(59,130,246,0.6)]"></div>
+            <div className="absolute left-[15px] top-6 bottom-6 w-1.5 bg-gradient-to-b from-emerald-400 via-teal-500 to-transparent rounded-full shadow-[0_0_30px_rgba(52,211,153,0.6)]"></div>
 
             {loading ? (
               <div className="space-y-16 pl-14">
@@ -408,15 +438,15 @@ export default function UstadOverview() {
                     >
                       {/* Timeline Glowing Orb */}
                       <div className="absolute left-[2px] top-3 w-[10px] h-[10px] rounded-full bg-white shadow-[0_0_30px_rgba(255,255,255,1)] group-hover:scale-[2.5] transition-transform duration-700 z-10" />
-                      <div className="absolute left-[-4px] top-1.5 w-[22px] h-[22px] rounded-full bg-[#020617] border-[3px] border-blue-400 shadow-[0_0_0_6px_#050B14]" />
+                      <div className="absolute left-[-4px] top-1.5 w-[22px] h-[22px] rounded-full bg-[#020617] border-[3px] border-emerald-400 shadow-[0_0_0_6px_#050B14]" />
                       
                       <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-6 p-10 -mt-10 rounded-[2.5rem] bg-white/[0.01] hover:bg-white/[0.03] transition-colors cursor-default border border-transparent hover:border-white/[0.08] hover:shadow-[0_24px_48px_rgba(0,0,0,0.4)]">
                         <div>
-                          <h4 className="text-white font-black text-2xl mb-3 group-hover:text-blue-400 transition-colors tracking-tight">{act.title}</h4>
+                          <h4 className="text-white font-black text-2xl mb-3 group-hover:text-emerald-400 transition-colors tracking-tight">{act.title}</h4>
                           <p className="text-slate-400 text-lg font-light leading-relaxed max-w-3xl mix-blend-screen">{act.description}</p>
                         </div>
                         <div className="shrink-0 pt-2">
-                          <span className="text-[12px] font-black uppercase tracking-[0.3em] text-slate-400 bg-[#010206] px-6 py-3 rounded-full border border-white/[0.08] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-blue-500/40 group-hover:text-blue-300 transition-colors inline-block">
+                          <span className="text-[12px] font-black uppercase tracking-[0.3em] text-slate-400 bg-[#010206] px-6 py-3 rounded-full border border-white/[0.08] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-emerald-500/40 group-hover:text-emerald-300 transition-colors inline-block">
                             {formatDate(act.date)}
                           </span>
                         </div>
