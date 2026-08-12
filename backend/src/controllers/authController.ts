@@ -22,6 +22,7 @@ export const registerUser = catchAsync(async (req: Request, res: Response) => {
     email,
     password: hashedPassword,
     role: role || 'Student',
+    enrolledCourses: [], // New array initialize
   });
 
   if (user) {
@@ -31,6 +32,7 @@ export const registerUser = catchAsync(async (req: Request, res: Response) => {
       email: user.email,
       role: user.role,
       avatar: user.avatar,
+      enrolledCourses: user.enrolledCourses, // 👈 ADDED HERE
       token: generateToken(user.id),
     });
   } else {
@@ -52,6 +54,7 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
       email: user.email,
       role: user.role,
       avatar: user.avatar, 
+      enrolledCourses: user.enrolledCourses || [], // 👈 ADDED HERE
       token: generateToken(user.id),
     });
   } else {
@@ -85,6 +88,7 @@ export const updateProfile = catchAsync(async (req: any, res: Response) => {
     email: updatedUser.email,
     role: updatedUser.role,
     avatar: updatedUser.avatar, 
+    enrolledCourses: updatedUser.enrolledCourses || [], // 👈 ADDED HERE
   });
 });
 

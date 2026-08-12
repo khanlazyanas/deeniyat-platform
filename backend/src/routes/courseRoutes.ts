@@ -1,5 +1,6 @@
 import express from 'express';
-import { createCourse, getCourses, getCourseById } from '../controllers/courseController';
+// 👇 NEW: getMyCourses ko import kiya
+import { createCourse, getCourses, getCourseById, getMyCourses } from '../controllers/courseController';
 import { protect, authorize } from '../middlewares/authMiddleware';
 
 const router = express.Router();
@@ -10,6 +11,12 @@ router.route('/')
   .get(getCourses)
   .post(protect, authorize('Admin', 'Ustad'), createCourse);
 
+// 👇 THE FIX: Isey /:id se UPAR rakhna zaroori hai!
+// GET /api/v1/courses/my-courses (Logged in user ke kharide hue courses)
+router.route('/my-courses')
+  .get(protect, getMyCourses);
+
+// GET /api/v1/courses/:id (Single course details)
 router.route('/:id')
   .get(getCourseById);
 

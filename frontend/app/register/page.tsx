@@ -125,13 +125,14 @@ export default function RegisterPage() {
         throw new Error(data.message || "Something went wrong during registration");
       }
 
-      // 🚨 FIX: Extract exactly what is needed so we don't save "undefined"
+      // 🚨 FIX: Extract exactly what is needed and add enrolledCourses
       const userData = {
         _id: data._id,
         name: data.name,
         email: data.email,
         role: data.role,
-        avatar: data.avatar || ""
+        avatar: data.avatar || "",
+        enrolledCourses: data.enrolledCourses || [] // 👈 FIX
       };
       
       // 👇 3. YAHAN LOCAL STORAGE HATA KAR SEEDHA CONTEXT USE KIYA

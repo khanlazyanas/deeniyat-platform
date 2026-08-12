@@ -10,6 +10,7 @@ interface User {
   email: string;
   role: string;
   avatar: string;
+  enrolledCourses: string[]; // 👈 NEW: Frontend ko course list yaad rakhne ke liye
 }
 
 interface AuthContextType {
@@ -24,7 +25,7 @@ interface AuthContextType {
 // 2. Context Create Karo
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// 3. Provider Component (Yeh poore app ko wrap karega)
+// 3. Provider Component
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -45,13 +46,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
     setLoading(false);
+
+    // 👇 NEW: Storage event listener for multi-tab sync (Checkout page update karega toh yahan bhi hoga)
+    const handleStorageChange = () => {
+      const updatedUser = localStorage.getItem("user");
+      if (updatedUser && updatedUser !== "undefined") {
+        setUser(JSON.parse(updatedUser));
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   // Login Function
   const login = (userData: User, authToken: string) => {
-    setUser(userData);
+    // Make sure enrolledCourses exists even if empty
+    const completeUser = { ...userData, enrolledCourses: userData.enrolledCourses || [] };
+    setUser(completeUser);
     setToken(authToken);
-    localStorage.setItem("user", JSON.stringify(userData));
+    localStorage.setItem("user", JSON.stringify(completeUser));
     localStorage.setItem("token", authToken);
   };
 
@@ -61,10 +74,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setToken(null);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
-    router.push("/login"); // Seedha login page par bhej do
+    router.push("/login"); 
   };
 
-  // Update Profile Function (Taki refresh na karna pade)
+  // Update Profile Function 
   const updateUser = (userData: User) => {
     setUser(userData);
     localStorage.setItem("user", JSON.stringify(userData));
@@ -77,7 +90,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-// 4. Custom Hook (Isey hum har component mein use karenge)
+// 4. Custom Hook 
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

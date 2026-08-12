@@ -122,12 +122,14 @@ export default function LoginPage() {
         throw new Error(data.message || "Invalid email or password");
       }
 
+      // 🚨 FIX: Add enrolledCourses here
       const userData = {
         _id: data._id,
         name: data.name,
         email: data.email,
         role: data.role,
-        avatar: data.avatar || ""
+        avatar: data.avatar || "",
+        enrolledCourses: data.enrolledCourses || [] // 👈 FIX
       };
       
       // 👇 3. YAHAN LOCAL STORAGE HATA KAR SEEDHA CONTEXT USE KIYA

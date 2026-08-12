@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import Course from '../models/Course';
+import User from '../models/User'; // 👈 NEW: User import zaroori hai my courses nikalne ke liye
 import catchAsync from '../utils/catchAsync';
 
 // @desc    Create a new course
@@ -8,7 +9,6 @@ import catchAsync from '../utils/catchAsync';
 export const createCourse = catchAsync(async (req: Request, res: Response) => {
   const { title, description, level, thumbnail } = req.body;
 
-  // Fix: TypeScript ke liye id ki jagah _id (MongoDB format) use karenge
   const teacherId = req.user?._id;
 
   const course = await Course.create({
@@ -26,7 +26,6 @@ export const createCourse = catchAsync(async (req: Request, res: Response) => {
 // @route   GET /api/v1/courses
 // @access  Public
 export const getCourses = catchAsync(async (req: Request, res: Response) => {
-  // .populate() se humein teacher (Ustad) ki details bhi mil jayengi
   const courses = await Course.find({}).populate('teacherId', 'name email profileImage');
   res.json(courses);
 });
@@ -43,4 +42,22 @@ export const getCourseById = catchAsync(async (req: Request, res: Response) => {
     res.status(404);
     throw new Error('Course not found');
   }
+});
+
+// 👇 NEW API FUNCTION: Yeh tumhare "My Learning Journey" page ke liye courses layega!
+// @desc    Get logged in user's enrolled courses
+// @route   GET /api/v1/courses/my-courses
+// @access  Private
+export const getMyCourses = catchAsync(async (req: any, res: Response) => {
+  const user = await User.findById(req.user._id).populate({
+    path: 'enrolledCourses',
+    populate: { path: 'teacherId', select: 'name email profileImage' } // Saath mein teacher details bhi
+  });
+
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+
+  // Returns array of full course objects
+  res.json(user.enrolledCourses);
 });
