@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import catchAsync from '../utils/catchAsync';
 import Course from '../models/Course';
 import Submission from '../models/Submission';
-import Attendance from '../models/Attendance'; 
+import Attendance from '../models/Attendance';
+import User from '../models/User'; // 👈 Naya import total students count karne ke liye
 
 // @desc    Get stats for the dashboard
 // @route   GET /api/v1/dashboard/stats
@@ -43,7 +44,7 @@ export const getDashboardStats = catchAsync(async (req: any, res: Response) => {
     }));
 
   } else {
-    // Teacher (Ustad) Logic
+    // Teacher (Ustad) Logic (Purana wala, agar kahin use ho raha ho)
     enrolledCourses = await Course.countDocuments();
     pendingAssignments = await Submission.countDocuments(); 
     
@@ -76,5 +77,33 @@ export const getDashboardStats = catchAsync(async (req: any, res: Response) => {
     pendingAssignments,
     attendanceRate,
     recentActivities
+  });
+});
+
+// @desc    Get specific stats for Ustad Dashboard
+// @route   GET /api/v1/dashboard/ustad-stats
+// @access  Private (Ustad only)
+// 👇 Yeh NAYA FUNCTION add kiya hai front-end ke liye
+export const getUstadStats = catchAsync(async (req: any, res: Response) => {
+  const userId = req.user._id;
+
+  // Security check: Sirf Ustad access kar paye
+  if (req.user.role !== 'Ustad') {
+    return res.status(403).json({ message: 'Access denied. You are not an Ustad.' });
+  }
+
+  // 1. Ustad ne kitne active courses banaye hain
+  const activeCourses = await Course.countDocuments({ teacherId: userId });
+
+  // 2. Pending Submissions check karne ke liye (Abhi overall count rakha hai)
+  const pendingSubmissions = await Submission.countDocuments();
+
+  // 3. Platform par total kitne Students hain
+  const totalStudents = await User.countDocuments({ role: 'Student' });
+
+  res.status(200).json({
+    totalStudents,
+    activeCourses,
+    pendingSubmissions
   });
 });
