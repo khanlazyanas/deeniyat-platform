@@ -48,12 +48,17 @@ function AnimatedNumber({ value }: { value: number }) {
   const [displayValue, setDisplayValue] = useState(0);
   useEffect(() => {
     let start = 0;
+    const end = value;
+    if (start === end) {
+      setDisplayValue(end);
+      return;
+    }
     const duration = 1500;
     const startTime = performance.now();
     const animate = (currentTime: number) => {
       const progress = Math.min((currentTime - startTime) / duration, 1);
       const easeProgress = 1 - Math.pow(1 - progress, 4);
-      setDisplayValue(Math.floor(easeProgress * value));
+      setDisplayValue(Math.floor(easeProgress * end));
       if (progress < 1) requestAnimationFrame(animate);
     };
     requestAnimationFrame(animate);
@@ -62,19 +67,38 @@ function AnimatedNumber({ value }: { value: number }) {
 }
 
 export default function UstadOverview() {
-  const { user } = useAuth();
+  // 👇 1. Extract token alongside user from context
+  const { user, token } = useAuth();
   const [loading, setLoading] = useState(true);
   
-  // Dummy stats API call simulation
   const [stats, setStats] = useState({ totalStudents: 0, activeCourses: 0, pendingSubmissions: 0 });
 
+  // 👇 2. Replace dummy timeout with actual Backend API Fetch
   useEffect(() => {
-    // Backend API banne ke baad hum yahan real fetch lagayenge
-    setTimeout(() => {
-      setStats({ totalStudents: 124, activeCourses: 3, pendingSubmissions: 18 });
-      setLoading(false);
-    }, 1000);
-  }, []);
+    const fetchUstadStats = async () => {
+      if (!token) return;
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dashboard/ustad-stats`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setStats({ 
+            totalStudents: data.totalStudents || 0, 
+            activeCourses: data.activeCourses || 0, 
+            pendingSubmissions: data.pendingSubmissions || 0 
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching Ustad stats:", error);
+      } finally {
+        setTimeout(() => setLoading(false), 800); // Slight delay for dramatic animation effect
+      }
+    };
+
+    fetchUstadStats();
+  }, [token]);
 
   const firstName = user?.name?.split(" ")[0] || "Ustad";
 
@@ -154,7 +178,7 @@ export default function UstadOverview() {
              <span className="font-bold text-slate-200">Add Lesson</span>
           </Link>
           <Link href="/dashboard/submissions" className="p-6 rounded-[1.5rem] bg-white/[0.02] border border-white/[0.05] hover:bg-amber-500/10 hover:border-amber-500/30 transition-all flex flex-col gap-4 group">
-             <div className="w-10 h-10 rounded-full bg-[#030612] flex items-center justify-center text-slate-400 group-hover:text-amber-400"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg></div>
+             <div className="w-10 h-10 rounded-full bg-[#030612] flex items-center justify-center text-slate-400 group-hover:text-amber-400"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg></div>
              <span className="font-bold text-slate-200">Submissions</span>
           </Link>
           <Link href="/dashboard/attendance" className="p-6 rounded-[1.5rem] bg-white/[0.02] border border-white/[0.05] hover:bg-emerald-500/10 hover:border-emerald-500/30 transition-all flex flex-col gap-4 group">
