@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, Variants, useMotionValue, useSpring, useTransform } from "framer-motion";
 
-// 👇 1. AUTH CONTEXT IMPORT KIYA
+// 👇 1. AUTH CONTEXT IMPORT
 import { useAuth } from "../../context/AuthContext";
+// 👇 2. USTAD OVERVIEW COMPONENT IMPORT
+import UstadOverview from "../../components/UstadOverview";
 
 // --- Types ---
 interface Activity {
@@ -154,7 +156,6 @@ function CinematicNumber({ value, suffix = "" }: { value: number, suffix?: strin
 }
 
 export default function Dashboard() {
-  // 👇 2. HOOKS SETUP
   const { user, token, loading: authLoading } = useAuth();
   const router = useRouter();
 
@@ -168,11 +169,11 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [cursorPos, setCursorPos] = useState({ x: -100, y: -100 });
 
-  const radius = 50;
+  // 👇 FIX: SVG Circle calculation optimized
+  const radius = 90; // Increased radius to fit text perfectly
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (stats.attendanceRate / 100) * circumference;
 
-  // 👇 3. TRAFFIC COP LOGIC: Agar user nahi hai toh bahar nikaalo
   useEffect(() => {
     if (!authLoading && !user) {
       router.push("/login");
@@ -185,7 +186,6 @@ export default function Dashboard() {
     else if (hour < 18) setTimeState({ greeting: "Good afternoon", icon: "☀️", gradient: "from-cyan-400 via-teal-400 to-emerald-500" });
     else setTimeState({ greeting: "Good evening", icon: "🌙", gradient: "from-indigo-400 via-purple-400 to-pink-500" });
 
-    // 👇 4. API CALL MEIN CONTEXT WALA TOKEN USE KIYA
     const fetchStats = async () => {
       if (!token) return;
       try {
@@ -205,7 +205,6 @@ export default function Dashboard() {
       finally { setTimeout(() => setLoading(false), 1200); }
     };
     
-    // Sirf tabhi fetch karo jab token ho
     if (token) {
         fetchStats();
     }
@@ -226,7 +225,6 @@ export default function Dashboard() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
-  // Agar global auth load ho raha hai, ya user redirect ho raha hai, toh loader dikhao
   if (authLoading || !user) {
     return (
       <div className="min-h-screen bg-[#010206] flex items-center justify-center">
@@ -235,21 +233,22 @@ export default function Dashboard() {
     );
   }
 
-  // 👇 5. USTAD DASHBOARD PLACEHOLDER
+  // 👇 Ustad Dashboard Switch
   if (user.role === "Ustad") {
       return (
-        <div className="min-h-screen pt-32 pb-12 bg-[#010206] text-white flex flex-col items-center justify-center text-center px-4">
-            <div className="w-24 h-24 bg-blue-500/10 border border-blue-500/20 rounded-3xl flex items-center justify-center text-blue-400 mb-8 shadow-[0_0_50px_rgba(59,130,246,0.2)]">
-                <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+        <div className="p-4 sm:p-6 lg:p-10 relative min-h-screen w-full bg-[#010206] overflow-hidden selection:bg-blue-500/30 selection:text-blue-200 text-slate-50 font-sans pt-32 z-10">
+            <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden flex items-center justify-center mix-blend-screen opacity-50">
+              <div className="absolute w-[80vw] h-[80vw] max-w-[900px] max-h-[900px] bg-gradient-to-tr from-blue-600/10 via-indigo-900/10 to-purple-800/10 rounded-full blur-[140px] animate-pulse"></div>
             </div>
-            <h1 className="text-5xl font-black mb-4">Ustad Portal</h1>
-            <p className="text-slate-400 text-xl max-w-lg mb-8">Welcome {user.name}, your teaching dashboard is currently under construction. Check back soon!</p>
-            <Link href="/dashboard/settings" className="px-8 py-3 bg-white text-black font-bold rounded-full hover:bg-slate-200 transition-colors">Go to Settings</Link>
+            
+            <div className="relative z-10 max-w-7xl mx-auto">
+               <UstadOverview />
+            </div>
         </div>
       );
   }
 
-  // 👇 6. STUDENT DASHBOARD (TERA EPIC UI)
+  // 👇 Student Dashboard
   const firstName = user.name.split(" ")[0] || "Scholar";
 
   return (
@@ -262,7 +261,6 @@ export default function Dashboard() {
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.04] mix-blend-overlay"></div>
       </div>
 
-      {/* Subtle Cursor Tracker Orb */}
       <motion.div 
         className="fixed w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none z-0 mix-blend-screen"
         animate={{ x: cursorPos.x - 128, y: cursorPos.y - 128 }}
@@ -326,6 +324,7 @@ export default function Dashboard() {
             </div>
           </HolographicCard>
 
+          {/* 👇 FIX: Attendance Circle - Made larger and fully centered */}
           <HolographicCard className="group flex flex-col items-center justify-center text-center p-12">
             <p className="text-slate-400 text-[12px] font-black uppercase tracking-[0.3em] mb-12 flex items-center gap-3 bg-[#030612]/50 px-6 py-3 rounded-full border border-white/[0.08] shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
               <span className="w-2.5 h-2.5 rounded-full bg-teal-400 shadow-[0_0_16px_rgba(45,212,191,1)] animate-pulse"></span>
@@ -347,12 +346,13 @@ export default function Dashboard() {
                 </defs>
               </svg>
               
-              <svg className="w-full h-full transform -rotate-90">
-                <circle cx="128" cy="128" r={radius} stroke="currentColor" strokeWidth="12" fill="transparent" className="text-white/[0.02]" />
+              {/* Added viewBox to properly scale the circle based on radius */}
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 256 256">
+                <circle cx="128" cy="128" r={radius} stroke="currentColor" strokeWidth="16" fill="transparent" className="text-white/[0.02]" />
                 {!loading && (
                   <motion.circle 
                     cx="128" cy="128" r={radius} 
-                    stroke="url(#attendanceGradExtreme)" strokeWidth="12" fill="transparent" 
+                    stroke="url(#attendanceGradExtreme)" strokeWidth="16" fill="transparent" 
                     strokeDasharray={circumference} 
                     initial={{ strokeDashoffset: circumference }}
                     animate={{ strokeDashoffset }}
@@ -367,7 +367,7 @@ export default function Dashboard() {
                   <span className="text-6xl font-black text-slate-800 animate-pulse">--</span>
                 ) : (
                   <div className="flex items-start drop-shadow-[0_0_30px_rgba(255,255,255,0.3)]">
-                    <span className="text-7xl font-black text-white tracking-tighter">
+                    <span className="text-6xl sm:text-7xl font-black text-white tracking-tighter">
                       <CinematicNumber value={stats.attendanceRate} />
                     </span>
                     <span className="text-3xl font-bold text-teal-400 mt-2 ml-1">%</span>
@@ -463,7 +463,6 @@ export default function Dashboard() {
           </div>
           
           <div className="relative z-10">
-            {/* Liquid Glowing Line */}
             <div className="absolute left-[15px] top-6 bottom-6 w-1.5 bg-gradient-to-b from-emerald-400 via-blue-500 to-transparent rounded-full shadow-[0_0_30px_rgba(52,211,153,0.6)]"></div>
 
             {loading ? (
