@@ -63,7 +63,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
       const tax = Math.round(safePrice * 0.18);
       const totalAmount = safePrice + tax;
 
-      // 1. Call Backend to create order (Using your exact working payload structure)
+      // 1. Call Backend to create order
       const orderResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/create-order`, {
         method: "POST",
         headers: { 
@@ -81,9 +81,9 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
         return;
       }
 
-      // 2. Razorpay Options (Hardcoded proven key + exact response fields from your working snippet)
+      // 2. Razorpay Options
       const options = {
-        key: 'rzp_test_8YGiWeZrGctMwH', // Asli working key from your store
+        key: 'rzp_test_8YGiWeZrGctMwH', // Asli working key
         amount: orderData.order.amount,
         currency: orderData.order.currency || "INR",
         name: "Deeniyat Platform",
@@ -111,7 +111,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
 
             if (verifyRes.ok && verifyData.success) {
               // 4. Save Transaction Record
-              await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions`, {
+              const txnResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions`, {
                 method: "POST",
                 headers: { 
                   "Content-Type": "application/json", 
@@ -126,10 +126,27 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
                 })
               });
 
-              setSuccess(true);
-              setTimeout(() => {
-                router.push("/dashboard/transactions");
-              }, 2000);
+              if (txnResponse.ok) {
+                // 🚨 UPDATE LOCAL STORAGE SO FRONTEND INSTANTLY KNOWS ABOUT ENROLLMENT
+                const storedUserStr = localStorage.getItem("user");
+                if (storedUserStr) {
+                  const storedUser = JSON.parse(storedUserStr);
+                  storedUser.enrolledCourses = storedUser.enrolledCourses || [];
+                  if (!storedUser.enrolledCourses.includes(courseId)) {
+                    storedUser.enrolledCourses.push(courseId);
+                  }
+                  localStorage.setItem("user", JSON.stringify(storedUser));
+                  window.dispatchEvent(new Event("storage")); // Force state sync
+                }
+
+                setSuccess(true);
+                setTimeout(() => {
+                  router.push("/dashboard/my-courses"); // Redirect to their courses directly!
+                }, 2000);
+              } else {
+                alert("Payment verified, but failed to save transaction. Contact support.");
+                setLoading(false);
+              }
             } else {
               alert("Payment Verification Failed!");
               setLoading(false);

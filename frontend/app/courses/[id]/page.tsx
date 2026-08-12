@@ -4,6 +4,9 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, useMotionValue, useSpring, useTransform, useScroll } from "framer-motion";
 
+// 👇 AuthContext se check karne ke liye ki user enrolled hai ya nahi
+import { useAuth } from "../../../context/AuthContext"; 
+
 interface Teacher {
   _id: string;
   name: string;
@@ -20,7 +23,7 @@ interface Course {
   price?: number; 
 }
 
-// --- GLOBAL STYLES (Safe from VS Code parser bugs) ---
+// --- GLOBAL STYLES ---
 const globalAnimations = `
   .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -28,7 +31,6 @@ const globalAnimations = `
   .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.15); }
 `;
 
-// --- PRE-COMPUTED HYPER-DENSE PARTICLE ARRAY ---
 const generateBubbles = (count: number) => {
   return Array.from({ length: count }).map((_, i) => ({
     id: i,
@@ -49,24 +51,25 @@ const ambientBubbles = generateBubbles(45);
 export default function CourseDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const id = params.id;
-
+  const id = params.id as string;
+  
+  const { user } = useAuth(); 
+  
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [mounted, setMounted] = useState(false);
   
-  // Enrollment states
   const [enrolling, setEnrolling] = useState(false);
 
-  // --- Smooth Scroll Physics ---
+  // 👇 THE FIX: TypeScript error resolved by telling it to expect enrolledCourses
+  const isEnrolled = (user as any)?.enrolledCourses?.includes(id);
+
   const { scrollYProgress } = useScroll();
   const smoothProgress = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
 
-  // --- MOUSE PARALLAX TRACKING LOGIC ---
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
-  
   const smoothMouseX = useSpring(mouseX, { stiffness: 50, damping: 20 });
   const smoothMouseY = useSpring(mouseY, { stiffness: 50, damping: 20 });
 
@@ -93,7 +96,7 @@ export default function CourseDetailsPage() {
       } catch (err: any) {
         setError(err.message);
       } finally {
-        setTimeout(() => setLoading(false), 800); // Cinematic delay
+        setTimeout(() => setLoading(false), 800); 
       }
     };
 
@@ -110,6 +113,12 @@ export default function CourseDetailsPage() {
   }, [id, mouseX, mouseY]);
 
   const handleEnroll = () => {
+    // Prevent checkout if already enrolled
+    if (isEnrolled) {
+      router.push(`/dashboard/my-courses`); 
+      return;
+    }
+
     const token = localStorage.getItem("token");
     if (!token) {
       router.push("/login?redirect=/courses/" + id);
@@ -121,10 +130,8 @@ export default function CourseDetailsPage() {
 
   if (loading) return (
     <div className="min-h-screen bg-[#010206] flex flex-col items-center justify-center relative perspective-[2000px] overflow-hidden">
-      {/* Background Orbs */}
       <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen animate-pulse"></div>
       <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-blue-800/10 rounded-full blur-[100px] pointer-events-none mix-blend-screen"></div>
-      
       <div className="w-16 h-16 border-4 border-slate-800/80 border-t-emerald-400 rounded-full animate-spin mb-6 shadow-[0_0_30px_rgba(52,211,153,0.5)] z-10"></div>
       <p className="text-emerald-400 font-bold tracking-[0.2em] uppercase text-sm z-10">Decrypting Knowledge...</p>
     </div>
@@ -146,7 +153,6 @@ export default function CourseDetailsPage() {
   return (
     <div className="min-h-screen bg-[#010206] pt-32 pb-24 relative overflow-hidden font-sans selection:bg-emerald-500/30 selection:text-emerald-200 perspective-[2000px]">
       
-      {/* Top Progress Bar */}
       {mounted && (
         <motion.div 
           className="fixed top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-400 via-teal-400 to-blue-500 origin-left z-[100] shadow-[0_0_20px_rgba(52,211,153,0.8)]"
@@ -154,15 +160,11 @@ export default function CourseDetailsPage() {
         />
       )}
 
-      {/* GLOBAL BACKGROUND */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none"></div>
       <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.035] mix-blend-overlay pointer-events-none z-0"></div>
 
-      {/* --- HYPER-DENSE 3D PARTICLES ENGINE --- */}
       {mounted && (
         <div className="fixed inset-0 z-[5] pointer-events-none overflow-hidden">
-          
-          {/* Layer 0: Foreground */}
           <motion.div style={{ x: fgX, y: fgY }} className="absolute inset-0 will-change-transform">
             {ambientBubbles.filter(b => b.layer === 0).map((p, i) => (
               <motion.div
@@ -178,8 +180,6 @@ export default function CourseDetailsPage() {
               />
             ))}
           </motion.div>
-
-          {/* Layer 1: Midground */}
           <motion.div style={{ x: mgX, y: mgY }} className="absolute inset-0 will-change-transform">
              {ambientBubbles.filter(b => b.layer === 1).map((p, i) => (
               <motion.div
@@ -195,8 +195,6 @@ export default function CourseDetailsPage() {
               />
             ))}
           </motion.div>
-
-          {/* Layer 2: Background */}
           <motion.div style={{ x: bgX, y: bgY }} className="absolute inset-0 will-change-transform">
             {ambientBubbles.filter(b => b.layer === 2).map((p, i) => (
               <motion.div
@@ -211,17 +209,14 @@ export default function CourseDetailsPage() {
               />
             ))}
           </motion.div>
-
         </div>
       )}
 
-      {/* --- Ambient Volumetric Background Glows --- */}
       <div className="absolute top-0 right-0 w-[50vw] h-[50vw] bg-emerald-600/10 rounded-full blur-[140px] pointer-events-none mix-blend-screen animate-[pulse_12s_ease-in-out_infinite]"></div>
       <div className="absolute bottom-0 left-[-10%] w-[40vw] h-[40vw] bg-blue-800/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen animate-[pulse_15s_ease-in-out_infinite_reverse]"></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20">
         
-        {/* Back Navigation */}
         <motion.button 
           initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}
           onClick={() => router.push('/courses')} 
@@ -233,13 +228,10 @@ export default function CourseDetailsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           
-          {/* Left Column: Course Info */}
           <motion.div 
             initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }}
             className="lg:col-span-2 space-y-10"
           >
-            
-            {/* Cinematic Thumbnail Area */}
             <div className="w-full h-[450px] bg-[#030612]/70 backdrop-blur-3xl rounded-[2.5rem] border border-white/[0.06] overflow-hidden relative shadow-[0_32px_64px_-20px_rgba(0,0,0,0.7),inset_0_1px_2px_rgba(255,255,255,0.1)] group">
               {course.thumbnail ? (
                 <>
@@ -257,14 +249,12 @@ export default function CourseDetailsPage() {
               </div>
             </div>
 
-            {/* Course Title and Description */}
             <div>
               <h1 className="text-5xl md:text-6xl font-black text-white tracking-tighter mb-8 leading-[1.1] drop-shadow-lg">
                 {course.title}
               </h1>
               
               <div className="bg-[#030612]/60 backdrop-blur-[40px] rounded-[2.5rem] p-10 md:p-14 border border-white/[0.06] shadow-[0_32px_64px_-20px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.05)] relative overflow-hidden group">
-                {/* Subtle Hover Glow inside description box */}
                 <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-emerald-500/5 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
 
                 <h3 className="text-2xl font-black text-white mb-6 flex items-center gap-4 tracking-tight">
@@ -280,17 +270,14 @@ export default function CourseDetailsPage() {
             </div>
           </motion.div>
 
-          {/* Right Column: Holographic Enrollment Card */}
           <motion.div 
             initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7, delay: 0.4 }}
             className="lg:col-span-1"
           >
             <div className="sticky top-32 bg-[#030612]/80 backdrop-blur-[40px] backdrop-saturate-150 border border-white/[0.08] rounded-[2.5rem] p-10 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.8),inset_0_1px_2px_rgba(255,255,255,0.1)] overflow-hidden">
               
-              {/* Internal Glare for Enrollment Card */}
               <div className="absolute -top-32 -right-32 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none"></div>
 
-              {/* Instructor Info */}
               {course.teacherId && (
                 <div className="flex items-center gap-5 p-5 bg-[#010206]/80 rounded-[1.5rem] border border-white/[0.05] mb-10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)] relative z-10 hover:border-white/[0.1] transition-colors">
                   <div className="w-14 h-14 rounded-[1rem] bg-gradient-to-br from-[#060d20] to-[#040814] border border-white/[0.08] flex items-center justify-center text-xl font-black text-emerald-400 shadow-[0_8px_16px_rgba(0,0,0,0.4)]">
@@ -303,23 +290,29 @@ export default function CourseDetailsPage() {
                 </div>
               )}
 
-              {/* Action Button */}
               <button 
                 onClick={handleEnroll}
-                disabled={enrolling}
+                disabled={enrolling && !isEnrolled}
                 className={`group relative w-full py-6 text-slate-950 text-[17px] font-black tracking-widest uppercase rounded-[1.5rem] transition-all duration-500 flex items-center justify-center gap-3 overflow-hidden ${
-                  enrolling 
+                  enrolling && !isEnrolled
                   ? 'bg-emerald-900/50 text-slate-400 cursor-not-allowed border border-emerald-900/50' 
-                  : 'bg-gradient-to-b from-emerald-400 to-teal-500 hover:scale-[1.03] shadow-[0_0_40px_-10px_rgba(52,211,153,0.6),inset_0_1px_1px_rgba(255,255,255,0.8)] active:scale-95 ring-1 ring-white/20'
+                  : isEnrolled 
+                    ? 'bg-gradient-to-b from-blue-400 to-indigo-500 text-white hover:scale-[1.03] shadow-[0_0_40px_-10px_rgba(59,130,246,0.6),inset_0_1px_1px_rgba(255,255,255,0.8)] active:scale-95 ring-1 ring-white/20'
+                    : 'bg-gradient-to-b from-emerald-400 to-teal-500 hover:scale-[1.03] shadow-[0_0_40px_-10px_rgba(52,211,153,0.6),inset_0_1px_1px_rgba(255,255,255,0.8)] active:scale-95 ring-1 ring-white/20'
                 }`}
               >
                 {!enrolling && <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>}
                 
                 <span className="relative z-10 flex items-center gap-3">
-                  {enrolling ? (
+                  {enrolling && !isEnrolled ? (
                     <>
                       <svg className="w-5 h-5 animate-spin text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                       Authenticating...
+                    </>
+                  ) : isEnrolled ? (
+                    <>
+                      Go to Course Dashboard
+                      <svg className="w-6 h-6 group-hover:translate-x-1.5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                     </>
                   ) : (
                     <>
@@ -341,7 +334,6 @@ export default function CourseDetailsPage() {
         </div>
       </div>
       
-      {/* Global CSS for Animations */}
       <style dangerouslySetInnerHTML={{ __html: globalAnimations }} />
     </div>
   );

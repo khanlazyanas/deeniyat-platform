@@ -8,6 +8,7 @@ export interface IUser extends Document {
   role: 'Admin' | 'Ustad' | 'Student';
   profileImage?: string;
   avatar?: string;
+  enrolledCourses: mongoose.Types.ObjectId[];
 }
 
 // Mongoose Schema
@@ -43,6 +44,7 @@ const userSchema = new Schema<IUser>(
       type: String,
       default: '', // Default empty string zaroori hai
     },
+    enrolledCourses: [{ type: Schema.Types.ObjectId, ref: 'Course' }]
   },
   {
     timestamps: true, // Yeh database mein createdAt aur updatedAt ki details apne aap save karega
