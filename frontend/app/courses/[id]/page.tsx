@@ -113,9 +113,9 @@ export default function CourseDetailsPage() {
   }, [id, mouseX, mouseY]);
 
   const handleEnroll = () => {
-    // Prevent checkout if already enrolled
+    // 👇 Prevent checkout if already enrolled
     if (isEnrolled) {
-      router.push(`/dashboard/my-courses`); 
+      router.push(`/dashboard/my-courses/${id}`); 
       return;
     }
 
