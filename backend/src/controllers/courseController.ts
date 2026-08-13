@@ -63,3 +63,45 @@ export const getMyCourses = catchAsync(async (req: any, res: Response) => {
   // Returns array of full course objects
   res.json(user.enrolledCourses);
 });
+
+// @desc    Update a course
+// @route   PUT /api/v1/courses/:id
+// @access  Private (Ustad who created it & Admin)
+export const updateCourse = catchAsync(async (req: any, res: Response) => {
+  let course = await Course.findById(req.params.id);
+
+  if (!course) {
+    return res.status(404).json({ message: 'Course not found' });
+  }
+
+  // Security Check: Make sure the logged-in Ustad is the owner of this course
+  if (course.teacherId.toString() !== req.user._id.toString() && req.user.role !== 'Admin') {
+    return res.status(403).json({ message: 'Not authorized to update this course' });
+  }
+
+  course = await Course.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+    runValidators: true,
+  });
+
+  res.json(course);
+});
+
+// @desc    Delete a course
+// @route   DELETE /api/v1/courses/:id
+// @access  Private (Ustad who created it & Admin)
+export const deleteCourse = catchAsync(async (req: any, res: Response) => {
+  const course = await Course.findById(req.params.id);
+
+  if (!course) {
+    return res.status(404).json({ message: 'Course not found' });
+  }
+
+  // Security Check: Make sure the logged-in Ustad is the owner
+  if (course.teacherId.toString() !== req.user._id.toString() && req.user.role !== 'Admin') {
+    return res.status(403).json({ message: 'Not authorized to delete this course' });
+  }
+
+  await course.deleteOne();
+  res.json({ message: 'Course removed successfully' });
+});

@@ -1,6 +1,6 @@
 import express from 'express';
 // 👇 NEW: getMyCourses ko import kiya
-import { createCourse, getCourses, getCourseById, getMyCourses } from '../controllers/courseController';
+import { createCourse, getCourses, getCourseById, getMyCourses, updateCourse, deleteCourse } from '../controllers/courseController';
 import { protect, authorize } from '../middlewares/authMiddleware';
 
 const router = express.Router();
@@ -16,8 +16,10 @@ router.route('/')
 router.route('/my-courses')
   .get(protect, getMyCourses);
 
-// GET /api/v1/courses/:id (Single course details)
+// GET, PUT, DELETE /api/v1/courses/:id
 router.route('/:id')
-  .get(getCourseById);
-
+  .get(getCourseById)
+  // 👇 NEW: Edit aur Delete routes add kar diye with security
+  .put(protect, authorize('Admin', 'Ustad'), updateCourse)
+  .delete(protect, authorize('Admin', 'Ustad'), deleteCourse);
 export default router;
