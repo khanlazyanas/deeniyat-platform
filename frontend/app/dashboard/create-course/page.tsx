@@ -43,6 +43,7 @@ export default function CreateCoursePage() {
     description: "",
     level: "Beginner",
     thumbnail: "",
+    promoVideo: "", // 👈 NEW: Added Video URL field
   });
   
   const [loading, setLoading] = useState(false);
@@ -106,7 +107,7 @@ export default function CreateCoursePage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    setError(""); // Clear error when user types
+    setError(""); 
   };
 
   // 👇 Validation Logic for Steps
@@ -128,8 +129,7 @@ export default function CreateCoursePage() {
     setStep((prev) => Math.max(prev - 1, 1));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     if (step !== totalSteps) return; // Guard
     
     setLoading(true);
@@ -168,7 +168,7 @@ export default function CreateCoursePage() {
     }
   };
 
-  // 👇 FIX: Variants for step animation properly typed
+  // Variants for step animation
   const stepVariants: Variants = {
     hidden: { opacity: 0, x: 40, filter: "blur(10px)" },
     visible: { opacity: 1, x: 0, filter: "blur(0px)", transition: { duration: 0.4, ease: "easeOut" } },
@@ -324,7 +324,8 @@ export default function CreateCoursePage() {
               )}
             </AnimatePresence>
             
-            <form onSubmit={handleSubmit} className="space-y-8 min-h-[300px] flex flex-col justify-between">
+            {/* 🚨 FIX: Changed from <form> to <div> to stop auto-submit on Enter key */}
+            <div className="space-y-8 min-h-[300px] flex flex-col justify-between">
               
               <AnimatePresence mode="wait">
                 {/* 👇 STEP 1: Basic Info */}
@@ -339,7 +340,7 @@ export default function CreateCoursePage() {
                           </svg>
                         </div>
                         <input 
-                          type="text" name="title" value={formData.title} onChange={handleChange} autoFocus
+                          type="text" name="title" value={formData.title} onChange={handleChange}
                           className="relative w-full pl-12 pr-4 py-4 bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1.25rem] focus:bg-[#020510] focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all duration-300 text-slate-200 placeholder-slate-600 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-medium z-10"
                           placeholder="e.g., Fundamentals of Tajweed"
                         />
@@ -381,7 +382,7 @@ export default function CreateCoursePage() {
                           </svg>
                         </div>
                         <textarea 
-                          name="description" value={formData.description} onChange={handleChange} autoFocus
+                          name="description" value={formData.description} onChange={handleChange} 
                           className="relative w-full h-full min-h-[200px] pl-12 pr-4 py-4 bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1.25rem] focus:bg-[#020510] focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all duration-300 text-slate-200 placeholder-slate-600 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-medium custom-scrollbar resize-none z-10"
                           placeholder="Provide a comprehensive overview of what the students will learn in this course..."
                         />
@@ -392,9 +393,10 @@ export default function CreateCoursePage() {
 
                 {/* 👇 STEP 3: Media & Publish */}
                 {step === 3 && (
-                  <motion.div key="step3" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-8">
+                  <motion.div key="step3" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
+                    {/* Thumbnail URL */}
                     <div>
-                      <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Thumbnail URL <span className="text-slate-500 lowercase tracking-normal font-medium">(Optional but recommended)</span></label>
+                      <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Thumbnail Image URL</label>
                       <div className="relative group">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
                           <svg className="h-5 w-5 text-slate-500 group-focus-within:text-emerald-400 transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -402,18 +404,37 @@ export default function CreateCoursePage() {
                           </svg>
                         </div>
                         <input 
-                          type="url" name="thumbnail" value={formData.thumbnail} onChange={handleChange} autoFocus
+                          type="url" name="thumbnail" value={formData.thumbnail} onChange={handleChange} 
                           className="relative w-full pl-12 pr-4 py-4 bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1.25rem] focus:bg-[#020510] focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all duration-300 text-slate-200 placeholder-slate-600 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-medium z-10"
                           placeholder="https://example.com/cover.jpg"
                         />
                       </div>
-                      {/* Image Preview Feature */}
-                      {formData.thumbnail && (
-                        <div className="mt-6 rounded-2xl overflow-hidden border border-white/[0.1] h-40 relative bg-[#010206]">
-                           <img src={formData.thumbnail} alt="Preview" className="w-full h-full object-cover opacity-80" onError={(e) => e.currentTarget.style.display = 'none'} />
-                        </div>
-                      )}
                     </div>
+
+                    {/* 🚨 NEW: Promo Video URL */}
+                    <div>
+                      <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Course Promo Video URL <span className="lowercase font-medium tracking-normal">(Optional)</span></label>
+                      <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                          <svg className="h-5 w-5 text-slate-500 group-focus-within:text-emerald-400 transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <input 
+                          type="url" name="promoVideo" value={formData.promoVideo} onChange={handleChange} 
+                          className="relative w-full pl-12 pr-4 py-4 bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1.25rem] focus:bg-[#020510] focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all duration-300 text-slate-200 placeholder-slate-600 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-medium z-10"
+                          placeholder="https://youtube.com/watch?v=..."
+                        />
+                      </div>
+                    </div>
+
+                    {/* 🚨 UI Notice for Unlimited Videos */}
+                    <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl flex gap-3 text-blue-400 text-sm font-medium mt-6 shadow-[inset_0_1px_2px_rgba(59,130,246,0.1)]">
+                      <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      <p>Note: This creates the Course Shell. You can upload <strong>unlimited lesson videos</strong> and PDFs from the "Add Lesson" page after publishing.</p>
+                    </div>
+
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -439,7 +460,9 @@ export default function CreateCoursePage() {
                   </button>
                 ) : (
                   <button 
-                    type="submit" disabled={loading}
+                    type="button" // 👈 Changed from submit to button
+                    onClick={handleSubmit} 
+                    disabled={loading}
                     className={`group relative px-10 py-4 rounded-full text-[13px] font-black uppercase tracking-widest transition-all duration-500 overflow-hidden flex items-center gap-3 ${
                       loading 
                         ? 'bg-emerald-900/50 cursor-not-allowed text-slate-400 border border-emerald-900/50' 
@@ -467,12 +490,11 @@ export default function CreateCoursePage() {
                 )}
               </div>
 
-            </form>
+            </div>
           </div>
         </motion.div>
       </div>
       
-      {/* Global CSS for Animations */}
       <style dangerouslySetInnerHTML={{ __html: globalAnimations }} />
     </div>
   );
