@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, Variants } from "framer-motion";
 
 // --- GLOBAL STYLES ---
 const globalAnimations = `
@@ -168,8 +168,8 @@ export default function CreateCoursePage() {
     }
   };
 
-  // Variants for step animation
-  const stepVariants = {
+  // 👇 FIX: Variants for step animation properly typed
+  const stepVariants: Variants = {
     hidden: { opacity: 0, x: 40, filter: "blur(10px)" },
     visible: { opacity: 1, x: 0, filter: "blur(0px)", transition: { duration: 0.4, ease: "easeOut" } },
     exit: { opacity: 0, x: -40, filter: "blur(10px)", transition: { duration: 0.3, ease: "easeIn" } }
