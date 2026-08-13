@@ -17,7 +17,7 @@ interface Course {
   description: string;
   level: string;
   thumbnail?: string;
-  promoVideo?: string; // 👈 NEW: Interface updated
+  promoVideo?: string; 
   teacherId?: Teacher;
   price?: number; 
 }
@@ -59,8 +59,12 @@ export default function CourseDetailsPage() {
   const [mounted, setMounted] = useState(false);
   
   const [enrolling, setEnrolling] = useState(false);
+  const [deleting, setDeleting] = useState(false); // 👈 NEW: Delete Loading State
 
   const isEnrolled = (user as any)?.enrolledCourses?.includes(id);
+
+  // 👇 NEW: Check if logged-in user is the creator of this course
+  const isOwner = user && course?.teacherId && (user._id === course.teacherId._id || (user as any).id === course.teacherId._id);
 
   const { scrollYProgress } = useScroll();
   const smoothProgress = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
@@ -77,7 +81,6 @@ export default function CourseDetailsPage() {
   const bgX = useTransform(smoothMouseX, (v) => v * 0.3);
   const bgY = useTransform(smoothMouseY, (v) => v * 0.3);
 
-  // 👇 Helper function to convert raw youtube links into embed links
   const getEmbedUrl = (url?: string) => {
     if (!url) return "";
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -129,6 +132,35 @@ export default function CourseDetailsPage() {
     }
     setEnrolling(true);
     router.push(`/checkout/${id}`);
+  };
+
+  // 👇 NEW: Handle Delete Course
+  const handleDelete = async () => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this course? This action cannot be undone.");
+    if (!confirmDelete) return;
+
+    setDeleting(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || "Failed to delete course");
+      }
+
+      // Success
+      alert("Course deleted successfully!");
+      router.push('/courses'); // Redirect back to catalog
+    } catch (err: any) {
+      alert(err.message);
+      setDeleting(false);
+    }
   };
 
   if (loading) return (
@@ -222,7 +254,7 @@ export default function CourseDetailsPage() {
             className="lg:col-span-2 space-y-10"
           >
             
-            {/* 👇 FIX: Promo Video Player ya Thumbnail */}
+            {/* Promo Video Player ya Thumbnail */}
             <div className="w-full h-[450px] bg-[#030612]/70 backdrop-blur-3xl rounded-[2.5rem] border border-white/[0.06] overflow-hidden relative shadow-[0_32px_64px_-20px_rgba(0,0,0,0.7),inset_0_1px_2px_rgba(255,255,255,0.1)] group">
               {course.promoVideo ? (
                 <iframe 
@@ -287,6 +319,39 @@ export default function CourseDetailsPage() {
                   <div>
                     <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.25em] mb-1">Taught By</p>
                     <p className="text-white font-bold text-lg tracking-wide">Ustad {course.teacherId.name}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* 👇 NEW: Ustad Edit & Delete Controls */}
+              {isOwner && (
+                <div className="mb-8 p-6 bg-[#040814]/80 border border-emerald-500/20 rounded-[1.5rem] relative overflow-hidden shadow-[inset_0_1px_1px_rgba(52,211,153,0.1)]">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px] pointer-events-none"></div>
+                  
+                  <h4 className="text-emerald-400 font-black tracking-widest text-[10px] uppercase mb-5 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    Ustad Controls
+                  </h4>
+                  
+                  <div className="flex flex-col gap-3 relative z-10">
+                    <button 
+                      onClick={() => router.push(`/dashboard/edit-course/${id}`)}
+                      className="w-full py-3 bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-white font-bold tracking-widest text-[12px] uppercase rounded-xl transition-all duration-300"
+                    >
+                      Edit Course
+                    </button>
+                    
+                    <button 
+                      onClick={handleDelete}
+                      disabled={deleting}
+                      className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 font-bold tracking-widest text-[12px] uppercase rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
+                    >
+                      {deleting ? (
+                        <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Deleting...</>
+                      ) : (
+                        "Delete Course"
+                      )}
+                    </button>
                   </div>
                 </div>
               )}
