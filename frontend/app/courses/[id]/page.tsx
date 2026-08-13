@@ -3,8 +3,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, useMotionValue, useSpring, useTransform, useScroll } from "framer-motion";
-
-// 👇 AuthContext se check karne ke liye ki user enrolled hai ya nahi
 import { useAuth } from "../../../context/AuthContext"; 
 
 interface Teacher {
@@ -19,11 +17,11 @@ interface Course {
   description: string;
   level: string;
   thumbnail?: string;
+  promoVideo?: string; // 👈 NEW: Interface updated
   teacherId?: Teacher;
   price?: number; 
 }
 
-// --- GLOBAL STYLES ---
 const globalAnimations = `
   .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -62,7 +60,6 @@ export default function CourseDetailsPage() {
   
   const [enrolling, setEnrolling] = useState(false);
 
-  // 👇 THE FIX: TypeScript error resolved by telling it to expect enrolledCourses
   const isEnrolled = (user as any)?.enrolledCourses?.includes(id);
 
   const { scrollYProgress } = useScroll();
@@ -79,6 +76,14 @@ export default function CourseDetailsPage() {
   const mgY = useTransform(smoothMouseY, (v) => v * 0.8);
   const bgX = useTransform(smoothMouseX, (v) => v * 0.3);
   const bgY = useTransform(smoothMouseY, (v) => v * 0.3);
+
+  // 👇 Helper function to convert raw youtube links into embed links
+  const getEmbedUrl = (url?: string) => {
+    if (!url) return "";
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}?autoplay=0&rel=0&modestbranding=1` : url;
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -113,12 +118,10 @@ export default function CourseDetailsPage() {
   }, [id, mouseX, mouseY]);
 
   const handleEnroll = () => {
-    // 👇 Prevent checkout if already enrolled
     if (isEnrolled) {
       router.push(`/dashboard/my-courses/${id}`); 
       return;
     }
-
     const token = localStorage.getItem("token");
     if (!token) {
       router.push("/login?redirect=/courses/" + id);
@@ -195,20 +198,6 @@ export default function CourseDetailsPage() {
               />
             ))}
           </motion.div>
-          <motion.div style={{ x: bgX, y: bgY }} className="absolute inset-0 will-change-transform">
-            {ambientBubbles.filter(b => b.layer === 2).map((p, i) => (
-              <motion.div
-                key={`bg-${i}`}
-                className={`absolute rounded-full ${p.color}`}
-                style={{
-                  width: p.size * 1.5, height: p.size * 1.5, left: `${p.xPos}%`, top: `${p.yPos}%`,
-                  filter: `blur(${p.blur + 3}px)`, opacity: p.opacity * 0.4
-                }}
-                animate={{ y: [0, -20, 0] }}
-                transition={{ duration: p.duration, repeat: Infinity, ease: "linear", delay: p.delay }}
-              />
-            ))}
-          </motion.div>
         </div>
       )}
 
@@ -232,21 +221,33 @@ export default function CourseDetailsPage() {
             initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }}
             className="lg:col-span-2 space-y-10"
           >
+            
+            {/* 👇 FIX: Promo Video Player ya Thumbnail */}
             <div className="w-full h-[450px] bg-[#030612]/70 backdrop-blur-3xl rounded-[2.5rem] border border-white/[0.06] overflow-hidden relative shadow-[0_32px_64px_-20px_rgba(0,0,0,0.7),inset_0_1px_2px_rgba(255,255,255,0.1)] group">
-              {course.thumbnail ? (
+              {course.promoVideo ? (
+                <iframe 
+                  className="w-full h-full relative z-10"
+                  src={getEmbedUrl(course.promoVideo)} 
+                  title={course.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                  allowFullScreen
+                ></iframe>
+              ) : course.thumbnail ? (
                 <>
                   <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700 ease-out mix-blend-screen" />
                   <div className="absolute inset-0 shadow-[inset_0_20px_40px_rgba(0,0,0,0.8)] pointer-events-none"></div>
                 </>
               ) : (
                 <div className="absolute inset-0 bg-gradient-to-br from-[#060d20] to-[#040814] flex flex-col items-center justify-center text-emerald-500/30">
-                  <svg className="w-24 h-24 mb-4 opacity-40 group-hover:scale-110 group-hover:text-emerald-400/50 transition-all duration-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                  <svg className="w-24 h-24 mb-4 opacity-40 group-hover:scale-110 transition-all duration-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
                 </div>
               )}
               
-              <div className="absolute top-6 left-6 px-5 py-2.5 bg-[#020510]/80 backdrop-blur-2xl border border-white/[0.08] shadow-[0_8px_16px_rgba(0,0,0,0.6)] rounded-full text-[11px] font-black tracking-[0.25em] text-emerald-400 uppercase">
-                {course.level || "Beginner"}
-              </div>
+              {!course.promoVideo && (
+                <div className="absolute top-6 left-6 px-5 py-2.5 bg-[#020510]/80 backdrop-blur-2xl border border-white/[0.08] shadow-[0_8px_16px_rgba(0,0,0,0.6)] rounded-full text-[11px] font-black tracking-[0.25em] text-emerald-400 uppercase">
+                  {course.level || "Beginner"}
+                </div>
+              )}
             </div>
 
             <div>

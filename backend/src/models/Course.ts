@@ -7,6 +7,7 @@ export interface ICourse extends Document {
   level: string; // e.g., Beginner, Tajweed, Hifz
   teacherId: mongoose.Types.ObjectId; // Kis Ustad ka course hai
   thumbnail?: string;
+  promoVideo?: string; // 👈 NEW: Promo Video URL save karne ke liye
 }
 
 // Mongoose Schema
@@ -34,12 +35,15 @@ const courseSchema = new Schema<ICourse>(
       type: String,
       default: '',
     },
+    promoVideo: {
+      type: String,
+      default: '', // 👈 NEW: Promo video ka default empty string
+    },
   },
   {
     timestamps: true,
   }
 );
 
-const Course = mongoose.model<ICourse>('Course', courseSchema);
-
-export default Course;
+// ✅ Fix: Prevents OverwriteModelError in Next.js/Express (Agar model pehle se bana hai toh wahi use karega)
+export default mongoose.models.Course || mongoose.model<ICourse>('Course', courseSchema);
