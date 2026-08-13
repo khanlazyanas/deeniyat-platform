@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
 
-// --- GLOBAL STYLES (Safe from VS Code parser bugs) ---
+// --- GLOBAL STYLES ---
 const globalAnimations = `
   .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -33,6 +33,11 @@ const ambientBubbles = generateBubbles(45);
 export default function CreateCoursePage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  
+  // 👇 Step Wizard State
+  const [step, setStep] = useState(1);
+  const totalSteps = 3;
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -101,10 +106,32 @@ export default function CreateCoursePage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError(""); // Clear error when user types
+  };
+
+  // 👇 Validation Logic for Steps
+  const handleNext = () => {
+    if (step === 1 && !formData.title.trim()) {
+      setError("Please provide a Course Title before proceeding.");
+      return;
+    }
+    if (step === 2 && !formData.description.trim()) {
+      setError("Please provide a Description for your course.");
+      return;
+    }
+    setError("");
+    setStep((prev) => Math.min(prev + 1, totalSteps));
+  };
+
+  const handlePrev = () => {
+    setError("");
+    setStep((prev) => Math.max(prev - 1, 1));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (step !== totalSteps) return; // Guard
+    
     setLoading(true);
     setError("");
     setSuccess(false);
@@ -139,6 +166,13 @@ export default function CreateCoursePage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Variants for step animation
+  const stepVariants = {
+    hidden: { opacity: 0, x: 40, filter: "blur(10px)" },
+    visible: { opacity: 1, x: 0, filter: "blur(0px)", transition: { duration: 0.4, ease: "easeOut" } },
+    exit: { opacity: 0, x: -40, filter: "blur(10px)", transition: { duration: 0.3, ease: "easeIn" } }
   };
 
   return (
@@ -214,7 +248,7 @@ export default function CreateCoursePage() {
             <span className="text-[11px] font-black text-slate-300 tracking-[0.3em] uppercase">Ustad Portal</span>
           </div>
           <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter mb-4 drop-shadow-md">Create Curriculum</h2>
-          <p className="text-slate-400 font-light text-[17px] mix-blend-screen">Design and publish a new structural course for your students.</p>
+          <p className="text-slate-400 font-light text-[17px] mix-blend-screen">Design and publish a new structural course in 3 easy steps.</p>
         </motion.div>
 
         <motion.div 
@@ -238,22 +272,38 @@ export default function CreateCoursePage() {
 
           <div className="relative z-10 w-full h-full transform-gpu" style={{ transform: "translateZ(20px)" }}>
             
-            {/* Header Mini */}
-            <div className="flex items-center gap-5 mb-10 pb-8 border-b border-white/[0.04]">
-              <div className="w-14 h-14 rounded-[1rem] bg-gradient-to-br from-[#060d20] to-[#040814] border border-white/[0.08] flex items-center justify-center text-emerald-400 shadow-[0_8px_16px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.05)] shrink-0">
-                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
+            {/* 👇 STEPPER UI */}
+            <div className="mb-10">
+              <div className="flex items-center justify-between relative">
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-white/[0.05] rounded-full z-0"></div>
+                <div 
+                  className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full z-0 transition-all duration-500 ease-out"
+                  style={{ width: `${((step - 1) / (totalSteps - 1)) * 100}%` }}
+                ></div>
+                
+                {[1, 2, 3].map((s) => (
+                  <div key={s} className="relative z-10 flex flex-col items-center gap-3">
+                    <div className={`w-12 h-12 rounded-full border-2 flex items-center justify-center font-black text-sm transition-all duration-500 shadow-xl ${
+                      step >= s 
+                        ? 'bg-[#020510] border-emerald-400 text-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.3)]' 
+                        : 'bg-[#010206] border-white/[0.1] text-slate-500'
+                    }`}>
+                      {step > s ? <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg> : s}
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div>
-                <h3 className="text-2xl font-black text-white tracking-tighter">Course Details</h3>
-                <p className="text-slate-500 text-[11px] mt-1 font-black uppercase tracking-[0.2em]">Initial Configuration</p>
+              <div className="flex justify-between mt-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                <span className={step >= 1 ? "text-emerald-400" : ""}>Core Info</span>
+                <span className={step >= 2 ? "text-emerald-400" : ""}>Curriculum</span>
+                <span className={step >= 3 ? "text-emerald-400" : ""}>Publish</span>
               </div>
             </div>
             
-            <AnimatePresence>
+            <AnimatePresence mode="wait">
               {error && (
                 <motion.div 
+                  key="error"
                   initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                   className="flex items-center gap-3 bg-red-500/10 text-red-400 p-4 rounded-[1.25rem] mb-8 text-sm font-bold tracking-wide border border-red-500/20 backdrop-blur-md shadow-[inset_0_1px_1px_rgba(239,68,68,0.2)]"
                 >
@@ -264,6 +314,7 @@ export default function CreateCoursePage() {
               
               {success && (
                 <motion.div 
+                  key="success"
                   initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                   className="flex items-center gap-3 bg-emerald-500/10 text-emerald-400 p-4 rounded-[1.25rem] mb-8 text-sm font-bold tracking-wide border border-emerald-500/30 backdrop-blur-md shadow-[inset_0_1px_1px_rgba(52,211,153,0.2)]"
                 >
@@ -273,112 +324,147 @@ export default function CreateCoursePage() {
               )}
             </AnimatePresence>
             
-            <form onSubmit={handleSubmit} className="space-y-8">
+            <form onSubmit={handleSubmit} className="space-y-8 min-h-[300px] flex flex-col justify-between">
               
-              {/* Title Field */}
-              <div>
-                <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Course Title</label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
-                    <svg className="h-5 w-5 text-slate-500 group-focus-within:text-emerald-400 transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </div>
-                  <input 
-                    type="text" name="title" value={formData.title} onChange={handleChange} required
-                    className="relative w-full pl-12 pr-4 py-4 bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1.25rem] focus:bg-[#020510] focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all duration-300 text-slate-200 placeholder-slate-600 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-medium z-10"
-                    placeholder="e.g., Fundamentals of Tajweed"
-                  />
-                </div>
-              </div>
-
-              {/* Description Field */}
-              <div>
-                <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Description</label>
-                <div className="relative group">
-                  <div className="absolute top-4 left-0 pl-4 flex items-start pointer-events-none z-10">
-                    <svg className="h-5 w-5 text-slate-500 group-focus-within:text-emerald-400 transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h7" />
-                    </svg>
-                  </div>
-                  <textarea 
-                    name="description" value={formData.description} onChange={handleChange} required rows={5}
-                    className="relative w-full pl-12 pr-4 py-4 bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1.25rem] focus:bg-[#020510] focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all duration-300 text-slate-200 placeholder-slate-600 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-medium custom-scrollbar resize-none z-10"
-                    placeholder="Provide a comprehensive overview of what the students will learn..."
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Level Dropdown */}
-                <div>
-                  <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Level</label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
-                      <svg className="h-5 w-5 text-slate-500 group-focus-within:text-emerald-400 transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                      </svg>
+              <AnimatePresence mode="wait">
+                {/* 👇 STEP 1: Basic Info */}
+                {step === 1 && (
+                  <motion.div key="step1" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-8">
+                    <div>
+                      <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Course Title</label>
+                      <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                          <svg className="h-5 w-5 text-slate-500 group-focus-within:text-emerald-400 transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </div>
+                        <input 
+                          type="text" name="title" value={formData.title} onChange={handleChange} autoFocus
+                          className="relative w-full pl-12 pr-4 py-4 bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1.25rem] focus:bg-[#020510] focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all duration-300 text-slate-200 placeholder-slate-600 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-medium z-10"
+                          placeholder="e.g., Fundamentals of Tajweed"
+                        />
+                      </div>
                     </div>
-                    <select 
-                      name="level" value={formData.level} onChange={handleChange}
-                      className="relative w-full pl-12 pr-10 py-4 appearance-none bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1.25rem] focus:bg-[#020510] focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all duration-300 text-slate-200 cursor-pointer shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-bold z-10"
-                    >
-                      <option value="Beginner" className="bg-[#040814]">Beginner</option>
-                      <option value="Intermediate" className="bg-[#040814]">Intermediate</option>
-                      <option value="Advanced" className="bg-[#040814]">Advanced</option>
-                    </select>
-                    <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none z-20">
-                      <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
+                    <div>
+                      <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Skill Level</label>
+                      <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                          <svg className="h-5 w-5 text-slate-500 group-focus-within:text-emerald-400 transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                          </svg>
+                        </div>
+                        <select 
+                          name="level" value={formData.level} onChange={handleChange}
+                          className="relative w-full pl-12 pr-10 py-4 appearance-none bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1.25rem] focus:bg-[#020510] focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all duration-300 text-slate-200 cursor-pointer shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-bold z-10"
+                        >
+                          <option value="Beginner" className="bg-[#040814]">Beginner</option>
+                          <option value="Intermediate" className="bg-[#040814]">Intermediate</option>
+                          <option value="Advanced" className="bg-[#040814]">Advanced</option>
+                        </select>
+                        <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none z-20">
+                          <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  </motion.div>
+                )}
 
-                {/* Thumbnail URL */}
-                <div>
-                  <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Thumbnail URL <span className="text-slate-500 lowercase tracking-normal font-medium">(Optional)</span></label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
-                      <svg className="h-5 w-5 text-slate-500 group-focus-within:text-emerald-400 transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
+                {/* 👇 STEP 2: Description */}
+                {step === 2 && (
+                  <motion.div key="step2" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-8 h-full">
+                    <div className="h-full flex flex-col">
+                      <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Course Overview & Curriculum</label>
+                      <div className="relative group flex-1">
+                        <div className="absolute top-4 left-0 pl-4 flex items-start pointer-events-none z-10">
+                          <svg className="h-5 w-5 text-slate-500 group-focus-within:text-emerald-400 transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h7" />
+                          </svg>
+                        </div>
+                        <textarea 
+                          name="description" value={formData.description} onChange={handleChange} autoFocus
+                          className="relative w-full h-full min-h-[200px] pl-12 pr-4 py-4 bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1.25rem] focus:bg-[#020510] focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all duration-300 text-slate-200 placeholder-slate-600 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-medium custom-scrollbar resize-none z-10"
+                          placeholder="Provide a comprehensive overview of what the students will learn in this course..."
+                        />
+                      </div>
                     </div>
-                    <input 
-                      type="url" name="thumbnail" value={formData.thumbnail} onChange={handleChange}
-                      className="relative w-full pl-12 pr-4 py-4 bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1.25rem] focus:bg-[#020510] focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all duration-300 text-slate-200 placeholder-slate-600 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-medium z-10"
-                      placeholder="https://example.com/cover.jpg"
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              {/* Submit Button */}
-              <div className="pt-6">
+                  </motion.div>
+                )}
+
+                {/* 👇 STEP 3: Media & Publish */}
+                {step === 3 && (
+                  <motion.div key="step3" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-8">
+                    <div>
+                      <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Thumbnail URL <span className="text-slate-500 lowercase tracking-normal font-medium">(Optional but recommended)</span></label>
+                      <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                          <svg className="h-5 w-5 text-slate-500 group-focus-within:text-emerald-400 transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <input 
+                          type="url" name="thumbnail" value={formData.thumbnail} onChange={handleChange} autoFocus
+                          className="relative w-full pl-12 pr-4 py-4 bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1.25rem] focus:bg-[#020510] focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all duration-300 text-slate-200 placeholder-slate-600 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-medium z-10"
+                          placeholder="https://example.com/cover.jpg"
+                        />
+                      </div>
+                      {/* Image Preview Feature */}
+                      {formData.thumbnail && (
+                        <div className="mt-6 rounded-2xl overflow-hidden border border-white/[0.1] h-40 relative bg-[#010206]">
+                           <img src={formData.thumbnail} alt="Preview" className="w-full h-full object-cover opacity-80" onError={(e) => e.currentTarget.style.display = 'none'} />
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* 👇 NAVIGATION BUTTONS */}
+              <div className="pt-6 flex items-center justify-between border-t border-white/[0.05] mt-auto">
                 <button 
-                  type="submit" disabled={loading}
-                  className={`group relative w-full sm:w-auto px-12 py-5 rounded-[1.5rem] text-[15px] font-black uppercase tracking-widest transition-all duration-500 overflow-hidden flex justify-center items-center gap-3 ${
-                    loading 
-                      ? 'bg-emerald-900/50 cursor-not-allowed text-slate-400 border border-emerald-900/50' 
-                      : 'text-[#010206] bg-gradient-to-b from-emerald-400 to-teal-500 hover:scale-[1.03] shadow-[0_0_30px_-5px_rgba(52,211,153,0.6),inset_0_1px_1px_rgba(255,255,255,0.8)] ring-1 ring-white/20 active:scale-95'
-                  }`}
+                  type="button" 
+                  onClick={handlePrev}
+                  className={`px-8 py-4 rounded-full text-[13px] font-black uppercase tracking-widest transition-all ${step === 1 ? 'opacity-0 pointer-events-none' : 'text-slate-400 hover:text-white bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.05]'}`}
                 >
-                  {!loading && <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>}
-                  <span className="relative z-10 flex items-center gap-2">
-                    {loading ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Publishing...
-                      </>
-                    ) : (
-                      <>
-                        Publish Course
-                        <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                      </>
-                    )}
-                  </span>
+                  Back
                 </button>
+
+                {step < totalSteps ? (
+                  <button 
+                    type="button" 
+                    onClick={handleNext}
+                    className="group px-10 py-4 bg-white text-slate-950 text-[13px] font-black uppercase tracking-widest rounded-full transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] active:scale-95 flex items-center gap-2"
+                  >
+                    Next Step
+                    <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                  </button>
+                ) : (
+                  <button 
+                    type="submit" disabled={loading}
+                    className={`group relative px-10 py-4 rounded-full text-[13px] font-black uppercase tracking-widest transition-all duration-500 overflow-hidden flex items-center gap-3 ${
+                      loading 
+                        ? 'bg-emerald-900/50 cursor-not-allowed text-slate-400 border border-emerald-900/50' 
+                        : 'text-[#010206] bg-gradient-to-b from-emerald-400 to-teal-500 hover:scale-[1.03] shadow-[0_0_30px_-5px_rgba(52,211,153,0.6),inset_0_1px_1px_rgba(255,255,255,0.8)] ring-1 ring-white/20 active:scale-95'
+                    }`}
+                  >
+                    {!loading && <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>}
+                    <span className="relative z-10 flex items-center gap-2">
+                      {loading ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Publishing...
+                        </>
+                      ) : (
+                        <>
+                          Publish Course
+                          <svg className="w-4 h-4 group-hover:-translate-y-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                        </>
+                      )}
+                    </span>
+                  </button>
+                )}
               </div>
 
             </form>
