@@ -15,10 +15,27 @@ import paymentRoutes from "./routes/paymentRoutes";
 const app = express();
 
 // Middlewares
+// 👇 FIX: CORS Configuration Updated for Vercel Dynamic Links
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: function (origin, callback) {
+    // Agar koi origin nahi hai (API testing tools jaise Postman ke liye), toh allow karo
+    if (!origin) return callback(null, true);
+
+    const allowedOrigins = [
+      'http://localhost:3000', 
+      process.env.FRONTEND_URL || 'https://deeniyat-platform.vercel.app'
+    ];
+
+    // Agar origin allowedOrigins mein hai, YA origin .vercel.app se khatam hota hai, toh allow karo
+    if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Blocked by CORS Policy'));
+    }
+  },
   credentials: true, // Frontend se cookies ya token aane dene ke liye
 }));
+
 app.use(express.json());
 
 // Serve static files from the uploads directory for audio playback
