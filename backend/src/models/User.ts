@@ -9,6 +9,8 @@ export interface IUser extends Document {
   profileImage?: string;
   avatar?: string;
   enrolledCourses: mongoose.Types.ObjectId[];
+  resetPasswordToken?: string; // 👈 NEW: Token save karne ke liye
+  resetPasswordExpire?: Date;  // 👈 NEW: Token ki expiry time save karne ke liye
 }
 
 // Mongoose Schema
@@ -44,13 +46,21 @@ const userSchema = new Schema<IUser>(
       type: String,
       default: '', // Default empty string zaroori hai
     },
-    enrolledCourses: [{ type: Schema.Types.ObjectId, ref: 'Course' }]
+    enrolledCourses: [{ type: Schema.Types.ObjectId, ref: 'Course' }],
+    // 👇 NEW: Forgot Password Fields
+    resetPasswordToken: {
+      type: String,
+    },
+    resetPasswordExpire: {
+      type: Date,
+    },
   },
   {
     timestamps: true, // Yeh database mein createdAt aur updatedAt ki details apne aap save karega
   }
 );
 
-const User = mongoose.model<IUser>('User', userSchema);
+// Prevent OverwriteModelError if hot-reloading
+const User = mongoose.models.User || mongoose.model<IUser>('User', userSchema);
 
 export default User;
