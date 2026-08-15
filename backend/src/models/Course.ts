@@ -8,6 +8,7 @@ export interface ICourse extends Document {
   teacherId: mongoose.Types.ObjectId; // Kis Ustad ka course hai
   thumbnail?: string;
   promoVideo?: string; // 👈 NEW: Promo Video URL save karne ke liye
+  price: number; // 👈 NEW: Price field add kiya
 }
 
 // Mongoose Schema
@@ -38,6 +39,10 @@ const courseSchema = new Schema<ICourse>(
     promoVideo: {
       type: String,
       default: '', // 👈 NEW: Promo video ka default empty string
+    },
+    price: {
+      type: Number,
+      default: 0, // 👈 NEW: Default 0 matlab Free course
     },
   },
   {

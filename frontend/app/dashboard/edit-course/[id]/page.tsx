@@ -46,6 +46,7 @@ export default function EditCoursePage() {
     level: "Beginner",
     thumbnail: "",
     promoVideo: "",
+    price: "", // 👈 NEW: Added Price field
   });
   
   const [loading, setLoading] = useState(false);
@@ -94,6 +95,7 @@ export default function EditCoursePage() {
           level: data.level || "Beginner",
           thumbnail: data.thumbnail || "",
           promoVideo: data.promoVideo || "",
+          price: data.price || 0, // 👈 NEW: Fetching price from database
         });
       } catch (err: any) {
         setError(err.message);
@@ -155,12 +157,13 @@ export default function EditCoursePage() {
       const token = localStorage.getItem("token");
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${id}`, {
-        method: "PUT", // 👈 IMPORTANT: UPDATE karne ke liye PUT
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}` 
         },
-        body: JSON.stringify(formData), 
+        // 👇 FIX: Sending price as a number
+        body: JSON.stringify({ ...formData, price: formData.price ? Number(formData.price) : 0 }), 
       });
 
       const data = await response.json();
@@ -170,7 +173,7 @@ export default function EditCoursePage() {
       }
 
       setSuccess(true);
-      setTimeout(() => router.push(`/courses/${id}`), 2000); // Wapas ussi course par bhej do
+      setTimeout(() => router.push(`/courses/${id}`), 2000); 
 
     } catch (err: unknown) {
         if (err instanceof Error) {
@@ -298,6 +301,22 @@ export default function EditCoursePage() {
                         className="w-full px-6 py-4 bg-[#010206]/80 border border-white/[0.06] rounded-[1.25rem] focus:border-blue-500/50 outline-none text-slate-200 font-medium"
                       />
                     </div>
+
+                    {/* 👇 NEW: Price Input in Edit Mode */}
+                    <div>
+                      <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Course Price (₹) <span className="lowercase font-medium text-slate-500 tracking-normal">(Leave 0 for Free)</span></label>
+                      <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none z-10 text-slate-500 group-focus-within:text-blue-400 font-bold transition-colors duration-300">
+                          ₹
+                        </div>
+                        <input 
+                          type="number" name="price" min="0" value={formData.price} onChange={handleChange}
+                          className="w-full pl-10 pr-6 py-4 bg-[#010206]/80 border border-white/[0.06] rounded-[1.25rem] focus:border-blue-500/50 outline-none text-slate-200 font-medium"
+                          placeholder="e.g., 499"
+                        />
+                      </div>
+                    </div>
+
                     <div>
                       <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Skill Level</label>
                       <select 

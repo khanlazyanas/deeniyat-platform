@@ -43,7 +43,8 @@ export default function CreateCoursePage() {
     description: "",
     level: "Beginner",
     thumbnail: "",
-    promoVideo: "", // 👈 NEW: Added Video URL field
+    promoVideo: "", 
+    price: "", // 👈 NEW: Added Price field
   });
   
   const [loading, setLoading] = useState(false);
@@ -145,7 +146,8 @@ export default function CreateCoursePage() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}` 
         },
-        body: JSON.stringify({ ...formData, teacherId: userId }), 
+        // 👇 FIX: Sending price to backend, if empty it becomes 0
+        body: JSON.stringify({ ...formData, price: formData.price ? Number(formData.price) : 0, teacherId: userId }), 
       });
 
       const data = await response.json();
@@ -324,7 +326,6 @@ export default function CreateCoursePage() {
               )}
             </AnimatePresence>
             
-            {/* 🚨 FIX: Changed from <form> to <div> to stop auto-submit on Enter key */}
             <div className="space-y-8 min-h-[300px] flex flex-col justify-between">
               
               <AnimatePresence mode="wait">
@@ -346,6 +347,22 @@ export default function CreateCoursePage() {
                         />
                       </div>
                     </div>
+
+                    {/* 👇 NEW: Price Input */}
+                    <div>
+                      <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Course Price (₹) <span className="lowercase font-medium text-slate-500 tracking-normal">(Leave 0 for Free)</span></label>
+                      <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none z-10 text-slate-500 group-focus-within:text-emerald-400 font-bold transition-colors duration-300">
+                          ₹
+                        </div>
+                        <input 
+                          type="number" name="price" min="0" value={formData.price} onChange={handleChange}
+                          className="relative w-full pl-10 pr-4 py-4 bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1.25rem] focus:bg-[#020510] focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all duration-300 text-slate-200 placeholder-slate-600 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-medium z-10"
+                          placeholder="e.g., 499"
+                        />
+                      </div>
+                    </div>
+
                     <div>
                       <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Skill Level</label>
                       <div className="relative group">
@@ -411,7 +428,7 @@ export default function CreateCoursePage() {
                       </div>
                     </div>
 
-                    {/* 🚨 NEW: Promo Video URL */}
+                    {/* Promo Video URL */}
                     <div>
                       <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Course Promo Video URL <span className="lowercase font-medium tracking-normal">(Optional)</span></label>
                       <div className="relative group">
@@ -429,7 +446,7 @@ export default function CreateCoursePage() {
                       </div>
                     </div>
 
-                    {/* 🚨 UI Notice for Unlimited Videos */}
+                    {/* UI Notice */}
                     <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl flex gap-3 text-blue-400 text-sm font-medium mt-6 shadow-[inset_0_1px_2px_rgba(59,130,246,0.1)]">
                       <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       <p>Note: This creates the Course Shell. You can upload <strong>unlimited lesson videos</strong> and PDFs from the "Add Lesson" page after publishing.</p>
@@ -460,7 +477,7 @@ export default function CreateCoursePage() {
                   </button>
                 ) : (
                   <button 
-                    type="button" // 👈 Changed from submit to button
+                    type="button" 
                     onClick={handleSubmit} 
                     disabled={loading}
                     className={`group relative px-10 py-4 rounded-full text-[13px] font-black uppercase tracking-widest transition-all duration-500 overflow-hidden flex items-center gap-3 ${

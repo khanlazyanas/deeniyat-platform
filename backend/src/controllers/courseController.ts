@@ -7,8 +7,8 @@ import catchAsync from '../utils/catchAsync';
 // @route   POST /api/v1/courses
 // @access  Private (Admin & Ustad only)
 export const createCourse = catchAsync(async (req: Request, res: Response) => {
-  // 👇 FIX: promoVideo ko yahan destructure kiya gaya hai
-  const { title, description, level, thumbnail, promoVideo } = req.body;
+  // 👇 FIX: price ko yahan destructure kiya gaya hai
+  const { title, description, level, thumbnail, promoVideo, price } = req.body;
 
   const teacherId = req.user?._id;
 
@@ -18,7 +18,8 @@ export const createCourse = catchAsync(async (req: Request, res: Response) => {
     level,
     teacherId,
     thumbnail,
-    promoVideo, // 👈 FIX: Database mein promoVideo save ho jayega
+    promoVideo, 
+    price: price || 0, // 👈 FIX: Database mein price save ho jayega (default 0 for Free)
   });
 
   res.status(201).json(course);
