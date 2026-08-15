@@ -84,12 +84,21 @@ export default function CoursePlayerPage() {
     fetchCourseAndLessons();
   }, [courseId]);
 
-  // Helper function to extract YouTube embed URL
+  // 👇 FIX: Bulletproof YouTube Embed URL Extractor & Distraction-Free Settings
   const getEmbedUrl = (url: string) => {
     if (!url) return "";
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}?autoplay=0&rel=0&modestbranding=1` : url;
+    
+    // Naya strong regex jo short links, long links, aur mobile links sabko pakdega
+    const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/gi;
+    const match = regExp.exec(url);
+    
+    // Agar valid YouTube ID mil gaya
+    if (match && match[1].length === 11) {
+      // ?rel=0 se related videos band, &modestbranding=1 se logo hide, &showinfo=0 se top title hide
+      return `https://www.youtube.com/embed/${match[1]}?autoplay=0&rel=0&modestbranding=1&showinfo=0&controls=1`;
+    }
+    
+    return url; // Agar YouTube ka nahi hai toh jaisa hai waisa bhej do
   };
 
   // Handle Assignment Submission
@@ -249,7 +258,7 @@ export default function CoursePlayerPage() {
               <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter mb-2 drop-shadow-lg">{activeLesson.title}</h1>
             </div>
 
-            {/* Video Player Area */}
+            {/* 👇 FIX: Video Player UI remains unchanged, just iframe src is updated by getEmbedUrl */}
             {activeLesson.videoUrl && (
               <div className="w-full aspect-video bg-[#010206] rounded-[2rem] overflow-hidden border border-white/[0.08] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.05)] mb-12 relative group">
                 {activeLesson.videoUrl.includes('youtu') ? (
