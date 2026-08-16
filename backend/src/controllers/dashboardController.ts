@@ -3,7 +3,7 @@ import catchAsync from '../utils/catchAsync';
 import Course from '../models/Course';
 import Submission from '../models/Submission';
 import Attendance from '../models/Attendance';
-import User from '../models/User'; // 👈 Naya import total students count karne ke liye
+import User from '../models/User';
 
 // @desc    Get stats for the dashboard
 // @route   GET /api/v1/dashboard/stats
@@ -18,7 +18,10 @@ export const getDashboardStats = catchAsync(async (req: any, res: Response) => {
   let recentActivities: any[] = [];
 
   if (userRole === 'Student') {
-    enrolledCourses = await Course.countDocuments(); 
+    // 🛑 STUDENT LOGIC FIX: Student ko sirf wahi courses dikhne chahiye jisme wo enroll hai
+    const studentInfo = await User.findById(userId);
+    enrolledCourses = studentInfo?.enrolledCourses?.length || 0; 
+
     pendingAssignments = await Submission.countDocuments({ studentId: userId }); 
     
     // ✅ REAL ATTENDANCE CALCULATION FOR STUDENT
@@ -44,20 +47,28 @@ export const getDashboardStats = catchAsync(async (req: any, res: Response) => {
     }));
 
   } else {
-    // Teacher (Ustad) Logic (Purana wala, agar kahin use ho raha ho)
-    enrolledCourses = await Course.countDocuments();
-    pendingAssignments = await Submission.countDocuments(); 
+    // 🛑 TEACHER (USTAD) LOGIC FIX: Sirf apne courses ka data dikhega!
     
-    // ✅ REAL OVERALL ATTENDANCE CALCULATION FOR USTAD
-    const totalSystemAttendance = await Attendance.countDocuments();
-    const totalSystemPresent = await Attendance.countDocuments({ status: 'Present' });
+    // 1. Sabse pehle is Ustad ke banaye hue saare courses nikal lo
+    const myCourses = await Course.find({ teacherId: userId }).select('_id');
+    const myCourseIds = myCourses.map(course => course._id);
+
+    enrolledCourses = myCourseIds.length;
+    
+    // 2. Sirf unhi submissions ko count karo jo is Ustad ke courses ki hain
+    // Note: Iske liye tumhare Submission model mein 'courseId' hona zaroori hai.
+    pendingAssignments = await Submission.countDocuments({ courseId: { $in: myCourseIds } }); 
+    
+    // 3. Attendance bhi sirf iske courses ki calculate hogi
+    const totalSystemAttendance = await Attendance.countDocuments({ courseId: { $in: myCourseIds } });
+    const totalSystemPresent = await Attendance.countDocuments({ courseId: { $in: myCourseIds }, status: 'Present' });
     
     if (totalSystemAttendance > 0) {
       attendanceRate = Math.round((totalSystemPresent / totalSystemAttendance) * 100);
     }
     
-    // Fetch latest 3 submissions from ANY student
-    const submissions = await Submission.find()
+    // 4. Latest Submissions sirf iske apne students ki aayengi
+    const submissions = await Submission.find({ courseId: { $in: myCourseIds } })
       .sort({ createdAt: -1 })
       .limit(3)
       .populate('lessonId', 'title')
@@ -83,7 +94,6 @@ export const getDashboardStats = catchAsync(async (req: any, res: Response) => {
 // @desc    Get specific stats for Ustad Dashboard
 // @route   GET /api/v1/dashboard/ustad-stats
 // @access  Private (Ustad only)
-// 👇 Yeh NAYA FUNCTION add kiya hai front-end ke liye
 export const getUstadStats = catchAsync(async (req: any, res: Response) => {
   const userId = req.user._id;
 
@@ -95,11 +105,20 @@ export const getUstadStats = catchAsync(async (req: any, res: Response) => {
   // 1. Ustad ne kitne active courses banaye hain
   const activeCourses = await Course.countDocuments({ teacherId: userId });
 
-  // 2. Pending Submissions check karne ke liye (Abhi overall count rakha hai)
-  const pendingSubmissions = await Submission.countDocuments();
+  // 2. Is Ustad ke courses ki list nikal rahe hain filter karne ke liye
+  const myCourses = await Course.find({ teacherId: userId }).select('_id');
+  const myCourseIds = myCourses.map(course => course._id);
 
-  // 3. Platform par total kitne Students hain
-  const totalStudents = await User.countDocuments({ role: 'Student' });
+  // 3. Sirf wo Students gino jinke 'enrolledCourses' array mein is Ustad ka course hai!
+  const totalStudents = await User.countDocuments({ 
+    role: 'Student',
+    enrolledCourses: { $in: myCourseIds } 
+  });
+
+  // 4. Pending Submissions sirf inke apne courses ke liye
+  const pendingSubmissions = await Submission.countDocuments({
+    courseId: { $in: myCourseIds }
+  });
 
   res.status(200).json({
     totalStudents,
