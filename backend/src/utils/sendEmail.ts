@@ -1,9 +1,3 @@
-import nodemailer from 'nodemailer';
-import dns from 'dns'; // 👈 NEW: DNS module import kiya
-
-// 👇 FIX: Node.js ko force karo ki wo sirf IPv4 use kare (Render ke IPv6 issue ko fix karne ke liye)
-dns.setDefaultResultOrder('ipv4first');
-
 interface EmailOptions {
   email: string;
   subject: string;
@@ -11,27 +5,49 @@ interface EmailOptions {
 }
 
 const sendEmail = async (options: EmailOptions) => {
-  // 1. Ek Transporter create karo
-  const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com', // 👈 'service: gmail' ki jagah explicitly host daala hai
-    port: 465,              // 👈 Secure port
-    secure: true,           // 👈 True for 465 port
-    auth: {
-      user: process.env.EMAIL_USER, 
-      pass: process.env.EMAIL_PASS, 
-    },
-  });
+  try {
+    // Sender details
+    const senderEmail = "anaskhan995620@gmail.com"; 
+    const senderName = "Deeniyat Platform"; // 👈 BizFlow ki jagah Deeniyat kar diya
 
-  // 2. Email ke options define karo
-  const mailOptions = {
-    from: process.env.EMAIL_FROM || process.env.EMAIL_USER, 
-    to: options.email,
-    subject: options.subject,
-    html: options.message, 
-  };
+    const apiKey = process.env.BREVO_API_KEY;
 
-  // 3. Email Send karo
-  await transporter.sendMail(mailOptions);
+    if (!apiKey) {
+      console.error("❌ BREVO_API_KEY is missing in .env");
+      throw new Error("Email service is not configured properly.");
+    }
+
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'api-key': apiKey, 
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        sender: {
+          name: senderName,
+          email: senderEmail 
+        },
+        to: [{ email: options.email }],
+        subject: options.subject,
+        // Hamare authController ne HTML format mein 'message' bheja hai
+        htmlContent: options.message 
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("❌ BREVO NE EMAIL REJECT KIYA. REASON:", JSON.stringify(data));
+      throw new Error(data.message || 'API se Email fail ho gaya');
+    }
+    
+    console.log("✅ EMAIL BHEJ DIYA GAYA! TO:", options.email);
+  } catch (error) {
+    console.error("🔥 EMAIL FUNCTION CRASH HUA:", error);
+    throw new Error('Email nahi bheja ja saka');
+  }
 };
 
 export default sendEmail;
