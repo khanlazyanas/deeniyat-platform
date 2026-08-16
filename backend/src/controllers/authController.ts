@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto'; // 👈 NEW: Secure token generate karne ke liye
+import crypto from 'crypto'; 
 import User from '../models/User';
 import catchAsync from '../utils/catchAsync';
 import { generateToken } from '../utils/generateToken';
-import sendEmail from '../utils/sendEmail'; // 👈 NEW: Email send karne ka function (ise hum next banayenge)
+import sendEmail from '../utils/sendEmail'; 
 
 // @desc    Register new user
 // @route   POST /api/v1/auth/register
@@ -24,7 +24,7 @@ export const registerUser = catchAsync(async (req: Request, res: Response) => {
     email,
     password: hashedPassword,
     role: role || 'Student',
-    enrolledCourses: [], // New array initialize
+    enrolledCourses: [], 
   });
 
   if (user) {
@@ -161,6 +161,9 @@ export const forgotPassword = catchAsync(async (req: Request, res: Response) => 
 
     res.status(200).json({ message: 'Password reset link sent to your email.' });
   } catch (err) {
+    // 👇 FIX: Yahan console.error add kar diya hai
+    console.error("EMAIL SENDING ERROR: ", err); 
+    
     // Agar email send hone mein error aaye, toh DB se token clear kar do
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
@@ -175,7 +178,6 @@ export const forgotPassword = catchAsync(async (req: Request, res: Response) => 
 // @route   PUT /api/v1/auth/reset-password/:token
 // @access  Public
 export const resetPassword = catchAsync(async (req: Request, res: Response) => {
-  // 👇 FIX: 'req.params.token as string' lagaya hai yahan
   const resetPasswordToken = crypto.createHash('sha256').update(req.params.token as string).digest('hex');
 
   // Find user with this token and check if it hasn't expired yet
