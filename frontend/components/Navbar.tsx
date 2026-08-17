@@ -5,12 +5,12 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
 
-// 👇 1. YAHAN AUTH CONTEXT IMPORT KIYA
+// 👇 1. AUTH CONTEXT IMPORT
 import { useAuth } from '../context/AuthContext';
 
 const smoothEase: [number, number, number, number] = [0.23, 1, 0.32, 1];
 
-// --- NEW HELPER: GET FULL IMAGE URL ---
+// --- HELPER: GET FULL IMAGE URL ---
 const getFullImageUrl = (url: string) => {
   if (!url) return "";
   if (url.startsWith("http") || url.startsWith("blob")) return url;
@@ -52,14 +52,14 @@ export default function Navbar() {
     }
   ];
 
+  // 🔥 OPTIMIZED SCROLL TRACKING FOR 60FPS (Prevents unnecessary re-renders)
   useMotionValueEvent(scrollY, "change", (latest) => {
     const previous = scrollY.getPrevious() ?? 0;
-    if (latest > 150 && latest > previous && !mobileMenuOpen) {
-      setHidden(true);
-    } else {
-      setHidden(false);
-    }
-    setScrolled(latest > 20);
+    const isScrolled = latest > 20;
+    const isHidden = latest > 150 && latest > previous && !mobileMenuOpen;
+
+    if (scrolled !== isScrolled) setScrolled(isScrolled);
+    if (hidden !== isHidden) setHidden(isHidden);
   });
 
   useEffect(() => {
@@ -77,7 +77,7 @@ export default function Navbar() {
           transition={{ duration: 0.5, ease: smoothEase }}
           className={`pointer-events-auto w-full max-w-7xl flex justify-between items-center transition-all duration-700 will-change-transform ${
             scrolled || mobileMenuOpen
-              ? "bg-[#030612]/70 backdrop-blur-[40px] backdrop-saturate-[180%] border border-white/[0.08] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.8),inset_0_1px_2px_rgba(255,255,255,0.1)] rounded-full px-4 py-2.5 sm:py-3" 
+              ? "bg-[#030612]/70 backdrop-blur-[30px] backdrop-saturate-[180%] border border-white/[0.08] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.8),inset_0_1px_2px_rgba(255,255,255,0.1)] rounded-full px-4 py-2.5 sm:py-3" 
               : "bg-transparent border-transparent px-2 py-4"
           }`}
         >
@@ -142,7 +142,7 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* 3. AUTH BUTTONS (Now with Context & Avatar) */}
+          {/* 3. AUTH BUTTONS */}
           <div className="hidden md:flex items-center space-x-3 pr-1 relative z-10">
             {user ? (
               <div className="flex items-center gap-3">
@@ -150,7 +150,6 @@ export default function Navbar() {
                   href="/dashboard" 
                   className="px-6 py-2.5 text-[14px] font-black text-[#010206] bg-white rounded-full hover:bg-slate-100 transition-all duration-300 hover:scale-105 shadow-[0_0_25px_rgba(255,255,255,0.3)] flex items-center gap-2"
                 >
-                  {/* 👇 Mini Avatar inside Dashboard button */}
                   <div className="w-6 h-6 rounded-full bg-[#030612] overflow-hidden flex items-center justify-center text-white text-xs border border-slate-200">
                       {user.avatar ? (
                           <img src={getFullImageUrl(user.avatar)} alt="Avatar" className="w-full h-full object-cover" />
@@ -160,7 +159,6 @@ export default function Navbar() {
                   </div>
                   Dashboard
                 </Link>
-                {/* 👇 Logout Button Desktop */}
                 <button 
                   onClick={logout}
                   className="p-2.5 text-slate-400 hover:text-rose-400 bg-white/[0.03] hover:bg-rose-500/10 border border-white/[0.05] hover:border-rose-500/30 rounded-full transition-all duration-300"
@@ -192,7 +190,6 @@ export default function Navbar() {
               className="relative flex items-center justify-center w-11 h-11 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] rounded-full transition-all duration-300 focus:outline-none shadow-md active:scale-95"
               aria-label="Toggle Menu"
             >
-              {/* Show Avatar instead of hamburger lines if user is logged in and menu is closed */}
               {user && !mobileMenuOpen ? (
                  <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-emerald-400 bg-black border border-white/[0.1]">
                     {user.avatar ? (
@@ -229,7 +226,7 @@ export default function Navbar() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.4, ease: smoothEase }}
-              className="md:hidden fixed inset-0 z-30 bg-[#010206]/85 backdrop-blur-[30px]"
+              className="md:hidden fixed inset-0 z-30 bg-[#010206]/85 backdrop-blur-[20px]"
               onClick={() => setMobileMenuOpen(false)}
             />
 
@@ -238,7 +235,7 @@ export default function Navbar() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
               transition={{ duration: 0.4, ease: smoothEase }}
-              className="md:hidden fixed top-[84px] left-4 right-4 z-40 flex flex-col p-4 bg-[#030612]/95 border border-white/[0.08] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.9),inset_0_1px_2px_rgba(255,255,255,0.1)] rounded-[32px] backdrop-blur-3xl overflow-hidden will-change-transform"
+              className="md:hidden fixed top-[84px] left-4 right-4 z-40 flex flex-col p-4 bg-[#030612]/95 border border-white/[0.08] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.9),inset_0_1px_2px_rgba(255,255,255,0.1)] rounded-[32px] backdrop-blur-2xl overflow-hidden will-change-transform"
             >
               <div className="w-full flex justify-center pt-1 pb-3">
                 <div className="w-12 h-1.5 bg-white/[0.15] rounded-full"></div>
@@ -314,7 +311,6 @@ export default function Navbar() {
                       Dashboard
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 8l4 4m0 0l-4-4m4-4H3" /></svg>
                     </Link>
-                    {/* 👇 Logout Button Mobile */}
                     <button 
                         onClick={() => { logout(); setMobileMenuOpen(false); }} 
                         className="w-full flex items-center justify-center gap-2 py-4 text-[16px] font-bold text-rose-400 bg-rose-500/10 rounded-[22px] border border-rose-500/20 hover:bg-rose-500/20 transition-all active:scale-[0.98] duration-300 ease-out"
