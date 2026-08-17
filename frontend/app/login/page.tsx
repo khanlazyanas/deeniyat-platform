@@ -26,7 +26,7 @@ const fadeInUp: Variants = {
   }
 };
 
-// --- PRE-COMPUTED HYPER-DENSE PARTICLE ARRAY (Optimized for 60fps) ---
+// --- PRE-COMPUTED HYPER-DENSE PARTICLE ARRAY ---
 const generateBubbles = (count: number) => {
   return Array.from({ length: count }).map((_, i) => ({
     id: i,
@@ -41,7 +41,7 @@ const generateBubbles = (count: number) => {
   }));
 };
 
-const ambientBubbles = generateBubbles(25); // Reduced count for mobile GPU safety
+const ambientBubbles = generateBubbles(25); // Optimized for mobile GPU
 
 export default function LoginPage() {
   const router = useRouter();
@@ -79,40 +79,39 @@ export default function LoginPage() {
 
   // Holographic Card Config
   const cardSpringConfig = { damping: 30, stiffness: 200, mass: 0.5 };
-  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [6, -6]), cardSpringConfig);
-  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-6, 6]), cardSpringConfig);
+  const rotateX = useSpring(useTransform(mouseY, [-50, 50], [6, -6]), cardSpringConfig);
+  const rotateY = useSpring(useTransform(mouseX, [-50, 50], [-6, 6]), cardSpringConfig);
 
   const backgroundTemplate = useMotionTemplate`radial-gradient(800px circle at ${glareX}px ${glareY}px, rgba(255,255,255,0.1), transparent 45%)`;
 
   useEffect(() => {
     setMounted(true);
     
+    // Global tracking for particles and card tilt
     const handleGlobalMouseMove = (e: MouseEvent) => {
-      // 🛑 Disable 3D effect on mobile for smooth scrolling & battery saving
       if (window.innerWidth < 768) return;
 
       const x = (e.clientX / window.innerWidth - 0.5) * 100;
       const y = (e.clientY / window.innerHeight - 0.5) * 100;
       mouseX.set(x);
       mouseY.set(y);
-
-      // Local Card Glare Tracking
-      if (cardRef.current) {
-        const rect = cardRef.current.getBoundingClientRect();
-        glareX.set(e.clientX - rect.left);
-        glareY.set(e.clientY - rect.top);
-      }
     };
     
     window.addEventListener('mousemove', handleGlobalMouseMove);
     return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
-  }, [mouseX, mouseY, glareX, glareY]);
+  }, [mouseX, mouseY]);
+
+  // Local tracking specifically for the glare effect on the card
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (window.innerWidth < 768 || !cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    glareX.set(e.clientX - rect.left);
+    glareY.set(e.clientY - rect.top);
+  };
 
   const handleMouseEnter = () => { if (window.innerWidth >= 768) isHovered.set(1); };
   const handleMouseLeave = () => {
     isHovered.set(0);
-    mouseX.set(0);
-    mouseY.set(0);
   };
 
   // Input Handler
