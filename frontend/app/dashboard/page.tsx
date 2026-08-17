@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence, Variants, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { motion, AnimatePresence, Variants, useMotionValue, useSpring, useTransform, useMotionTemplate } from "framer-motion";
 
 // 👇 1. AUTH CONTEXT IMPORT
 import { useAuth } from "../../context/AuthContext";
@@ -31,50 +31,49 @@ const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.15, delayChildren: 0.2 }
+    transition: { staggerChildren: 0.1, delayChildren: 0.1 } // Faster stagger for snappier feel
   }
 };
 
 const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 60, scale: 0.92, filter: "blur(25px)" },
+  hidden: { opacity: 0, y: 40 }, // Removed heavy CSS blur for performance
   visible: { 
     opacity: 1, 
     y: 0, 
-    scale: 1,
-    filter: "blur(0px)",
-    transition: { type: "spring" as const, stiffness: 350, damping: 28, mass: 0.8 } 
+    transition: { type: "spring", stiffness: 350, damping: 28, mass: 0.8 } 
   }
 };
 
-// --- Holographic Spatial Card ---
+// --- Holographic Spatial Card (GPU OPTIMIZED) ---
 function HolographicCard({ children, className = "" }: { children: React.ReactNode, className?: string }) {
   const cardRef = useRef<HTMLDivElement>(null);
   
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
+  const glareX = useMotionValue(0);
+  const glareY = useMotionValue(0);
+  const isHovered = useMotionValue(0);
   
-  const springConfig = { damping: 40, stiffness: 250, mass: 0.5 };
-  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [6, -6]), springConfig);
-  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-6, 6]), springConfig);
+  const springConfig = { damping: 30, stiffness: 200, mass: 0.5 };
+  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [4, -4]), springConfig); // Subtler rotation
+  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-4, 4]), springConfig);
 
-  const [isHovered, setIsHovered] = useState(false);
-  const [glarePosition, setGlarePosition] = useState({ x: 0, y: 0 });
+  const backgroundTemplate = useMotionTemplate`radial-gradient(1000px circle at ${glareX}px ${glareY}px, rgba(255,255,255,0.08), transparent 45%)`;
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
+    // 🛑 Optimize for mobile: Ignore 3D effects on small screens
+    if (window.innerWidth < 768 || !cardRef.current) return;
+    
     const rect = cardRef.current.getBoundingClientRect();
-    
-    const relX = (e.clientX - rect.left) / rect.width - 0.5;
-    const relY = (e.clientY - rect.top) / rect.height - 0.5;
-    
-    mouseX.set(relX);
-    mouseY.set(relY);
-    
-    setGlarePosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    mouseX.set((e.clientX - rect.left) / rect.width - 0.5);
+    mouseY.set((e.clientY - rect.top) / rect.height - 0.5);
+    glareX.set(e.clientX - rect.left);
+    glareY.set(e.clientY - rect.top);
   };
 
+  const handleMouseEnter = () => { if (window.innerWidth >= 768) isHovered.set(1); };
   const handleMouseLeave = () => {
-    setIsHovered(false);
+    isHovered.set(0);
     mouseX.set(0);
     mouseY.set(0);
   };
@@ -84,30 +83,22 @@ function HolographicCard({ children, className = "" }: { children: React.ReactNo
       variants={itemVariants}
       ref={cardRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      style={{
-        rotateX,
-        rotateY,
-        transformStyle: "preserve-3d",
-      }}
-      className={`relative overflow-hidden rounded-[2rem] sm:rounded-[2.5rem] bg-[#030612]/70 backdrop-blur-[40px] backdrop-saturate-[150%] border border-white/[0.06] shadow-[0_32px_64px_-20px_rgba(0,0,0,0.7),inset_0_1px_2px_rgba(255,255,255,0.1),inset_0_-1px_2px_rgba(0,0,0,0.5)] transition-colors duration-700 hover:border-white/[0.12] will-change-transform ${className}`}
+      style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
+      className={`relative overflow-hidden rounded-[2rem] sm:rounded-[2.5rem] bg-[#030612]/70 backdrop-blur-xl backdrop-saturate-[150%] border border-white/[0.06] shadow-[0_32px_64px_-20px_rgba(0,0,0,0.7),inset_0_1px_2px_rgba(255,255,255,0.1),inset_0_-1px_2px_rgba(0,0,0,0.5)] transition-colors duration-500 hover:border-white/[0.12] will-change-transform ${className}`}
     >
-      <div
-        className="pointer-events-none absolute -inset-px opacity-0 transition-opacity duration-500 z-0 mix-blend-color-dodge"
-        style={{
-          opacity: isHovered ? 1 : 0,
-          background: `radial-gradient(1200px circle at ${glarePosition.x}px ${glarePosition.y}px, rgba(255,255,255,0.1), transparent 45%)`,
-        }}
+      <motion.div
+        className="pointer-events-none absolute -inset-px z-0 mix-blend-color-dodge transition-opacity duration-300"
+        style={{ opacity: isHovered, background: backgroundTemplate }}
       />
       <div 
         className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 z-0"
         style={{
-          opacity: isHovered ? 0.3 : 0,
           boxShadow: `inset 0 0 40px rgba(52,211,153,0.1), inset 0 0 20px rgba(59,130,246,0.1)`
         }}
       />
-      <div className="relative z-10 w-full h-full transform-gpu" style={{ transform: "translateZ(30px)" }}>
+      <div className="relative z-10 w-full h-full transform-gpu" style={{ transform: "translateZ(20px)" }}>
         {children}
       </div>
     </motion.div>
@@ -126,7 +117,7 @@ function CinematicNumber({ value, suffix = "" }: { value: number, suffix?: strin
       return;
     }
     
-    const duration = 2000; 
+    const duration = 1500; // Slightly faster for snappier feel
     const startTime = performance.now();
 
     const animate = (currentTime: number) => {
@@ -167,7 +158,11 @@ export default function Dashboard() {
     recentActivities: []
   });
   const [loading, setLoading] = useState(true);
-  const [cursorPos, setCursorPos] = useState({ x: -100, y: -100 });
+  
+  // Optimized cursor tracking (No re-renders needed if using MotionValues, but kept simple for the cursor dot if needed)
+  const cursorPos = useMotionValue({ x: -100, y: -100 });
+  const smoothCursorX = useSpring(useTransform(cursorPos, p => p.x), { stiffness: 50, damping: 20 });
+  const smoothCursorY = useSpring(useTransform(cursorPos, p => p.y), { stiffness: 50, damping: 20 });
 
   // SVG Circle calculation
   const radius = 90; 
@@ -202,7 +197,7 @@ export default function Dashboard() {
           });
         }
       } catch (error) { console.error(error); } 
-      finally { setTimeout(() => setLoading(false), 1200); }
+      finally { setTimeout(() => setLoading(false), 800); } // Shorter cinematic delay
     };
     
     if (token) {
@@ -210,11 +205,12 @@ export default function Dashboard() {
     }
 
     const handleGlobalMouseMove = (e: MouseEvent) => {
-      setCursorPos({ x: e.clientX, y: e.clientY });
+      if (window.innerWidth < 768) return;
+      cursorPos.set({ x: e.clientX, y: e.clientY });
     };
     window.addEventListener('mousemove', handleGlobalMouseMove);
     return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
-  }, [token]);
+  }, [token, cursorPos]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -255,16 +251,16 @@ export default function Dashboard() {
     <div className="p-4 sm:p-6 lg:p-10 relative min-h-full w-full bg-[#010206] overflow-hidden selection:bg-emerald-500/30 selection:text-emerald-200 text-slate-50 font-sans perspective-[2000px] pt-24 sm:pt-32">
       
       {/* --- HYPER-REALISTIC VOLUMETRIC BACKGROUND --- */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden flex items-center justify-center mix-blend-screen opacity-70">
-        <div className="absolute w-[90vw] h-[90vw] max-w-[1000px] max-h-[1000px] bg-gradient-to-tr from-emerald-600/10 via-teal-900/10 to-blue-800/10 rounded-[40%_60%_70%_30%/40%_50%_60%_50%] blur-[160px] animate-liquid-morph"></div>
-        <div className="absolute w-[70vw] h-[70vw] max-w-[800px] max-h-[800px] bg-gradient-to-bl from-purple-600/10 via-indigo-900/10 to-transparent rounded-[60%_40%_30%_70%/60%_30%_70%_40%] blur-[140px] animate-liquid-morph-reverse animation-delay-2000"></div>
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.04] mix-blend-overlay"></div>
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden flex items-center justify-center mix-blend-screen opacity-50 sm:opacity-70">
+        <div className="absolute w-[100vw] sm:w-[90vw] h-[100vw] sm:h-[90vw] max-w-[1000px] max-h-[1000px] bg-gradient-to-tr from-emerald-600/10 via-teal-900/10 to-blue-800/10 rounded-[40%_60%_70%_30%/40%_50%_60%_50%] blur-[100px] sm:blur-[160px] animate-liquid-morph"></div>
+        <div className="absolute w-[80vw] sm:w-[70vw] h-[80vw] sm:h-[70vw] max-w-[800px] max-h-[800px] bg-gradient-to-bl from-purple-600/10 via-indigo-900/10 to-transparent rounded-[60%_40%_30%_70%/60%_30%_70%_40%] blur-[80px] sm:blur-[140px] animate-liquid-morph-reverse animation-delay-2000 hidden sm:block"></div>
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.035] mix-blend-overlay"></div>
       </div>
 
+      {/* GPU Optimized Cursor Tracking */}
       <motion.div 
-        className="hidden md:block fixed w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none z-0 mix-blend-screen"
-        animate={{ x: cursorPos.x - 128, y: cursorPos.y - 128 }}
-        transition={{ type: "spring", stiffness: 50, damping: 20, mass: 0.5 }}
+        className="hidden md:block fixed w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none z-0 mix-blend-screen will-change-transform"
+        style={{ x: useTransform(smoothCursorX, v => v - 128), y: useTransform(smoothCursorY, v => v - 128) }}
       />
 
       <motion.div variants={containerVariants} initial="hidden" animate="visible" className="relative z-10 max-w-7xl mx-auto space-y-8 sm:space-y-12">
@@ -272,8 +268,8 @@ export default function Dashboard() {
         {/* --- CINEMATIC HEADER --- */}
         <motion.div variants={itemVariants} className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 sm:gap-8 mb-12 sm:mb-20 pt-4 sm:pt-8">
           <div className="relative">
-            <motion.div initial={{ opacity: 0, scale: 0.8, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ delay: 0.5, type: "spring", bounce: 0.6 }}
-              className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-white/[0.02] border border-white/[0.05] shadow-[inset_0_1px_2px_rgba(255,255,255,0.05),0_8px_24px_rgba(0,0,0,0.4)] mb-6 sm:mb-8 backdrop-blur-2xl"
+            <motion.div initial={{ opacity: 0, scale: 0.8, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ delay: 0.2, type: "spring", bounce: 0.5 }}
+              className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-white/[0.02] border border-white/[0.05] shadow-[inset_0_1px_2px_rgba(255,255,255,0.05),0_8px_24px_rgba(0,0,0,0.4)] mb-6 sm:mb-8 backdrop-blur-xl"
             >
               <span className="text-lg sm:text-xl drop-shadow-xl filter animate-pulse">{timeState.icon}</span>
               <span className="text-slate-300 font-bold tracking-[0.2em] sm:tracking-[0.35em] text-[10px] sm:text-[11px] uppercase bg-clip-text text-transparent bg-gradient-to-r from-slate-200 to-slate-400">{timeState.greeting}</span>
@@ -287,7 +283,7 @@ export default function Dashboard() {
             </h1>
           </div>
 
-          <div className="flex items-center gap-4 sm:gap-5 bg-[#030612]/90 backdrop-blur-3xl px-6 sm:px-8 py-4 sm:py-5 rounded-[1.25rem] sm:rounded-[1.5rem] border border-white/[0.05] shadow-[0_32px_64px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.08)] transform-gpu hover:scale-105 transition-transform duration-500 w-full xl:w-auto mt-4 xl:mt-0">
+          <div className="flex items-center gap-4 sm:gap-5 bg-[#030612]/80 backdrop-blur-xl px-6 sm:px-8 py-4 sm:py-5 rounded-[1.25rem] sm:rounded-[1.5rem] border border-white/[0.05] shadow-[0_16px_32px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.05)] transform-gpu hover:scale-[1.02] transition-transform duration-300 w-full xl:w-auto mt-4 xl:mt-0">
             <div className="relative flex h-3 w-3 sm:h-4 sm:w-4 shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
               <span className="relative inline-flex rounded-full h-3 w-3 sm:h-4 sm:w-4 bg-emerald-500 shadow-[0_0_16px_rgba(52,211,153,1)]"></span>
@@ -316,8 +312,8 @@ export default function Dashboard() {
                 </p>
               </div>
               
-              <Link href="/dashboard/my-courses" className="shrink-0 w-full md:w-auto px-8 sm:px-14 py-5 sm:py-7 bg-white text-slate-950 font-black rounded-[1.25rem] sm:rounded-[1.75rem] text-center transition-all flex items-center justify-center gap-3 sm:gap-4 shadow-[0_0_60px_rgba(255,255,255,0.15)] hover:shadow-[0_0_100px_rgba(255,255,255,0.4)] hover:bg-slate-100 hover:scale-[1.05] active:scale-95 group/btn border border-white/20 relative overflow-hidden mt-4 md:mt-0">
-                <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-slate-900/10 to-transparent group-hover/btn:animate-[shimmer_1s_infinite] pointer-events-none"></div>
+              <Link href="/dashboard/my-courses" className="shrink-0 w-full md:w-auto px-8 sm:px-14 py-5 sm:py-7 bg-white text-slate-950 font-black rounded-[1.25rem] sm:rounded-[1.75rem] text-center transition-all flex items-center justify-center gap-3 sm:gap-4 shadow-[0_0_60px_rgba(255,255,255,0.15)] hover:shadow-[0_0_100px_rgba(255,255,255,0.4)] hover:bg-slate-100 sm:hover:scale-[1.05] active:scale-95 group/btn border border-white/20 relative overflow-hidden mt-4 md:mt-0">
+                <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-slate-900/10 to-transparent group-hover/btn:animate-[shimmer_1s_infinite] pointer-events-none hidden sm:block"></div>
                 <span className="relative z-10 text-[16px] sm:text-[18px] uppercase tracking-[0.2em] sm:tracking-[0.25em]">Resume</span>
                 <svg className="w-6 h-6 sm:w-7 sm:h-7 relative z-10 group-hover/btn:translate-x-2 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 8l4 4m0 0l-4-4m4-4H3" /></svg>
               </Link>
@@ -354,7 +350,7 @@ export default function Dashboard() {
                     strokeDasharray={circumference} 
                     initial={{ strokeDashoffset: circumference }}
                     animate={{ strokeDashoffset }}
-                    transition={{ duration: 3.5, ease: [0.16, 1, 0.3, 1], delay: 0.8 }}
+                    transition={{ duration: 2.5, ease: [0.16, 1, 0.3, 1], delay: 0.5 }}
                     strokeLinecap="round" 
                     filter="url(#hyperGlowExtreme)"
                   />
@@ -381,12 +377,12 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
           
           <HolographicCard className="group p-8 sm:p-12">
-            <div className="absolute bottom-0 right-0 w-[180%] h-48 text-blue-500/10 group-hover:text-blue-500/20 transition-colors duration-700 pointer-events-none">
+            <div className="absolute bottom-0 right-0 w-[180%] h-48 text-blue-500/10 group-hover:text-blue-500/20 transition-colors duration-700 pointer-events-none hidden sm:block">
               <svg className="w-full h-full filter drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]" viewBox="0 0 200 50" preserveAspectRatio="none">
                 <path d="M0 50 Q 40 30, 80 40 T 160 20 L 200 10 L 200 50 Z" fill="currentColor" />
                 {!loading && (
                   <motion.path 
-                    initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 1 }} transition={{ duration: 3, ease: [0.16, 1, 0.3, 1], delay: 0.9 }}
+                    initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 1 }} transition={{ duration: 2.5, ease: [0.16, 1, 0.3, 1], delay: 0.6 }}
                     d="M0 50 Q 40 30, 80 40 T 160 20 L 200 10" fill="none" stroke="url(#blueGradExtreme)" strokeWidth="3" strokeLinecap="round"
                   />
                 )}
@@ -396,13 +392,13 @@ export default function Dashboard() {
               </svg>
             </div>
             
-            <div className="relative z-10 flex flex-col h-full justify-between min-h-[200px] sm:min-h-0">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-[1.25rem] sm:rounded-[1.5rem] bg-[#030612] flex items-center justify-center border border-blue-500/30 text-blue-400 mb-8 sm:mb-12 shadow-[0_0_40px_rgba(59,130,246,0.2),inset_0_2px_4px_rgba(255,255,255,0.1)] group-hover:border-blue-400 group-hover:scale-110 transition-all duration-500">
+            <div className="relative z-10 flex flex-col h-full justify-between min-h-[160px] sm:min-h-[200px]">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-[1.25rem] sm:rounded-[1.5rem] bg-[#030612] flex items-center justify-center border border-blue-500/30 text-blue-400 mb-6 sm:mb-12 shadow-[0_0_40px_rgba(59,130,246,0.2),inset_0_2px_4px_rgba(255,255,255,0.1)] group-hover:border-blue-400 group-hover:scale-110 transition-all duration-500">
                 <svg className="w-8 h-8 sm:w-10 sm:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
               </div>
               <div>
                 <p className="text-slate-400 text-[11px] sm:text-[13px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] mb-2 sm:mb-4">Active Enrollments</p>
-                <div className="text-[4.5rem] sm:text-[5rem] lg:text-[6rem] leading-none font-black text-white tracking-tighter drop-shadow-2xl">
+                <div className="text-[4rem] sm:text-[5rem] lg:text-[6rem] leading-none font-black text-white tracking-tighter drop-shadow-2xl">
                   {loading ? <span className="text-slate-800 animate-pulse">0</span> : <CinematicNumber value={stats.enrolledCourses} />}
                 </div>
               </div>
@@ -410,12 +406,12 @@ export default function Dashboard() {
           </HolographicCard>
 
           <HolographicCard className="group p-8 sm:p-12">
-            <div className="absolute bottom-0 right-0 w-[180%] h-48 text-amber-500/10 group-hover:text-amber-500/20 transition-colors duration-700 pointer-events-none">
+            <div className="absolute bottom-0 right-0 w-[180%] h-48 text-amber-500/10 group-hover:text-amber-500/20 transition-colors duration-700 pointer-events-none hidden sm:block">
               <svg className="w-full h-full filter drop-shadow-[0_0_20px_rgba(245,158,11,0.6)]" viewBox="0 0 200 50" preserveAspectRatio="none">
                 <path d="M0 50 Q 30 20, 60 35 T 140 15 L 200 5 L 200 50 Z" fill="currentColor" />
                 {!loading && (
                   <motion.path 
-                    initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 1 }} transition={{ duration: 3, ease: [0.16, 1, 0.3, 1], delay: 1.1 }}
+                    initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 1 }} transition={{ duration: 2.5, ease: [0.16, 1, 0.3, 1], delay: 0.8 }}
                     d="M0 50 Q 30 20, 60 35 T 140 15 L 200 5" fill="none" stroke="url(#amberGradExtreme)" strokeWidth="3" strokeLinecap="round"
                   />
                 )}
@@ -425,21 +421,22 @@ export default function Dashboard() {
               </svg>
             </div>
 
-            <div className="relative z-10 flex flex-col h-full justify-between min-h-[200px] sm:min-h-0">
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-4 sm:gap-0 mb-8 sm:mb-12">
+            <div className="relative z-10 flex flex-col h-full justify-between min-h-[160px] sm:min-h-[200px]">
+              <div className="flex flex-row justify-between items-start gap-4 sm:gap-0 mb-6 sm:mb-12">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-[1.25rem] sm:rounded-[1.5rem] bg-[#030612] flex items-center justify-center border border-amber-500/30 text-amber-400 shadow-[0_0_40px_rgba(245,158,11,0.2),inset_0_2px_4px_rgba(255,255,255,0.1)] group-hover:border-amber-400 group-hover:scale-110 transition-all duration-500">
                   <svg className="w-8 h-8 sm:w-10 sm:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
                 </div>
                 {!loading && stats.pendingAssignments > 0 && (
-                  <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 1.5 }} className="bg-amber-500/10 text-amber-400 text-[10px] sm:text-[12px] font-black uppercase tracking-widest px-4 py-2 sm:px-5 sm:py-2.5 rounded-full border border-amber-500/30 shadow-[0_0_30px_rgba(245,158,11,0.3)] flex items-center gap-2 sm:gap-3 backdrop-blur-md">
+                  <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 1 }} className="bg-amber-500/10 text-amber-400 text-[10px] sm:text-[12px] font-black uppercase tracking-widest px-4 py-2 sm:px-5 sm:py-2.5 rounded-full border border-amber-500/30 shadow-[0_0_30px_rgba(245,158,11,0.3)] flex items-center gap-2 sm:gap-3 backdrop-blur-md">
                     <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-amber-400 animate-ping"></span>
-                    Action Required
+                    <span className="hidden sm:inline">Action Required</span>
+                    <span className="sm:hidden">Required</span>
                   </motion.span>
                 )}
               </div>
               <div>
                 <p className="text-slate-400 text-[11px] sm:text-[13px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] mb-2 sm:mb-4">Pending Tasks</p>
-                <div className="text-[4.5rem] sm:text-[5rem] lg:text-[6rem] leading-none font-black text-white tracking-tighter drop-shadow-2xl">
+                <div className="text-[4rem] sm:text-[5rem] lg:text-[6rem] leading-none font-black text-white tracking-tighter drop-shadow-2xl">
                   {loading ? <span className="text-slate-800 animate-pulse">0</span> : <CinematicNumber value={stats.pendingAssignments} />}
                 </div>
               </div>
@@ -450,19 +447,19 @@ export default function Dashboard() {
 
         {/* --- LIQUID GRADIENT TIMELINE --- */}
         <HolographicCard className="p-6 sm:p-10 lg:p-16">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 sm:gap-0 mb-12 sm:mb-20 pb-8 sm:pb-10 border-b border-white/[0.05] relative z-10">
-            <h3 className="text-3xl sm:text-4xl font-black flex items-center gap-4 sm:gap-6 text-white tracking-tight drop-shadow-lg">
+          <div className="flex flex-row justify-between items-center gap-4 sm:gap-0 mb-8 sm:mb-16 pb-6 sm:pb-10 border-b border-white/[0.05] relative z-10">
+            <h3 className="text-2xl sm:text-4xl font-black flex items-center gap-4 sm:gap-6 text-white tracking-tight drop-shadow-lg">
               Activity History
             </h3>
-            <Link href="/dashboard" className="w-full sm:w-auto text-center justify-center text-slate-300 hover:text-white text-[12px] sm:text-[14px] font-bold uppercase tracking-widest transition-colors flex items-center gap-3 group bg-white/[0.02] hover:bg-white/[0.06] px-6 sm:px-8 py-3 sm:py-4 rounded-xl border border-white/[0.05] shadow-inner">
+            <Link href="/dashboard" className="text-center justify-center text-slate-300 hover:text-white text-[10px] sm:text-[14px] font-bold uppercase tracking-widest transition-colors flex items-center gap-2 sm:gap-3 group bg-white/[0.02] hover:bg-white/[0.06] px-4 sm:px-8 py-2 sm:py-4 rounded-xl border border-white/[0.05] shadow-inner">
               View Log
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-2 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 8l4 4m0 0l-4-4m4-4H3" /></svg>
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1.5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 8l4 4m0 0l-4-4m4-4H3" /></svg>
             </Link>
           </div>
           
           <div className="relative z-10">
             {/* Timeline Line adjusted for mobile */}
-            <div className="absolute left-[11px] sm:left-[15px] top-6 bottom-6 w-1 sm:w-1.5 bg-gradient-to-b from-emerald-400 via-blue-500 to-transparent rounded-full shadow-[0_0_30px_rgba(52,211,153,0.6)]"></div>
+            <div className="absolute left-[11px] sm:left-[15px] top-4 sm:top-6 bottom-4 sm:bottom-6 w-1 sm:w-1.5 bg-gradient-to-b from-emerald-400 via-blue-500 to-transparent rounded-full shadow-[0_0_30px_rgba(52,211,153,0.6)]"></div>
 
             {loading ? (
               <div className="space-y-12 sm:space-y-16 pl-10 sm:pl-14">
@@ -475,32 +472,32 @@ export default function Dashboard() {
                 ))}
               </div>
             ) : stats.recentActivities.length === 0 ? (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16 sm:py-28 border border-dashed border-white/[0.08] rounded-[2rem] sm:rounded-[3rem] bg-white/[0.01] px-4">
-                <div className="w-20 h-20 sm:w-28 sm:h-28 bg-[#030612] rounded-[1.75rem] sm:rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 sm:mb-8 border border-white/[0.08] shadow-[0_24px_48px_rgba(0,0,0,0.6),inset_0_2px_4px_rgba(255,255,255,0.05)]">
-                  <svg className="w-10 h-10 sm:w-14 sm:h-14 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12 sm:py-28 border border-dashed border-white/[0.08] rounded-[2rem] sm:rounded-[3rem] bg-white/[0.01] px-4">
+                <div className="w-16 h-16 sm:w-28 sm:h-28 bg-[#030612] rounded-[1.25rem] sm:rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 sm:mb-8 border border-white/[0.08] shadow-[0_24px_48px_rgba(0,0,0,0.6),inset_0_2px_4px_rgba(255,255,255,0.05)]">
+                  <svg className="w-8 h-8 sm:w-14 sm:h-14 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
                 </div>
-                <p className="text-white font-black text-2xl sm:text-4xl mb-3 sm:mb-4 tracking-tight">Timeline is empty</p>
-                <p className="text-slate-400 text-base sm:text-xl max-w-lg mx-auto font-light">Milestones and activity logs will automatically flow here as you progress.</p>
+                <p className="text-white font-black text-xl sm:text-4xl mb-2 sm:mb-4 tracking-tight">Timeline is empty</p>
+                <p className="text-slate-400 text-sm sm:text-xl max-w-lg mx-auto font-light">Milestones and activity logs will automatically flow here as you progress.</p>
               </motion.div>
             ) : (
-              <div className="relative space-y-12 sm:space-y-16 pb-6">
+              <div className="relative space-y-10 sm:space-y-16 pb-6">
                 <AnimatePresence>
                   {stats.recentActivities.map((act, i) => (
                     <motion.div 
-                      initial={{ opacity: 0, x: -20, filter: "blur(10px)" }} animate={{ opacity: 1, x: 0, filter: "blur(0px)" }} transition={{ delay: i * 0.2, type: "spring", stiffness: 350, damping: 25 }}
+                      initial={{ opacity: 0, x: -20, filter: "blur(10px)" }} animate={{ opacity: 1, x: 0, filter: "blur(0px)" }} transition={{ delay: i * 0.15, type: "spring", stiffness: 350, damping: 25 }}
                       key={act.id} 
                       className="group relative pl-10 sm:pl-16"
                     >
-                      <div className="absolute left-[-1px] sm:left-[2px] top-3 w-[8px] sm:w-[10px] h-[8px] sm:h-[10px] rounded-full bg-white shadow-[0_0_30px_rgba(255,255,255,1)] group-hover:scale-[2] sm:group-hover:scale-[2.5] transition-transform duration-700 z-10" />
+                      <div className="absolute left-[-1px] sm:left-[2px] top-3 w-[8px] sm:w-[10px] h-[8px] sm:h-[10px] rounded-full bg-white shadow-[0_0_30px_rgba(255,255,255,1)] sm:group-hover:scale-[2.5] transition-transform duration-700 z-10" />
                       <div className="absolute left-[-6px] sm:left-[-4px] top-1.5 w-[18px] sm:w-[22px] h-[18px] sm:h-[22px] rounded-full bg-[#030612] border-[2px] sm:border-[3px] border-emerald-400 shadow-[0_0_0_4px_#010206] sm:shadow-[0_0_0_6px_#010206]" />
                       
-                      <div className="flex flex-col lg:flex-row justify-between lg:items-start gap-4 sm:gap-6 p-6 sm:p-10 -mt-6 sm:-mt-10 rounded-[2rem] sm:rounded-[2.5rem] bg-white/[0.01] hover:bg-white/[0.02] transition-colors cursor-default border border-transparent hover:border-white/[0.05] hover:shadow-[0_24px_48px_rgba(0,0,0,0.4)]">
+                      <div className="flex flex-col lg:flex-row justify-between lg:items-start gap-3 sm:gap-6 p-5 sm:p-10 -mt-4 sm:-mt-10 rounded-[1.5rem] sm:rounded-[2.5rem] bg-white/[0.01] sm:hover:bg-white/[0.02] transition-colors cursor-default border border-transparent sm:hover:border-white/[0.05] sm:hover:shadow-[0_24px_48px_rgba(0,0,0,0.4)]">
                         <div>
-                          <h4 className="text-white font-black text-xl sm:text-2xl mb-2 sm:mb-3 group-hover:text-emerald-400 transition-colors tracking-tight">{act.title}</h4>
-                          <p className="text-slate-400 text-sm sm:text-lg font-light leading-relaxed max-w-3xl mix-blend-screen">{act.description}</p>
+                          <h4 className="text-white font-black text-lg sm:text-2xl mb-1 sm:mb-3 sm:group-hover:text-emerald-400 transition-colors tracking-tight">{act.title}</h4>
+                          <p className="text-slate-400 text-xs sm:text-lg font-light leading-relaxed max-w-3xl mix-blend-screen">{act.description}</p>
                         </div>
                         <div className="shrink-0 pt-2 lg:pt-0">
-                          <span className="text-[10px] sm:text-[12px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] text-slate-400 bg-[#010206] px-4 sm:px-6 py-2 sm:py-3 rounded-full border border-white/[0.08] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-emerald-500/40 group-hover:text-emerald-300 transition-colors inline-block">
+                          <span className="text-[9px] sm:text-[12px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] text-slate-400 bg-[#010206] px-4 sm:px-6 py-2 sm:py-3 rounded-full border border-white/[0.08] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] sm:group-hover:border-emerald-500/40 sm:group-hover:text-emerald-300 transition-colors inline-block">
                             {formatDate(act.date)}
                           </span>
                         </div>
