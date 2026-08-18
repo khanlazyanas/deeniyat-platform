@@ -111,7 +111,7 @@ export default function CoursePlayerPage() {
   const router = useRouter();
   const courseId = params.id as string;
   
-  // 👇 1. Auth Hook
+  // 👇 Auth Hook
   const { user } = useAuth();
 
   const [course, setCourse] = useState<Course | null>(null);
@@ -137,6 +137,11 @@ export default function CoursePlayerPage() {
   const smoothMouseY = useSpring(mouseY, { stiffness: 50, damping: 20 });
   const fgX = useTransform(smoothMouseX, (v) => v * 1.5);
   const fgY = useTransform(smoothMouseY, (v) => v * 1.5);
+  
+  // 👇 FIX: mgX and mgY missing issue resolved here
+  const mgX = useTransform(smoothMouseX, (v) => v * 0.8);
+  const mgY = useTransform(smoothMouseY, (v) => v * 0.8);
+  
   const bgX = useTransform(smoothMouseX, (v) => v * 0.3);
   const bgY = useTransform(smoothMouseY, (v) => v * 0.3);
 
@@ -251,15 +256,15 @@ export default function CoursePlayerPage() {
     }
   };
 
-  // 👇 NEW: Edit Lesson Handler
+  // Edit Lesson Handler
   const handleEditLesson = (e: React.MouseEvent, lessonId: string) => {
-    e.stopPropagation(); // Lesson click event roko
+    e.stopPropagation(); 
     router.push(`/dashboard/edit-lesson/${lessonId}`);
   };
 
-  // 👇 NEW: Delete Lesson Handler
+  // Delete Lesson Handler
   const handleDeleteLesson = async (e: React.MouseEvent, lessonId: string) => {
-    e.stopPropagation(); // Lesson click event roko
+    e.stopPropagation(); 
     
     if (!window.confirm("Are you sure you want to permanently delete this lesson?")) return;
 
@@ -272,9 +277,7 @@ export default function CoursePlayerPage() {
       });
 
       if (res.ok) {
-        // UI se Lesson Gayab karo instantly
         setLessons(prev => prev.filter(l => l._id !== lessonId));
-        // Agar yahi lesson play ho raha tha toh next/empty par focus daalo
         if (activeLesson?._id === lessonId) setActiveLesson(null);
       } else {
         const data = await res.json();
@@ -324,7 +327,13 @@ export default function CoursePlayerPage() {
             <motion.div key={`fg-${i}`} className={`absolute rounded-full ${p.color}`} style={{ width: p.size, height: p.size, left: `${p.xPos}%`, top: `${p.yPos}%`, opacity: p.opacity, boxShadow: `0 0 ${p.size * 2}px currentColor` }} animate={{ y: [0, -40, 0], x: [0, 20, -10, 0] }} transition={{ duration: p.duration, repeat: Infinity, ease: "easeInOut", delay: p.delay }} />
           ))}
         </motion.div>
+        {/* 👇 FIX: Applied mgX and mgY properly */}
         <motion.div style={{ x: mgX, y: mgY }} className="absolute inset-0 will-change-transform">
+          {ambientBubbles.filter(b => b.layer === 1).map((p, i) => (
+            <motion.div key={`mg-${i}`} className={`absolute rounded-full ${p.color}`} style={{ width: p.size * 0.8, height: p.size * 0.8, left: `${p.xPos}%`, top: `${p.yPos}%`, opacity: p.opacity * 0.7, boxShadow: `0 0 ${p.size * 1.5}px currentColor` }} animate={{ y: [0, -30, 0], x: [0, -15, 10, 0] }} transition={{ duration: p.duration, repeat: Infinity, ease: "easeInOut", delay: p.delay }} />
+          ))}
+        </motion.div>
+        <motion.div style={{ x: bgX, y: bgY }} className="absolute inset-0 will-change-transform">
           {ambientBubbles.filter(b => b.layer === 2).map((p, i) => (
             <motion.div key={`bg-${i}`} className={`absolute rounded-full ${p.color}`} style={{ width: p.size * 1.5, height: p.size * 1.5, left: `${p.xPos}%`, top: `${p.yPos}%`, opacity: p.opacity * 0.4, boxShadow: `0 0 ${p.size}px currentColor` }} animate={{ y: [0, -20, 0] }} transition={{ duration: p.duration, repeat: Infinity, ease: "linear", delay: p.delay }} />
           ))}
@@ -388,7 +397,6 @@ export default function CoursePlayerPage() {
                   </div>
                 </button>
 
-                {/* 👇 EDIT AND DELETE ACTION BUTTONS (Only for Author) */}
                 {isOwnerOrAdmin && (
                   <div className="absolute top-1/2 -translate-y-1/2 right-3 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <button 
