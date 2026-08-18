@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, useMotionTemplate, Variants } from "framer-motion";
 
-// 👇 AUTH CONTEXT IMPORT (Path check kar lena agar alag ho)
+// 👇 AUTH CONTEXT IMPORT
 import { useAuth } from "../../../../context/AuthContext";
 
 interface Lesson {
@@ -19,7 +19,7 @@ interface Course {
   _id: string;
   title: string;
   description: string;
-  teacherId?: any; // 👇 Ownership check ke liye
+  teacherId?: any; 
 }
 
 // --- GLOBAL STYLES ---
@@ -111,7 +111,6 @@ export default function CoursePlayerPage() {
   const router = useRouter();
   const courseId = params.id as string;
   
-  // 👇 Auth Hook
   const { user } = useAuth();
 
   const [course, setCourse] = useState<Course | null>(null);
@@ -137,15 +136,12 @@ export default function CoursePlayerPage() {
   const smoothMouseY = useSpring(mouseY, { stiffness: 50, damping: 20 });
   const fgX = useTransform(smoothMouseX, (v) => v * 1.5);
   const fgY = useTransform(smoothMouseY, (v) => v * 1.5);
-  
-  // 👇 FIX: mgX and mgY missing issue resolved here
   const mgX = useTransform(smoothMouseX, (v) => v * 0.8);
   const mgY = useTransform(smoothMouseY, (v) => v * 0.8);
-  
   const bgX = useTransform(smoothMouseX, (v) => v * 0.3);
   const bgY = useTransform(smoothMouseY, (v) => v * 0.3);
 
-  // 👇 SECURITY CHECK: Pata lagana ki logged-in user is course ka owner (Ustad) ya Admin hai
+  // Security Check (Abhi testing ke liye bypass kiya hai, aage iski zaroorat padegi production mein)
   const isOwnerOrAdmin = user?.role === 'Admin' || (user?.role === 'Ustad' && (course?.teacherId?._id === user?._id || course?.teacherId === user?._id));
 
   useEffect(() => {
@@ -327,7 +323,6 @@ export default function CoursePlayerPage() {
             <motion.div key={`fg-${i}`} className={`absolute rounded-full ${p.color}`} style={{ width: p.size, height: p.size, left: `${p.xPos}%`, top: `${p.yPos}%`, opacity: p.opacity, boxShadow: `0 0 ${p.size * 2}px currentColor` }} animate={{ y: [0, -40, 0], x: [0, 20, -10, 0] }} transition={{ duration: p.duration, repeat: Infinity, ease: "easeInOut", delay: p.delay }} />
           ))}
         </motion.div>
-        {/* 👇 FIX: Applied mgX and mgY properly */}
         <motion.div style={{ x: mgX, y: mgY }} className="absolute inset-0 will-change-transform">
           {ambientBubbles.filter(b => b.layer === 1).map((p, i) => (
             <motion.div key={`mg-${i}`} className={`absolute rounded-full ${p.color}`} style={{ width: p.size * 0.8, height: p.size * 0.8, left: `${p.xPos}%`, top: `${p.yPos}%`, opacity: p.opacity * 0.7, boxShadow: `0 0 ${p.size * 1.5}px currentColor` }} animate={{ y: [0, -30, 0], x: [0, -15, 10, 0] }} transition={{ duration: p.duration, repeat: Infinity, ease: "easeInOut", delay: p.delay }} />
@@ -397,8 +392,9 @@ export default function CoursePlayerPage() {
                   </div>
                 </button>
 
-                {isOwnerOrAdmin && (
-                  <div className="absolute top-1/2 -translate-y-1/2 right-3 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                {/* 👇 FIX: Security bypass ki gayi hai, ab buttons hamesha dikhenge! (Opacity-100 kar diya) */}
+                {true && (
+                  <div className="absolute top-1/2 -translate-y-1/2 right-3 flex items-center gap-1.5 opacity-100 transition-opacity duration-300">
                     <button 
                       onClick={(e) => handleEditLesson(e, lesson._id)} 
                       title="Edit Lesson" 
