@@ -44,6 +44,7 @@ export default function CreateCoursePage() {
     thumbnail: "",
     promoVideo: "", 
     price: "",
+    gstPercentage: "", // 👈 NEW: Added Custom GST field
   });
   
   const [loading, setLoading] = useState(false);
@@ -152,7 +153,13 @@ export default function CreateCoursePage() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}` 
         },
-        body: JSON.stringify({ ...formData, price: formData.price ? Number(formData.price) : 0, teacherId: userId }), 
+        // 👇 FIX: Sending custom price AND custom GST percentage
+        body: JSON.stringify({ 
+          ...formData, 
+          price: formData.price ? Number(formData.price) : 0, 
+          gstPercentage: formData.gstPercentage ? Number(formData.gstPercentage) : 0,
+          teacherId: userId 
+        }), 
       });
 
       const data = await response.json();
@@ -175,7 +182,7 @@ export default function CreateCoursePage() {
     }
   };
 
-  // Variants for step animation (Optimized, removed heavy blur)
+  // Variants for step animation (Optimized)
   const stepVariants: Variants = {
     hidden: { opacity: 0, x: 30 },
     visible: { opacity: 1, x: 0, transition: { duration: 0.4, ease: "easeOut" } },
@@ -192,7 +199,6 @@ export default function CreateCoursePage() {
       {/* --- HYPER-DENSE 3D PARTICLES ENGINE (Optimized) --- */}
       {mounted && (
         <div className="hidden md:block fixed inset-0 z-[5] pointer-events-none overflow-hidden">
-          {/* Layer 0: Foreground */}
           <motion.div style={{ x: fgX, y: fgY }} className="absolute inset-0 will-change-transform">
             {ambientBubbles.filter(b => b.layer === 0).map((p, i) => (
               <motion.div
@@ -208,8 +214,6 @@ export default function CreateCoursePage() {
               />
             ))}
           </motion.div>
-
-          {/* Layer 1: Midground */}
           <motion.div style={{ x: mgX, y: mgY }} className="absolute inset-0 will-change-transform">
              {ambientBubbles.filter(b => b.layer === 1).map((p, i) => (
               <motion.div
@@ -225,8 +229,6 @@ export default function CreateCoursePage() {
               />
             ))}
           </motion.div>
-
-          {/* Layer 2: Background */}
           <motion.div style={{ x: bgX, y: bgY }} className="absolute inset-0 will-change-transform">
             {ambientBubbles.filter(b => b.layer === 2).map((p, i) => (
               <motion.div
@@ -250,9 +252,9 @@ export default function CreateCoursePage() {
       <div className="absolute bottom-[10%] left-[10%] w-[600px] h-[600px] bg-teal-900/10 rounded-full blur-[140px] pointer-events-none mix-blend-screen animate-[pulse_15s_ease-in-out_infinite_reverse] hidden sm:block"></div>
 
       <div className="max-w-3xl w-full mx-auto relative z-10 py-6 sm:py-12">
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-8 sm:mb-10 text-center">
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-10 text-center">
           <div className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-white/[0.02] border border-white/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_4px_12px_rgba(0,0,0,0.2)] mb-4 sm:mb-6 backdrop-blur-xl">
-            <span className="flex h-2.5 w-2.5 rounded-full bg-amber-400 animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.8)]"></span>
+            <span className="flex h-2.5 w-2.5 rounded-full bg-amber-400 animate-[pulse_2s_ease-in-out_infinite] shadow-[0_0_10px_rgba(245,158,11,0.8)]"></span>
             <span className="text-[10px] sm:text-[11px] font-black text-slate-300 tracking-[0.3em] uppercase">Ustad Portal</span>
           </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tighter mb-3 sm:mb-4 drop-shadow-md">Create Curriculum</h2>
@@ -353,18 +355,35 @@ export default function CreateCoursePage() {
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-[11px] sm:text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Course Price (₹) <span className="lowercase font-medium text-slate-500 tracking-normal">(Leave 0 for Free)</span></label>
-                      <div className="relative group">
-                        <div className="absolute inset-y-0 left-0 pl-4 sm:pl-5 flex items-center pointer-events-none z-10 text-slate-500 group-focus-within:text-emerald-400 font-bold transition-colors duration-300">
-                          ₹
+                    {/* 👇 ADDED: Custom GST and Price Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+                        <div>
+                        <label className="block text-[11px] sm:text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Course Price (₹) <span className="lowercase font-medium text-slate-500 tracking-normal">(Leave 0 for Free)</span></label>
+                        <div className="relative group">
+                            <div className="absolute inset-y-0 left-0 pl-4 sm:pl-5 flex items-center pointer-events-none z-10 text-slate-500 group-focus-within:text-emerald-400 font-bold transition-colors duration-300">
+                            ₹
+                            </div>
+                            <input 
+                            type="number" name="price" min="0" value={formData.price} onChange={handleChange}
+                            className="relative w-full pl-10 sm:pl-10 pr-4 py-3.5 sm:py-4 bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1rem] sm:rounded-[1.25rem] focus:bg-[#020510] focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all duration-300 text-slate-200 placeholder-slate-600 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-medium z-10 text-sm sm:text-base"
+                            placeholder="e.g., 499"
+                            />
                         </div>
-                        <input 
-                          type="number" name="price" min="0" value={formData.price} onChange={handleChange}
-                          className="relative w-full pl-10 sm:pl-10 pr-4 py-3.5 sm:py-4 bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1rem] sm:rounded-[1.25rem] focus:bg-[#020510] focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all duration-300 text-slate-200 placeholder-slate-600 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-medium z-10 text-sm sm:text-base"
-                          placeholder="e.g., 499"
-                        />
-                      </div>
+                        </div>
+
+                        <div>
+                        <label className="block text-[11px] sm:text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">GST Percentage (%) <span className="lowercase font-medium text-slate-500 tracking-normal">(Leave 0 for Nil)</span></label>
+                        <div className="relative group">
+                            <div className="absolute inset-y-0 left-0 pl-4 sm:pl-5 flex items-center pointer-events-none z-10 text-slate-500 group-focus-within:text-emerald-400 font-bold transition-colors duration-300">
+                            %
+                            </div>
+                            <input 
+                            type="number" name="gstPercentage" min="0" max="100" value={formData.gstPercentage} onChange={handleChange}
+                            className="relative w-full pl-10 sm:pl-10 pr-4 py-3.5 sm:py-4 bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1rem] sm:rounded-[1.25rem] focus:bg-[#020510] focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all duration-300 text-slate-200 placeholder-slate-600 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-medium z-10 text-sm sm:text-base"
+                            placeholder="e.g., 18"
+                            />
+                        </div>
+                        </div>
                     </div>
 
                     <div>
