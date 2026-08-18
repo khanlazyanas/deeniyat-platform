@@ -85,3 +85,14 @@ export const deleteLesson = catchAsync(async (req: any, res: Response) => {
   await lesson.deleteOne();
   res.json({ message: 'Lesson removed successfully' });
 });
+
+// @desc    Get a single lesson by ID
+// @route   GET /api/v1/lessons/:id
+// @access  Private (Logged in users)
+export const getLessonById = catchAsync(async (req: any, res: Response) => {
+  const lesson = await Lesson.findById(req.params.id);
+  if (!lesson) {
+    return res.status(404).json({ message: 'Lesson not found' });
+  }
+  res.json(lesson);
+});

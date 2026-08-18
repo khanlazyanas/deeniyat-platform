@@ -1,5 +1,5 @@
 import express from 'express';
-import { createLesson, getLessonsByCourse, updateLesson, deleteLesson } from '../controllers/lessonController';
+import { createLesson, getLessonsByCourse, updateLesson, deleteLesson, getLessonById } from '../controllers/lessonController';
 import { protect, authorize } from '../middlewares/authMiddleware';
 
 const router = express.Router();
@@ -13,5 +13,6 @@ router.get('/course/:courseId', protect, getLessonsByCourse);
 // 👇 NEW: Update aur Delete ke routes (Sirf Admin/Ustad ke liye)
 router.put('/:id', protect, authorize('Admin', 'Ustad'), updateLesson);
 router.delete('/:id', protect, authorize('Admin', 'Ustad'), deleteLesson);
+router.get('/:id', protect, getLessonById);
 
 export default router;
