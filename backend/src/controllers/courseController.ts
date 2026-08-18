@@ -1,14 +1,14 @@
 import { Request, Response } from 'express';
 import Course from '../models/Course';
-import User from '../models/User'; // 👈 NEW: User import zaroori hai my courses nikalne ke liye
+import User from '../models/User'; 
 import catchAsync from '../utils/catchAsync';
 
 // @desc    Create a new course
 // @route   POST /api/v1/courses
 // @access  Private (Admin & Ustad only)
 export const createCourse = catchAsync(async (req: Request, res: Response) => {
-  // 👇 FIX: price ko yahan destructure kiya gaya hai
-  const { title, description, level, thumbnail, promoVideo, price } = req.body;
+  // 👇 FIX: gstPercentage ko bhi yahan destructure kiya gaya hai
+  const { title, description, level, thumbnail, promoVideo, price, gstPercentage } = req.body;
 
   const teacherId = req.user?._id;
 
@@ -19,7 +19,8 @@ export const createCourse = catchAsync(async (req: Request, res: Response) => {
     teacherId,
     thumbnail,
     promoVideo, 
-    price: price || 0, // 👈 FIX: Database mein price save ho jayega (default 0 for Free)
+    price: price || 0, 
+    gstPercentage: gstPercentage || 0, // 👈 FIX: Custom GST % Database mein save hoga
   });
 
   res.status(201).json(course);
@@ -47,14 +48,13 @@ export const getCourseById = catchAsync(async (req: Request, res: Response) => {
   }
 });
 
-// 👇 NEW API FUNCTION: Yeh tumhare "My Learning Journey" page ke liye courses layega!
 // @desc    Get logged in user's enrolled courses
 // @route   GET /api/v1/courses/my-courses
 // @access  Private
 export const getMyCourses = catchAsync(async (req: any, res: Response) => {
   const user = await User.findById(req.user._id).populate({
     path: 'enrolledCourses',
-    populate: { path: 'teacherId', select: 'name email profileImage' } // Saath mein teacher details bhi
+    populate: { path: 'teacherId', select: 'name email profileImage' } 
   });
 
   if (!user) {
@@ -80,6 +80,7 @@ export const updateCourse = catchAsync(async (req: any, res: Response) => {
     return res.status(403).json({ message: 'Not authorized to update this course' });
   }
 
+  // req.body contains updated fields including gstPercentage
   course = await Course.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
     runValidators: true,

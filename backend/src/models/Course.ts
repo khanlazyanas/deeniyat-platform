@@ -7,8 +7,9 @@ export interface ICourse extends Document {
   level: string; // e.g., Beginner, Tajweed, Hifz
   teacherId: mongoose.Types.ObjectId; // Kis Ustad ka course hai
   thumbnail?: string;
-  promoVideo?: string; // 👈 NEW: Promo Video URL save karne ke liye
-  price: number; // 👈 NEW: Price field add kiya
+  promoVideo?: string; 
+  price: number; 
+  gstPercentage: number; // 👈 NEW: Custom GST Percentage field add kiya
 }
 
 // Mongoose Schema
@@ -38,11 +39,15 @@ const courseSchema = new Schema<ICourse>(
     },
     promoVideo: {
       type: String,
-      default: '', // 👈 NEW: Promo video ka default empty string
+      default: '', 
     },
     price: {
       type: Number,
-      default: 0, // 👈 NEW: Default 0 matlab Free course
+      default: 0, 
+    },
+    gstPercentage: { // 👈 NEW: Database mein GST % save hoga
+      type: Number,
+      default: 0, // Default 0% GST (Free courses ya bina GST wale courses ke liye)
     },
   },
   {
@@ -50,5 +55,5 @@ const courseSchema = new Schema<ICourse>(
   }
 );
 
-// ✅ Fix: Prevents OverwriteModelError in Next.js/Express (Agar model pehle se bana hai toh wahi use karega)
+// ✅ Fix: Prevents OverwriteModelError in Next.js/Express
 export default mongoose.models.Course || mongoose.model<ICourse>('Course', courseSchema);
