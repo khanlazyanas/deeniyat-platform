@@ -47,6 +47,7 @@ export default function EditCoursePage() {
     thumbnail: "",
     promoVideo: "",
     price: "",
+    gstPercentage: "", // 👈 NEW: Added Custom GST field
   });
   
   const [loading, setLoading] = useState(false);
@@ -100,7 +101,8 @@ export default function EditCoursePage() {
           level: data.level || "Beginner",
           thumbnail: data.thumbnail || "",
           promoVideo: data.promoVideo || "",
-          price: data.price || 0,
+          price: data.price || "", // 👈 Fetches existing price
+          gstPercentage: data.gstPercentage || "", // 👈 Fetches existing GST %
         });
       } catch (err: any) {
         setError(err.message);
@@ -174,7 +176,12 @@ export default function EditCoursePage() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}` 
         },
-        body: JSON.stringify({ ...formData, price: formData.price ? Number(formData.price) : 0 }), 
+        // 👇 Sending Updated Price & Custom GST to Backend
+        body: JSON.stringify({ 
+          ...formData, 
+          price: formData.price ? Number(formData.price) : 0,
+          gstPercentage: formData.gstPercentage ? Number(formData.gstPercentage) : 0 
+        }), 
       });
 
       const data = await response.json();
@@ -256,10 +263,10 @@ export default function EditCoursePage() {
       </div>
 
       <div className="max-w-3xl w-full mx-auto relative z-10 py-6 sm:py-12">
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-8 sm:mb-10 text-center">
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-10 text-center">
           <div className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-white/[0.02] border border-blue-500/30 shadow-[inset_0_1px_1px_rgba(59,130,246,0.2),0_4px_12px_rgba(0,0,0,0.2)] mb-4 sm:mb-6 backdrop-blur-xl">
-            <span className="flex h-2 sm:h-2.5 w-2 sm:w-2.5 rounded-full bg-blue-400 animate-pulse shadow-[0_0_10px_rgba(59,130,246,1)]"></span>
-            <span className="text-[9px] sm:text-[11px] font-black text-blue-300 tracking-[0.2em] sm:tracking-[0.3em] uppercase">Edit Mode</span>
+            <span className="flex h-2.5 w-2.5 rounded-full bg-blue-400 animate-pulse shadow-[0_0_10px_rgba(59,130,246,1)]"></span>
+            <span className="text-[9px] sm:text-[11px] font-black text-blue-300 tracking-[0.3em] uppercase">Edit Mode</span>
           </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tighter mb-3 sm:mb-4 drop-shadow-md">Update Curriculum</h2>
           <p className="text-slate-400 font-light text-[14px] sm:text-[17px] mix-blend-screen px-2">Make changes to your existing course details.</p>
@@ -341,18 +348,36 @@ export default function EditCoursePage() {
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-[11px] sm:text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Course Price (₹) <span className="lowercase font-medium text-slate-500 tracking-normal">(Leave 0 for Free)</span></label>
-                      <div className="relative group">
-                        <div className="absolute inset-y-0 left-0 pl-4 sm:pl-5 flex items-center pointer-events-none z-10 text-slate-500 group-focus-within:text-blue-400 font-bold transition-colors duration-300">
-                          ₹
+                    {/* 👇 NEW: Price Input in Edit Mode */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+                        <div>
+                        <label className="block text-[11px] sm:text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Course Price (₹) <span className="lowercase font-medium text-slate-500 tracking-normal">(Leave 0 for Free)</span></label>
+                        <div className="relative group">
+                            <div className="absolute inset-y-0 left-0 pl-4 sm:pl-5 flex items-center pointer-events-none z-10 text-slate-500 group-focus-within:text-blue-400 font-bold transition-colors duration-300">
+                            ₹
+                            </div>
+                            <input 
+                            type="number" name="price" min="0" value={formData.price} onChange={handleChange}
+                            className="relative w-full pl-10 sm:pl-10 pr-4 py-3.5 sm:py-4 bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1rem] sm:rounded-[1.25rem] focus:bg-[#020510] focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 outline-none transition-all duration-300 text-slate-200 placeholder-slate-600 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-medium z-10 text-sm sm:text-base"
+                            placeholder="e.g., 499"
+                            />
                         </div>
-                        <input 
-                          type="number" name="price" min="0" value={formData.price} onChange={handleChange}
-                          className="relative w-full pl-10 pr-4 py-3.5 sm:py-4 bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1rem] sm:rounded-[1.25rem] focus:bg-[#020510] focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 outline-none transition-all duration-300 text-slate-200 placeholder-slate-600 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-medium z-10 text-sm sm:text-base"
-                          placeholder="e.g., 499"
-                        />
-                      </div>
+                        </div>
+
+                        {/* 👇 NEW: Custom GST Percentage */}
+                        <div>
+                        <label className="block text-[11px] sm:text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">GST Percentage (%) <span className="lowercase font-medium text-slate-500 tracking-normal">(Leave 0 for Nil)</span></label>
+                        <div className="relative group">
+                            <div className="absolute inset-y-0 left-0 pl-4 sm:pl-5 flex items-center pointer-events-none z-10 text-slate-500 group-focus-within:text-blue-400 font-bold transition-colors duration-300">
+                            %
+                            </div>
+                            <input 
+                            type="number" name="gstPercentage" min="0" max="100" value={formData.gstPercentage} onChange={handleChange}
+                            className="relative w-full pl-10 sm:pl-10 pr-4 py-3.5 sm:py-4 bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1rem] sm:rounded-[1.25rem] focus:bg-[#020510] focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 outline-none transition-all duration-300 text-slate-200 placeholder-slate-600 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-medium z-10 text-sm sm:text-base"
+                            placeholder="e.g., 18"
+                            />
+                        </div>
+                        </div>
                     </div>
 
                     <div>
