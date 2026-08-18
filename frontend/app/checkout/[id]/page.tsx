@@ -33,7 +33,7 @@ function HolographicCard({ children, className = "" }: { children: React.ReactNo
   const isHovered = useMotionValue(0);
   
   const springConfig = { damping: 30, stiffness: 200, mass: 0.5 };
-  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [4, -4]), springConfig); // Subtler rotation for checkout
+  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [4, -4]), springConfig); 
   const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-4, 4]), springConfig);
 
   const backgroundTemplate = useMotionTemplate`radial-gradient(800px circle at ${glareX}px ${glareY}px, rgba(255,255,255,0.08), transparent 45%)`;
@@ -93,7 +93,9 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [course, setCourse] = useState<{ title: string; price: number; _id: string } | null>(null);
+  
+  // 👇 FIX: Course State mein gstPercentage add kar diya gaya hai
+  const [course, setCourse] = useState<{ title: string; price: number; gstPercentage: number; _id: string } | null>(null);
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -101,16 +103,30 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${courseId}`);
         if (res.ok) {
           const data = await res.json();
-          setCourse(data);
+          // API se price aur gstPercentage dono lenge
+          setCourse({
+              _id: data._id,
+              title: data.title,
+              price: data.price || 0,
+              gstPercentage: data.gstPercentage || 0
+          });
         } else {
-          setCourse({ _id: courseId, title: "Advanced Tajweed & Qira'at Masterclass", price: 1499 });
+          setCourse({ _id: courseId, title: "Course Details Not Found", price: 0, gstPercentage: 0 });
         }
       } catch (err) {
-        setCourse({ _id: courseId, title: "Advanced Tajweed & Qira'at Masterclass", price: 1499 });
+        setCourse({ _id: courseId, title: "Course Details Not Found", price: 0, gstPercentage: 0 });
       }
     };
     fetchCourse();
   }, [courseId]);
+
+  // 👇 DYNAMIC CALCULATION BASED ON USTAD'S SETTING
+  const safePrice = course?.price || 0;
+  const safeGst = course?.gstPercentage || 0;
+  
+  // Tax = (Base Price * GST%) / 100
+  const calculatedTax = Math.round((safePrice * safeGst) / 100);
+  const totalAmount = safePrice + calculatedTax;
 
   const handleRazorpayPayment = async () => {
     setLoading(true);
@@ -129,11 +145,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
         return;
       }
 
-      const safePrice = course?.price || 1499;
-      const tax = Math.round(safePrice * 0.18);
-      const totalAmount = safePrice + tax;
-
-      // 1. Call Backend to create order
+      // 1. Call Backend to create order (sending exactly totalAmount)
       const orderResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/create-order`, {
         method: "POST",
         headers: { 
@@ -154,7 +166,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
       // 2. Razorpay Options
       const options = {
         key: 'rzp_test_8YGiWeZrGctMwH', // Asli working key
-        amount: orderData.order.amount,
+        amount: orderData.order.amount, // Total amount automatically in paise from backend
         currency: orderData.order.currency || "INR",
         name: "Deeniyat Platform",
         description: `Enrollment for ${course?.title}`,
@@ -262,10 +274,6 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
     );
   }
 
-  const safePrice = course?.price || 1499;
-  const tax = Math.round(safePrice * 0.18);
-  const total = safePrice + tax;
-
   return (
     <div className="min-h-screen bg-[#010206] font-sans selection:bg-emerald-500/30 selection:text-emerald-200 relative flex items-center justify-center p-4 sm:p-6 overflow-hidden">
       
@@ -305,23 +313,26 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
             </div>
           </div>
 
-          {/* Pricing Breakdown */}
+          {/* 👇 FIX: Pricing Breakdown with Dynamic GST % */}
           <div className="space-y-5 text-sm sm:text-base font-medium pt-2">
             <div className="flex justify-between text-slate-400">
-              <span>Original Price</span>
+              <span>Base Course Fee</span>
               <span className="text-slate-200">₹{safePrice.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between text-slate-400">
-              <span>Taxes (18% GST)</span>
-              <span className="text-slate-200">₹{tax.toLocaleString()}</span>
-            </div>
+            {/* Agar Ustad ne GST set kiya hai toh hi yeh line dikhegi */}
+            {safeGst > 0 && (
+              <div className="flex justify-between text-slate-400">
+                <span>Taxes ({safeGst}% GST)</span>
+                <span className="text-slate-200">₹{calculatedTax.toLocaleString()}</span>
+              </div>
+            )}
             <div className="flex justify-between items-end text-white pt-8 mt-4 border-t border-white/[0.08]">
               <div>
                  <span className="block text-sm text-slate-400 font-normal mb-1 tracking-wide">Total Amount</span>
                  <span className="text-3xl font-black tracking-tighter">Total Due</span>
               </div>
               <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200 drop-shadow-[0_0_20px_rgba(52,211,153,0.4)]">
-                ₹{total.toLocaleString()}
+                ₹{totalAmount.toLocaleString()}
               </span>
             </div>
           </div>
@@ -343,7 +354,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
           ) : (
             <div className="space-y-8 py-6">
               <div className="w-24 h-24 bg-[#010206] border border-white/[0.08] rounded-[1.5rem] flex items-center justify-center mx-auto mb-8 text-slate-300 shadow-[inset_0_2px_4px_rgba(255,255,255,0.05),0_16px_32px_rgba(0,0,0,0.5)]">
-                 <svg className="w-12 h-12 text-blue-400 drop-shadow-[0_0_15px_rgba(96,165,250,0.5)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                 <svg className="w-12 h-12 text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.5)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
               </div>
               
               <div>
@@ -367,8 +378,8 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
                     </>
                   ) : (
                     <>
-                      Pay ₹{total.toLocaleString()}
-                      <svg className="w-5 h-5 group-hover:translate-x-1.5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 8l4 4m0 0l-4-4m4 4H3" /></svg>
+                      Pay ₹{totalAmount.toLocaleString()}
+                      <svg className="w-5 h-5 group-hover:translate-x-1.5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                     </>
                   )}
                 </span>
