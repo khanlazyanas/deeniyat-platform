@@ -141,8 +141,11 @@ export default function CoursePlayerPage() {
   const bgX = useTransform(smoothMouseX, (v) => v * 0.3);
   const bgY = useTransform(smoothMouseY, (v) => v * 0.3);
 
-  // Security Check (Sirf Course ke Ustad ko buttons dikhenge)
-  const isOwnerOrAdmin = true;
+  // 👇 TEMPORARY TESTING BYPASS: Set to true so buttons always show for testing
+  const isOwnerOrAdmin = true; 
+  // Production code ke liye ise uncomment karna: 
+  // const isOwnerOrAdmin = user?.role === 'Admin' || (user?.role === 'Ustad' && (course?.teacherId?._id === user?._id || course?.teacherId === user?._id));
+
   useEffect(() => {
     setMounted(true);
     if (!courseId) return;
@@ -261,7 +264,7 @@ export default function CoursePlayerPage() {
   const handleDeleteLesson = async (e: React.MouseEvent, lessonId: string) => {
     e.stopPropagation(); 
     
-    if (!window.confirm("Are you sure you want to permanently delete this lesson?")) return;
+    if (!window.confirm("Are you sure you want to permanently delete this module?")) return;
 
     setDeletingId(lessonId);
     try {
@@ -352,7 +355,7 @@ export default function CoursePlayerPage() {
           <p className="text-[10px] text-slate-500 mt-3 font-black uppercase tracking-[0.1em]">Course Progress: <span className="text-emerald-400">15%</span></p>
         </div>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-3">
           {lessons.length === 0 ? (
             <div className="flex flex-col items-center text-center mt-10">
                <svg className="w-12 h-12 mb-3 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
@@ -371,13 +374,13 @@ export default function CoursePlayerPage() {
                 }`}
               >
                 
-                {/* 1. TOP HALF: Play Video Area */}
-                <div 
+                {/* 1. TOP HALF: Click to Play Lesson */}
+                <button 
                   onClick={() => {
                     setActiveLesson(lesson);
                     setSubmissionMessage({ type: "", text: "" }); 
                   }}
-                  className="p-5 flex items-start gap-4 cursor-pointer hover:bg-white/[0.02]"
+                  className="w-full p-5 flex items-start gap-4 cursor-pointer hover:bg-white/[0.02] text-left transition-colors"
                 >
                   <div className={`w-10 h-10 rounded-[0.8rem] flex items-center justify-center shrink-0 font-black text-sm transition-colors ${
                     activeLesson?._id === lesson._id ? "bg-gradient-to-b from-emerald-400 to-teal-500 text-[#010206] shadow-[0_0_15px_rgba(52,211,153,0.5)]" : "bg-[#020510] border border-white/[0.1] text-slate-400"
@@ -396,38 +399,36 @@ export default function CoursePlayerPage() {
                       )}
                     </p>
                   </div>
-                </div>
+                </button>
 
-                {/* 👇 2. BOTTOM HALF: Edit & Delete Buttons (VISIBLE TO USTAD) */}
+                {/* 👇 2. BOTTOM HALF: Edit & Delete Buttons (VISIBLE TO USTAD / ADMIN) */}
                 {isOwnerOrAdmin && (
                   <div className="flex items-center justify-end gap-2 px-4 py-3 bg-[#000000]/40 border-t border-white/[0.05]">
                     
                     <button 
                       onClick={(e) => handleEditLesson(e, lesson._id)} 
-                      className="flex items-center gap-1.5 px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-lg text-xs font-bold transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-lg text-xs font-bold transition-colors"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                      Edit Module
+                      Edit 
                     </button>
                     
                     <button 
                       onClick={(e) => handleDeleteLesson(e, lesson._id)} 
                       disabled={deletingId === lesson._id}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
                     >
                       {deletingId === lesson._id ? (
                         <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                       ) : (
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg> Delete</>
                       )}
-                      Delete
                     </button>
 
                   </div>
                 )}
 
               </div>
-              /* 👆 END OF REBUILT CARD 👆 */
             ))
           )}
         </div>
