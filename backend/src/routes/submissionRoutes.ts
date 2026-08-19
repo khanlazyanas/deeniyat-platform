@@ -2,7 +2,6 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-// Imported getMySubmissions
 import { submitAssignment, gradeSubmission, getSubmissionsByLesson, getAllSubmissions, getMySubmissions } from '../controllers/submissionController';
 import { protect, authorize } from '../middlewares/authMiddleware';
 
@@ -29,7 +28,7 @@ const upload = multer({ storage: storage });
 // Routes
 // Student routes
 router.post('/', protect, authorize('Student'), upload.single('audio'), submitAssignment);
-router.get('/my-submissions', protect, authorize('Student'), getMySubmissions); // NEW ROUTE
+router.get('/my-submissions', protect, authorize('Student'), getMySubmissions);
 
 // Ustad/Admin routes
 router.get('/all', protect, authorize('Admin', 'Ustad'), getAllSubmissions);

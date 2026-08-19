@@ -3,14 +3,14 @@ import Submission from '../models/Submission';
 import Lesson from '../models/Lesson';
 import catchAsync from '../utils/catchAsync';
 
-// @desc    Submit audio assignment (Tajweed)
+// @desc    Submit assignment (Audio or Text)
 // @route   POST /api/v1/submissions
 // @access  Private (Student only)
 export const submitAssignment = catchAsync(async (req: any, res: Response) => {
-  const { lessonId } = req.body;
+  const { lessonId, courseId, content } = req.body; // 👈 NEW: Added courseId & content
   const studentId = req.user?._id;
 
-  let audioFileUrl = req.body.audioFileUrl; 
+  let audioFileUrl = req.body.audioFileUrl || ''; 
 
   // Check if a real-time recorded file was uploaded via Multer
   if (req.file) {
@@ -18,9 +18,10 @@ export const submitAssignment = catchAsync(async (req: any, res: Response) => {
     audioFileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
   }
 
-  if (!audioFileUrl) {
+  // 👇 Validation: Kam se kam Text(content) ya Audio hona zaroori hai
+  if (!audioFileUrl && !content) {
     res.status(400);
-    throw new Error('Please provide an audio recording or URL');
+    throw new Error('Please provide an audio recording or text assignment content');
   }
 
   // Verify that the lesson exists
@@ -33,7 +34,9 @@ export const submitAssignment = catchAsync(async (req: any, res: Response) => {
   // Create the submission record in the database
   const submission = await Submission.create({
     studentId,
+    courseId, // 👈 NEW
     lessonId,
+    content,  // 👈 NEW
     audioFileUrl,
     status: 'Pending',
   });
@@ -80,7 +83,7 @@ export const getSubmissionsByLesson = catchAsync(async (req: Request, res: Respo
 export const getAllSubmissions = catchAsync(async (req: Request, res: Response) => {
   const submissions = await Submission.find()
     .populate('studentId', 'name email profileImage')
-    .populate('lessonId', 'title') // Lesson ka naam bhi chahiye UI pe dikhane ke liye
+    .populate('lessonId', 'title') 
     .sort({ createdAt: -1 });
     
   res.json(submissions);
