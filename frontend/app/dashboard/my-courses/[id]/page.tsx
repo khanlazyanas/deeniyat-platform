@@ -54,58 +54,6 @@ const fadeSlideUp: Variants = {
   exit: { opacity: 0, y: -20, transition: { duration: 0.3, ease: "easeIn" } }
 };
 
-// --- 3D Holographic Card Component (GPU OPTIMIZED) ---
-function HolographicCard({ children, className = "" }: { children: React.ReactNode, className?: string }) {
-  const cardRef = useRef<HTMLDivElement>(null);
-  
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const glareX = useMotionValue(0);
-  const glareY = useMotionValue(0);
-  const isHovered = useMotionValue(0);
-
-  const springConfig = { damping: 30, stiffness: 200, mass: 0.5 };
-  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [2, -2]), springConfig); 
-  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-2, 2]), springConfig);
-
-  const backgroundTemplate = useMotionTemplate`radial-gradient(800px circle at ${glareX}px ${glareY}px, rgba(255,255,255,0.1), transparent 45%)`;
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (window.innerWidth < 768 || !cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    mouseX.set((e.clientX - rect.left) / rect.width - 0.5);
-    mouseY.set((e.clientY - rect.top) / rect.height - 0.5);
-    glareX.set(e.clientX - rect.left);
-    glareY.set(e.clientY - rect.top);
-  };
-
-  const handleMouseEnter = () => { if (window.innerWidth >= 768) isHovered.set(1); };
-  const handleMouseLeave = () => {
-    isHovered.set(0);
-    mouseX.set(0);
-    mouseY.set(0);
-  };
-
-  return (
-    <motion.div
-      ref={cardRef}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
-      className={`relative overflow-hidden rounded-[2rem] bg-[#030612]/70 backdrop-blur-[40px] border border-white/[0.06] shadow-[0_32px_64px_-20px_rgba(0,0,0,0.7),inset_0_1px_2px_rgba(255,255,255,0.05)] transition-colors duration-500 hover:border-white/[0.12] will-change-transform ${className}`}
-    >
-      <motion.div
-        className="pointer-events-none absolute -inset-px z-30 mix-blend-color-dodge transition-opacity duration-300"
-        style={{ opacity: isHovered, background: backgroundTemplate }}
-      />
-      <div className="relative z-10 w-full h-full transform-gpu" style={{ transform: "translateZ(10px)" }}>
-        {children}
-      </div>
-    </motion.div>
-  );
-}
-
 export default function CoursePlayerPage() {
   const params = useParams();
   const router = useRouter();
@@ -141,7 +89,7 @@ export default function CoursePlayerPage() {
   const bgX = useTransform(smoothMouseX, (v) => v * 0.3);
   const bgY = useTransform(smoothMouseY, (v) => v * 0.3);
 
-  // 👇 SECURITY LOCK ACTIVE: Sirf Admin ya Ustad (jisne course banaya hai) ko buttons dikhenge
+  // 👇 SECURITY LOCK ACTIVE: Sirf Admin ya Ustad (jisne course banaya hai) ko Edit/Delete buttons dikhenge
   const isOwnerOrAdmin = user?.role === 'Admin' || (user?.role === 'Ustad' && (course?.teacherId?._id === user?._id || course?.teacherId === user?._id));
 
   useEffect(() => {
@@ -362,7 +310,6 @@ export default function CoursePlayerPage() {
           ) : (
             lessons.map((lesson, index) => (
               
-              /* 👇 COMPLETELY NEW CARD FOR LESSONS WITH EXPLICIT EDIT/DELETE 👇 */
               <div 
                 key={lesson._id} 
                 className={`flex flex-col rounded-[1.25rem] transition-all duration-300 border overflow-hidden ${
@@ -486,69 +433,83 @@ export default function CoursePlayerPage() {
               </div>
             )}
 
-            {/* Assignment Submission Section */}
-            <div className="bg-gradient-to-br from-[#060d20] to-[#040814] border border-emerald-500/20 rounded-[2.5rem] p-10 md:p-14 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.8),inset_0_1px_2px_rgba(255,255,255,0.1)] relative overflow-hidden group transform-gpu">
-              <div className="absolute left-0 top-0 bottom-0 w-2 bg-gradient-to-b from-emerald-400 to-teal-500 shadow-[0_0_20px_rgba(52,211,153,0.8)]"></div>
-              
-              <h3 className="text-2xl font-black text-white mb-3 flex items-center gap-3 tracking-tight drop-shadow-md">
-                <svg className="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                Task Submission
-              </h3>
-              <p className="text-slate-400 text-[15px] font-light mb-8 mix-blend-screen">Write your reflections, answers, or paste a link to your assignment document below.</p>
-              
-              <form onSubmit={handleAssignmentSubmit}>
-                <div className="relative">
-                    <textarea
-                    value={assignmentContent}
-                    onChange={(e) => setAssignmentContent(e.target.value)}
-                    placeholder="Start typing your assignment here..."
-                    rows={6}
-                    required
-                    className="w-full bg-[#010206]/80 backdrop-blur-md border border-white/[0.08] rounded-[1.5rem] px-6 py-5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all duration-300 resize-none mb-6 shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] font-medium"
-                    ></textarea>
-                </div>
+            {/* 👇 UPDATED: Assignment Submission Section 👇 */}
+            {isOwnerOrAdmin ? (
+              <div className="bg-[#030612]/60 border border-white/[0.05] rounded-[2.5rem] p-10 text-center shadow-lg">
+                 <div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-700/50">
+                    <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                 </div>
+                 <h3 className="text-xl font-bold text-white mb-2">Task Submission Area</h3>
+                 <p className="text-slate-400 text-sm font-light max-w-md mx-auto">
+                    Students enrolled in this course will see the assignment submission form here. 
+                    (As an instructor, this form is hidden from your view).
+                 </p>
+              </div>
+            ) : (
+              <div className="bg-gradient-to-br from-[#060d20] to-[#040814] border border-emerald-500/20 rounded-[2.5rem] p-10 md:p-14 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.8),inset_0_1px_2px_rgba(255,255,255,0.1)] relative overflow-hidden group transform-gpu">
+                <div className="absolute left-0 top-0 bottom-0 w-2 bg-gradient-to-b from-emerald-400 to-teal-500 shadow-[0_0_20px_rgba(52,211,153,0.8)]"></div>
                 
-                {/* Status Messages */}
-                <AnimatePresence>
-                    {submissionMessage.text && (
-                    <motion.div 
-                        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                        className={`p-4 rounded-[1rem] text-[13px] font-bold tracking-wide border mb-6 flex items-center gap-3 ${submissionMessage.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-[inset_0_1px_1px_rgba(52,211,153,0.2)]' : 'bg-red-500/10 border-red-500/30 text-red-400 shadow-[inset_0_1px_1px_rgba(239,68,68,0.2)]'}`}
-                    >
-                        {submissionMessage.type === 'success' ? (
-                            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                        ) : (
-                            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        )}
-                        {submissionMessage.text}
-                    </motion.div>
-                    )}
-                </AnimatePresence>
+                <h3 className="text-2xl font-black text-white mb-3 flex items-center gap-3 tracking-tight drop-shadow-md">
+                  <svg className="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  Task Submission
+                </h3>
+                <p className="text-slate-400 text-[15px] font-light mb-8 mix-blend-screen">Write your reflections, answers, or paste a link to your assignment document below.</p>
+                
+                <form onSubmit={handleAssignmentSubmit}>
+                  <div className="relative">
+                      <textarea
+                      value={assignmentContent}
+                      onChange={(e) => setAssignmentContent(e.target.value)}
+                      placeholder="Start typing your assignment here..."
+                      rows={6}
+                      required
+                      className="w-full bg-[#010206]/80 backdrop-blur-md border border-white/[0.08] rounded-[1.5rem] px-6 py-5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all duration-300 resize-none mb-6 shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] font-medium"
+                      ></textarea>
+                  </div>
+                  
+                  {/* Status Messages */}
+                  <AnimatePresence>
+                      {submissionMessage.text && (
+                      <motion.div 
+                          initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                          className={`p-4 rounded-[1rem] text-[13px] font-bold tracking-wide border mb-6 flex items-center gap-3 ${submissionMessage.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-[inset_0_1px_1px_rgba(52,211,153,0.2)]' : 'bg-red-500/10 border-red-500/30 text-red-400 shadow-[inset_0_1px_1px_rgba(239,68,68,0.2)]'}`}
+                      >
+                          {submissionMessage.type === 'success' ? (
+                              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                          ) : (
+                              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          )}
+                          {submissionMessage.text}
+                      </motion.div>
+                      )}
+                  </AnimatePresence>
 
-                <div className="flex justify-end">
-                  <button 
-                    type="submit"
-                    disabled={submittingTask}
-                    className="group relative px-10 py-5 bg-gradient-to-b from-emerald-400 to-teal-500 text-[#010206] text-[14px] font-black uppercase tracking-widest rounded-full transition-all duration-300 shadow-[0_0_30px_-5px_rgba(52,211,153,0.6),inset_0_1px_1px_rgba(255,255,255,0.8)] disabled:opacity-50 flex items-center gap-3 overflow-hidden ring-1 ring-white/20 active:scale-95"
-                  >
-                    {!submittingTask && <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>}
-                    <span className="relative z-10 flex items-center gap-2">
-                        {submittingTask ? (
-                            <>
-                            <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                            Uploading...
-                            </>
-                        ) : (
-                            <>
-                            Submit Work
-                            <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                            </>
-                        )}
-                    </span>
-                  </button>
-                </div>
-              </form>
-            </div>
+                  <div className="flex justify-end">
+                    <button 
+                      type="submit"
+                      disabled={submittingTask}
+                      className="group relative px-10 py-5 bg-gradient-to-b from-emerald-400 to-teal-500 text-[#010206] text-[14px] font-black uppercase tracking-widest rounded-full transition-all duration-300 shadow-[0_0_30px_-5px_rgba(52,211,153,0.6),inset_0_1px_1px_rgba(255,255,255,0.8)] disabled:opacity-50 flex items-center gap-3 overflow-hidden ring-1 ring-white/20 active:scale-95"
+                    >
+                      {!submittingTask && <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>}
+                      <span className="relative z-10 flex items-center gap-2">
+                          {submittingTask ? (
+                              <>
+                              <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                              Uploading...
+                              </>
+                          ) : (
+                              <>
+                              Submit Work
+                              <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                              </>
+                          )}
+                      </span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+            {/* 👆 END OF ASSIGNMENT SECTION 👆 */}
 
           </motion.div>
         ) : (
