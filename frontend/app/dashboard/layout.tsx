@@ -146,6 +146,10 @@ export default function DashboardLayout({
                 Ustad Portal
             </p>
             <NavLink href="/dashboard/create-course" currentPath={pathname || ""}>Create Curriculum</NavLink>
+            
+            {/* 👇 MANAGE COURSES LINK ADDED HERE 👇 */}
+            <NavLink href="/dashboard/manage-courses" currentPath={pathname || ""}>Manage Courses</NavLink>
+            
             <NavLink href="/dashboard/add-lesson" currentPath={pathname || ""}>Add Module</NavLink>
             <NavLink href="/dashboard/submissions" currentPath={pathname || ""}>Evaluation</NavLink>
           </div>
@@ -262,6 +266,10 @@ function MobileSidebarContent({ pathname, handleLogout }: { pathname: string, ha
         <div className="space-y-1.5 sm:space-y-2">
           <p className="px-4 sm:px-5 text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] mb-2 sm:mb-3">Ustad Portal</p>
           <NavLink href="/dashboard/create-course" currentPath={pathname}>Create Curriculum</NavLink>
+          
+          {/* 👇 MANAGE COURSES LINK ADDED HERE 👇 */}
+          <NavLink href="/dashboard/manage-courses" currentPath={pathname}>Manage Courses</NavLink>
+          
           <NavLink href="/dashboard/add-lesson" currentPath={pathname}>Add Module</NavLink>
           <NavLink href="/dashboard/submissions" currentPath={pathname}>Evaluation</NavLink>
         </div>
