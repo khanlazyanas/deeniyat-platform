@@ -74,6 +74,10 @@ export default function CoursePlayerPage() {
   const [submittingTask, setSubmittingTask] = useState(false);
   const [submissionMessage, setSubmissionMessage] = useState({ type: "", text: "" });
 
+  // 👇 NEW STATES FOR SMART SUBMISSION CHECK
+  const [existingSubmission, setExistingSubmission] = useState<any>(null);
+  const [checkingSubmission, setCheckingSubmission] = useState(false);
+
   // Delete State
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -89,7 +93,7 @@ export default function CoursePlayerPage() {
   const bgX = useTransform(smoothMouseX, (v) => v * 0.3);
   const bgY = useTransform(smoothMouseY, (v) => v * 0.3);
 
-  // 👇 SECURITY LOCK ACTIVE: Sirf Admin ya Ustad (jisne course banaya hai) ko Edit/Delete buttons dikhenge
+  // 👇 SECURITY LOCK ACTIVE: Sirf Admin ya Ustad ko Edit/Delete buttons dikhenge
   const isOwnerOrAdmin = user?.role === 'Admin' || (user?.role === 'Ustad' && (course?.teacherId?._id === user?._id || course?.teacherId === user?._id));
 
   useEffect(() => {
@@ -144,6 +148,36 @@ export default function CoursePlayerPage() {
     return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
   }, [courseId, mouseX, mouseY]);
 
+  // 👇 NEW EFFECT: Check if student has already submitted assignment for the current active lesson
+  useEffect(() => {
+    if (!activeLesson || isOwnerOrAdmin) return;
+
+    const checkExistingSubmission = async () => {
+      setCheckingSubmission(true);
+      setExistingSubmission(null);
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/submissions/my-submissions`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          const found = data.find((sub: any) => 
+            (sub.lessonId?._id === activeLesson._id) || (sub.lessonId === activeLesson._id)
+          );
+          setExistingSubmission(found || null);
+        }
+      } catch (error) {
+        console.error("Failed to check submission status", error);
+      } finally {
+        setCheckingSubmission(false);
+      }
+    };
+
+    checkExistingSubmission();
+  }, [activeLesson, isOwnerOrAdmin]);
+
   // Extract YouTube ID safely
   const getEmbedUrl = (url: string) => {
     if (!url) return "";
@@ -189,6 +223,9 @@ export default function CoursePlayerPage() {
 
       setSubmissionMessage({ type: "success", text: "Assignment submitted successfully! Ustad will review it soon." });
       setAssignmentContent(""); 
+
+      // Update UI Immediately to show submitted state
+      setExistingSubmission(data || { content: assignmentContent, status: "Pending" });
       
     } catch (err: unknown) {
         if (err instanceof Error) {
@@ -444,6 +481,40 @@ export default function CoursePlayerPage() {
                     Students enrolled in this course will see the assignment submission form here. 
                     (As an instructor, this form is hidden from your view).
                  </p>
+              </div>
+            ) : checkingSubmission ? (
+              <div className="bg-[#060d20]/50 border border-white/[0.05] rounded-[2.5rem] p-10 flex flex-col items-center justify-center shadow-lg">
+                <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p className="text-slate-400 text-sm font-medium">Checking assignment status...</p>
+              </div>
+            ) : existingSubmission ? (
+              <div className="bg-gradient-to-br from-[#02100a] to-[#010604] border border-emerald-500/30 rounded-[2.5rem] p-10 md:p-14 shadow-lg relative overflow-hidden transform-gpu">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 rounded-full blur-[60px]"></div>
+                
+                <div className="flex items-center gap-4 mb-6 relative z-10">
+                  <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center border border-emerald-500/30 shadow-[0_0_15px_rgba(52,211,153,0.3)]">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black text-white tracking-tight">Task Submitted Successfully</h3>
+                    <p className="text-slate-400 text-sm">You have completed the assignment for this module.</p>
+                  </div>
+                </div>
+
+                <div className="bg-[#010206]/80 p-6 rounded-[1.5rem] border border-white/[0.08] text-slate-300 whitespace-pre-wrap relative z-10 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
+                  <span className="text-[10px] text-emerald-400 uppercase font-black tracking-widest block mb-3 flex items-center gap-2">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                    Your Answer
+                  </span>
+                  {existingSubmission.content}
+                </div>
+
+                <div className="mt-8 flex flex-wrap items-center gap-3 relative z-10">
+                  <span className="text-[11px] uppercase tracking-widest font-bold text-slate-500">Evaluation Status:</span>
+                  <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide border ${existingSubmission.status === 'Graded' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : 'bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.2)]'}`}>
+                    {existingSubmission.status || 'Pending'}
+                  </span>
+                </div>
               </div>
             ) : (
               <div className="bg-gradient-to-br from-[#060d20] to-[#040814] border border-emerald-500/20 rounded-[2.5rem] p-10 md:p-14 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.8),inset_0_1px_2px_rgba(255,255,255,0.1)] relative overflow-hidden group transform-gpu">
