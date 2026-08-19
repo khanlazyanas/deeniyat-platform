@@ -148,7 +148,7 @@ export default function CoursePlayerPage() {
     return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
   }, [courseId, mouseX, mouseY]);
 
-  // 👇 NEW EFFECT: Check if student has already submitted assignment for the current active lesson
+  // 👇 FIX: Strict String matching for existing submissions
   useEffect(() => {
     if (!activeLesson || isOwnerOrAdmin) return;
 
@@ -163,9 +163,14 @@ export default function CoursePlayerPage() {
         
         if (res.ok) {
           const data = await res.json();
-          const found = data.find((sub: any) => 
-            (sub.lessonId?._id === activeLesson._id) || (sub.lessonId === activeLesson._id)
-          );
+          const submissionsArray = Array.isArray(data) ? data : (data.data || []);
+          
+          // STRICT MATCHING: Convert both to strings to avoid ObjectID vs String mismatch
+          const found = submissionsArray.find((sub: any) => {
+            const subLessonId = sub.lessonId?._id ? String(sub.lessonId._id) : String(sub.lessonId);
+            return subLessonId === String(activeLesson._id);
+          });
+          
           setExistingSubmission(found || null);
         }
       } catch (error) {
@@ -222,10 +227,10 @@ export default function CoursePlayerPage() {
       }
 
       setSubmissionMessage({ type: "success", text: "Assignment submitted successfully! Ustad will review it soon." });
+      
+      // FIX: Ensure UI immediately updates using the returned data or fallback
+      setExistingSubmission(data.submission || data || { content: assignmentContent, status: "Pending" });
       setAssignmentContent(""); 
-
-      // Update UI Immediately to show submitted state
-      setExistingSubmission(data || { content: assignmentContent, status: "Pending" });
       
     } catch (err: unknown) {
         if (err instanceof Error) {
