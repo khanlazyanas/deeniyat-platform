@@ -141,10 +141,8 @@ export default function CoursePlayerPage() {
   const bgX = useTransform(smoothMouseX, (v) => v * 0.3);
   const bgY = useTransform(smoothMouseY, (v) => v * 0.3);
 
-  // 👇 TEMPORARY TESTING BYPASS: Set to true so buttons always show for testing
-  const isOwnerOrAdmin = true; 
-  // Production code ke liye ise uncomment karna: 
-  // const isOwnerOrAdmin = user?.role === 'Admin' || (user?.role === 'Ustad' && (course?.teacherId?._id === user?._id || course?.teacherId === user?._id));
+  // 👇 SECURITY LOCK ACTIVE: Sirf Admin ya Ustad (jisne course banaya hai) ko buttons dikhenge
+  const isOwnerOrAdmin = user?.role === 'Admin' || (user?.role === 'Ustad' && (course?.teacherId?._id === user?._id || course?.teacherId === user?._id));
 
   useEffect(() => {
     setMounted(true);
@@ -401,7 +399,7 @@ export default function CoursePlayerPage() {
                   </div>
                 </button>
 
-                {/* 👇 2. BOTTOM HALF: Edit & Delete Buttons (VISIBLE TO USTAD / ADMIN) */}
+                {/* 👇 2. BOTTOM HALF: Edit & Delete Buttons (VISIBLE ONLY TO USTAD / ADMIN) */}
                 {isOwnerOrAdmin && (
                   <div className="flex items-center justify-end gap-2 px-4 py-3 bg-[#000000]/40 border-t border-white/[0.05]">
                     
