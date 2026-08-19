@@ -5,7 +5,8 @@ import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from
 
 interface Submission {
   _id: string;
-  audioFileUrl: string;
+  content?: string; // 👈 NEW: Added content for text assignments
+  audioFileUrl?: string; // Made optional
   grade: string;
   feedback: string;
   status: 'Pending' | 'Graded';
@@ -143,17 +144,46 @@ function HolographicSubmissionCard({
           </div>
         </div>
 
-        {/* Middle Row: Audio Player */}
-        <div className="mb-8">
-          <p className="text-[11px] font-black text-slate-500 mb-4 uppercase tracking-[0.25em] flex items-center gap-2">
-            <svg className="w-4 h-4 text-emerald-500/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
-            Student Recording
-          </p>
-          <div className="w-full bg-[#040814] p-2 rounded-2xl border border-white/[0.05] shadow-inner">
-            <audio controls className="w-full custom-audio-player focus:outline-none">
-              <source src={sub.audioFileUrl} type="audio/mpeg" />
-            </audio>
-          </div>
+        {/* Middle Row: AUDIO OR TEXT Content Display */}
+        <div className="mb-8 space-y-6">
+          
+          {/* Audio Section (Only shows if audioFileUrl exists) */}
+          {sub.audioFileUrl && (
+            <div>
+              <p className="text-[11px] font-black text-slate-500 mb-4 uppercase tracking-[0.25em] flex items-center gap-2">
+                <svg className="w-4 h-4 text-emerald-500/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                Student Recording
+              </p>
+              <div className="w-full bg-[#040814] p-2 rounded-2xl border border-white/[0.05] shadow-inner">
+                <audio controls className="w-full custom-audio-player focus:outline-none">
+                  <source src={sub.audioFileUrl} type="audio/mpeg" />
+                </audio>
+              </div>
+            </div>
+          )}
+
+          {/* Text Section (Only shows if content exists) */}
+          {sub.content && (
+            <div>
+              <p className="text-[11px] font-black text-slate-500 mb-4 uppercase tracking-[0.25em] flex items-center gap-2">
+                <svg className="w-4 h-4 text-emerald-500/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                Written Assignment / Notes
+              </p>
+              <div className="w-full bg-[#040814]/80 p-5 rounded-2xl border border-white/[0.05] shadow-inner">
+                <p className="text-slate-300 text-sm md:text-[15px] font-medium leading-relaxed whitespace-pre-wrap">
+                  {sub.content}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Fallback if somehow neither exists */}
+          {!sub.audioFileUrl && !sub.content && (
+             <div className="text-center p-6 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+                No submission content found for this record.
+             </div>
+          )}
+
         </div>
 
         {/* Bottom Row: Grading Action or Result */}
@@ -204,7 +234,7 @@ function HolographicSubmissionCard({
                       <label className="block text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Ustad Feedback <span className="lowercase tracking-normal text-slate-500 font-medium">(Optional)</span></label>
                       <input 
                         type="text"
-                        placeholder="e.g., MashaAllah, perfect makhraj!"
+                        placeholder="e.g., MashaAllah, perfect answer!"
                         value={feedbackInput}
                         onChange={(e) => setFeedbackInput(e.target.value)}
                         className="w-full bg-[#020510] border border-white/[0.08] text-white rounded-xl px-5 py-3.5 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/50 outline-none transition-all shadow-inner"
@@ -240,7 +270,7 @@ function HolographicSubmissionCard({
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/10 to-amber-500/0 opacity-0 group-hover/eval:opacity-100 transition-opacity duration-500 translate-x-[-100%] group-hover/eval:translate-x-[100%]"></div>
                   <svg className="w-5 h-5 text-amber-500 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                  <span className="relative z-10 text-white text-[14px] font-black uppercase tracking-widest">Evaluate Recording</span>
+                  <span className="relative z-10 text-white text-[14px] font-black uppercase tracking-widest">Evaluate Task</span>
                 </motion.button>
               )}
             </AnimatePresence>
@@ -420,7 +450,7 @@ export default function SubmissionsPage() {
               <span className="text-[11px] font-black text-slate-300 tracking-[0.3em] uppercase">Grading Portal</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter mb-4 drop-shadow-md">Review Workspace</h2>
-            <p className="text-slate-400 font-light text-[17px] mix-blend-screen max-w-xl">Evaluate student recitations, correct tajweed, and provide vital feedback.</p>
+            <p className="text-slate-400 font-light text-[17px] mix-blend-screen max-w-xl">Evaluate student submissions, correct assignments, and provide vital feedback.</p>
           </div>
 
           {/* Premium Animated Tabs */}
