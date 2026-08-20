@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { useAuth } from "../../../../frontend/context/AuthContext"; // 👈 Added Auth Context
 
 interface Course {
   _id: string;
@@ -50,6 +51,8 @@ const generateBubbles = (count: number) => {
 const ambientBubbles = generateBubbles(45);
 
 export default function SubmitAssignmentPage() {
+  const { user } = useAuth(); // 👈 Added user role access
+
   const [courses, setCourses] = useState<Course[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [mounted, setMounted] = useState(false);
@@ -93,7 +96,7 @@ export default function SubmitAssignmentPage() {
   const [isHovered, setIsHovered] = useState(false);
   const [glarePosition, setGlarePosition] = useState({ x: 0, y: 0 });
 
-  // Fetch enrolled courses on component mount
+  // Setup Mouse Tracking
   useEffect(() => {
     setMounted(true);
 
@@ -113,30 +116,48 @@ export default function SubmitAssignmentPage() {
     };
     
     window.addEventListener('mousemove', handleGlobalMouseMove);
+    return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
+  }, [mouseX, mouseY, isHovered]);
 
-    const fetchMyCourses = async () => {
+  // 👇 BULLETPROOF COURSES FETCH LOGIC
+  useEffect(() => {
+    const fetchCoursesList = async () => {
+      // User auth check
+      if (!user) return; 
+
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/enrollments/my-courses`, {
+        const isInstructor = user.role === 'Admin' || user.role === 'Ustad';
+        const endpoint = isInstructor ? '/courses' : '/enrollments/my-courses';
+
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
         
         if (response.ok) {
           const data = await response.json();
-          // Map correctly to show all enrolled courses
+          console.log("Raw Course Data Fetched:", data);
+
           const sourceData = Array.isArray(data) ? data : (data.data || []);
-          const myCourses = sourceData.map((enrollment: any) => enrollment.courseId);
-          // Filter out nulls if any course was deleted but enrollment remained
-          setCourses(myCourses.filter(Boolean)); 
+          
+          // Smart mapping to extract course object correctly from enrollments
+          const extractedCourses = sourceData.map((item: any) => {
+            if (item.courseId && item.courseId._id) return item.courseId;
+            if (item.course && item.course._id) return item.course;
+            return item; 
+          });
+
+          // Filter valid courses
+          const validCourses = extractedCourses.filter((c: any) => c && c._id && c.title);
+          setCourses(validCourses); 
         }
       } catch (error) {
         console.error("Failed to load courses", error);
       }
     };
-    fetchMyCourses();
 
-    return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
-  }, [mouseX, mouseY, isHovered]);
+    fetchCoursesList();
+  }, [user]);
 
   // Fetch lessons when a specific course is selected
   useEffect(() => {
@@ -271,50 +292,36 @@ export default function SubmitAssignmentPage() {
       {/* --- HYPER-DENSE 3D PARTICLES ENGINE --- */}
       {mounted && (
         <div className="fixed inset-0 z-[5] pointer-events-none overflow-hidden">
-          {/* Layer 0: Foreground */}
           <motion.div style={{ x: fgX, y: fgY }} className="absolute inset-0 will-change-transform">
             {ambientBubbles.filter(b => b.layer === 0).map((p, i) => (
               <motion.div
                 key={`fg-${i}`}
                 className={`absolute rounded-full ${p.color}`}
-                style={{
-                  width: p.size, height: p.size, left: `${p.xPos}%`, top: `${p.yPos}%`,
-                  filter: `blur(${p.blur}px)`, opacity: p.opacity,
-                  boxShadow: `0 0 ${p.size * 2.5}px currentColor`
-                }}
+                style={{ width: p.size, height: p.size, left: `${p.xPos}%`, top: `${p.yPos}%`, filter: `blur(${p.blur}px)`, opacity: p.opacity, boxShadow: `0 0 ${p.size * 2.5}px currentColor` }}
                 animate={{ y: [0, -60, 0], x: [0, 30, -20, 0], scale: [1, 1.2, 1] }}
                 transition={{ duration: p.duration, repeat: Infinity, ease: "easeInOut", delay: p.delay }}
               />
             ))}
           </motion.div>
 
-          {/* Layer 1: Midground */}
           <motion.div style={{ x: mgX, y: mgY }} className="absolute inset-0 will-change-transform">
              {ambientBubbles.filter(b => b.layer === 1).map((p, i) => (
               <motion.div
                 key={`mg-${i}`}
                 className={`absolute rounded-full ${p.color}`}
-                style={{
-                  width: p.size * 0.8, height: p.size * 0.8, left: `${p.xPos}%`, top: `${p.yPos}%`,
-                  filter: `blur(${p.blur + 1}px)`, opacity: p.opacity * 0.7,
-                  boxShadow: `0 0 ${p.size * 1.5}px currentColor`
-                }}
+                style={{ width: p.size * 0.8, height: p.size * 0.8, left: `${p.xPos}%`, top: `${p.yPos}%`, filter: `blur(${p.blur + 1}px)`, opacity: p.opacity * 0.7, boxShadow: `0 0 ${p.size * 1.5}px currentColor` }}
                 animate={{ y: [0, -40, 0], x: [0, -20, 15, 0] }}
                 transition={{ duration: p.duration, repeat: Infinity, ease: "easeInOut", delay: p.delay }}
               />
             ))}
           </motion.div>
 
-          {/* Layer 2: Background */}
           <motion.div style={{ x: bgX, y: bgY }} className="absolute inset-0 will-change-transform">
             {ambientBubbles.filter(b => b.layer === 2).map((p, i) => (
               <motion.div
                 key={`bg-${i}`}
                 className={`absolute rounded-full ${p.color}`}
-                style={{
-                  width: p.size * 1.5, height: p.size * 1.5, left: `${p.xPos}%`, top: `${p.yPos}%`,
-                  filter: `blur(${p.blur + 3}px)`, opacity: p.opacity * 0.4
-                }}
+                style={{ width: p.size * 1.5, height: p.size * 1.5, left: `${p.xPos}%`, top: `${p.yPos}%`, filter: `blur(${p.blur + 3}px)`, opacity: p.opacity * 0.4 }}
                 animate={{ y: [0, -20, 0] }}
                 transition={{ duration: p.duration, repeat: Infinity, ease: "linear", delay: p.delay }}
               />
@@ -333,7 +340,6 @@ export default function SubmitAssignmentPage() {
             <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,1)]"></span>
             <span className="text-[11px] font-black text-slate-300 tracking-[0.3em] uppercase">Student Portal</span>
           </div>
-          {/* 👇 UPDATED TITLE */}
           <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter mb-4 drop-shadow-md">Submit Task / Recitation</h2>
           <p className="text-slate-400 font-light text-[17px] mix-blend-screen">Provide your written answers, assignment links, or record a live audio recitation.</p>
         </motion.div>
@@ -349,7 +355,6 @@ export default function SubmitAssignmentPage() {
           style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
           className="relative bg-[#030612]/70 backdrop-blur-[40px] backdrop-saturate-[150%] border border-white/[0.06] rounded-[2.5rem] p-8 md:p-12 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.8),inset_0_1px_2px_rgba(255,255,255,0.1),inset_0_-1px_2px_rgba(0,0,0,0.5)] transition-colors duration-700 hover:border-white/[0.12] will-change-transform"
         >
-          {/* Dynamic Holographic Glare */}
           <div
             className="pointer-events-none absolute -inset-px opacity-0 transition-opacity duration-500 z-0 mix-blend-color-dodge rounded-[2.5rem]"
             style={{
@@ -380,7 +385,6 @@ export default function SubmitAssignmentPage() {
               
               {/* --- DROPDOWNS ROW --- */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Course Selection */}
                 <div>
                   <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Enrolled Course</label>
                   <div className="relative group">
@@ -400,7 +404,6 @@ export default function SubmitAssignmentPage() {
                   </div>
                 </div>
 
-                {/* Lesson Selection */}
                 <div>
                   <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Target Module</label>
                   <div className="relative group">
@@ -422,7 +425,7 @@ export default function SubmitAssignmentPage() {
                 </div>
               </div>
 
-              {/* 👇 NEW: TEXT SUBMISSION AREA */}
+              {/* 👇 TEXT SUBMISSION AREA */}
               <div className="bg-[#010206]/60 border border-white/[0.04] rounded-[2rem] p-8 md:p-10 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] relative overflow-hidden">
                 <label className="flex items-center gap-3 text-[11px] font-black text-emerald-500 uppercase tracking-[0.3em] mb-6 relative z-10">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
