@@ -5,8 +5,9 @@ import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from
 
 interface Submission {
   _id: string;
-  content?: string; // 👈 NEW: Added content for text assignments
-  audioFileUrl?: string; // Made optional
+  content?: string; 
+  audioFileUrl?: string; 
+  documentUrl?: string; // 👈 NEW: File upload ke liye add kiya hai
   grade: string;
   feedback: string;
   status: 'Pending' | 'Graded';
@@ -144,9 +145,32 @@ function HolographicSubmissionCard({
           </div>
         </div>
 
-        {/* Middle Row: AUDIO OR TEXT Content Display */}
+        {/* Middle Row: Content Display (Audio, Text, AND Document) */}
         <div className="mb-8 space-y-6">
           
+          {/* 👇 NEW: Document Section (Shows if student uploaded an image/pdf) */}
+          {sub.documentUrl && (
+            <div>
+              <p className="text-[11px] font-black text-slate-500 mb-4 uppercase tracking-[0.25em] flex items-center gap-2">
+                <svg className="w-4 h-4 text-blue-500/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                Uploaded Document
+              </p>
+              <div className="w-full bg-[#040814]/80 p-4 rounded-2xl border border-white/[0.05] shadow-inner flex items-center justify-between">
+                 <div className="flex items-center gap-3 overflow-hidden">
+                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20 text-blue-400 shrink-0">
+                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    </div>
+                    <span className="text-slate-300 text-sm truncate font-medium max-w-[200px] md:max-w-md">
+                      Student_Attachment_File
+                    </span>
+                 </div>
+                 <a href={sub.documentUrl} target="_blank" rel="noopener noreferrer" className="px-5 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-lg text-xs font-bold transition-colors uppercase tracking-widest shrink-0">
+                   View File
+                 </a>
+              </div>
+            </div>
+          )}
+
           {/* Audio Section (Only shows if audioFileUrl exists) */}
           {sub.audioFileUrl && (
             <div>
@@ -166,7 +190,7 @@ function HolographicSubmissionCard({
           {sub.content && (
             <div>
               <p className="text-[11px] font-black text-slate-500 mb-4 uppercase tracking-[0.25em] flex items-center gap-2">
-                <svg className="w-4 h-4 text-emerald-500/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                <svg className="w-4 h-4 text-amber-500/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                 Written Assignment / Notes
               </p>
               <div className="w-full bg-[#040814]/80 p-5 rounded-2xl border border-white/[0.05] shadow-inner">
@@ -178,9 +202,9 @@ function HolographicSubmissionCard({
           )}
 
           {/* Fallback if somehow neither exists */}
-          {!sub.audioFileUrl && !sub.content && (
+          {!sub.audioFileUrl && !sub.content && !sub.documentUrl && (
              <div className="text-center p-6 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
-                No submission content found for this record.
+               No submission content found for this record.
              </div>
           )}
 
