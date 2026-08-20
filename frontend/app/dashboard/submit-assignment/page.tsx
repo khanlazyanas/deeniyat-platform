@@ -14,7 +14,7 @@ interface Lesson {
   courseId: string;
 }
 
-// --- GLOBAL STYLES (Safe from VS Code parser bugs) ---
+// --- GLOBAL STYLES ---
 const globalAnimations = `
   .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -57,6 +57,9 @@ export default function SubmitAssignmentPage() {
   const [selectedCourse, setSelectedCourse] = useState("");
   const [selectedLesson, setSelectedLesson] = useState("");
   
+  // 👇 NEW: Text Submission State
+  const [textContent, setTextContent] = useState("");
+
   // Recording States
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -82,7 +85,7 @@ export default function SubmitAssignmentPage() {
   const bgX = useTransform(smoothMouseX, (v) => v * 0.3);
   const bgY = useTransform(smoothMouseY, (v) => v * 0.3);
 
-  // Holographic Card Config - FIXED: HTMLFormElement instead of HTMLDivElement
+  // Holographic Card Config 
   const cardRef = useRef<HTMLFormElement>(null); 
   const cardSpringConfig = { damping: 40, stiffness: 250, mass: 0.5 };
   const rotateX = useSpring(useTransform(smoothMouseY, [-50, 50], [4, -4]), cardSpringConfig);
@@ -120,10 +123,11 @@ export default function SubmitAssignmentPage() {
         
         if (response.ok) {
           const data = await response.json();
-          // Adjust logic based on API structure (data.data vs data)
+          // Map correctly to show all enrolled courses
           const sourceData = Array.isArray(data) ? data : (data.data || []);
           const myCourses = sourceData.map((enrollment: any) => enrollment.courseId);
-          setCourses(myCourses);
+          // Filter out nulls if any course was deleted but enrollment remained
+          setCourses(myCourses.filter(Boolean)); 
         }
       } catch (error) {
         console.error("Failed to load courses", error);
@@ -198,12 +202,17 @@ export default function SubmitAssignmentPage() {
     setAudioUrl("");
   };
 
-  // Submit the assignment using FormData
+  // 👇 UPDATED: Submit the assignment supporting BOTH Text and Audio
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedCourse || !selectedLesson || !audioBlob) {
-      setMessage({ type: "error", text: "Please select a lesson and record your audio." });
+    if (!selectedCourse || !selectedLesson) {
+      setMessage({ type: "error", text: "Please select a course and lesson." });
+      return;
+    }
+
+    if (!audioBlob && !textContent.trim()) {
+      setMessage({ type: "error", text: "Please provide either a text answer or an audio recording." });
       return;
     }
 
@@ -214,8 +223,18 @@ export default function SubmitAssignmentPage() {
       const token = localStorage.getItem("token");
       
       const formData = new FormData();
+      formData.append("courseId", selectedCourse);
       formData.append("lessonId", selectedLesson);
-      formData.append("audio", audioBlob, "recording.webm");
+      
+      // Append text if exists
+      if (textContent.trim()) {
+        formData.append("content", textContent);
+      }
+      
+      // Append audio if exists
+      if (audioBlob) {
+        formData.append("audio", audioBlob, "recording.webm");
+      }
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/submissions`, {
         method: "POST",
@@ -226,8 +245,9 @@ export default function SubmitAssignmentPage() {
       });
 
       if (response.ok) {
-        setMessage({ type: "success", text: "Alhamdulillah! Recording submitted successfully." });
+        setMessage({ type: "success", text: "Alhamdulillah! Task submitted successfully." });
         setSelectedLesson("");
+        setTextContent("");
         discardRecording();
       } else {
         const data = await response.json();
@@ -242,7 +262,7 @@ export default function SubmitAssignmentPage() {
   };
 
   return (
-    <div className="min-h-screen pt-24 bg-[#010206] text-slate-50 flex items-center justify-center font-sans selection:bg-emerald-500/30 selection:text-emerald-200 overflow-hidden relative px-4 sm:px-6 lg:px-8 perspective-[2000px]">
+    <div className="min-h-screen pt-24 pb-20 bg-[#010206] text-slate-50 flex items-center justify-center font-sans selection:bg-emerald-500/30 selection:text-emerald-200 overflow-hidden relative px-4 sm:px-6 lg:px-8 perspective-[2000px] custom-scrollbar">
       
       {/* GLOBAL BACKGROUND */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none"></div>
@@ -313,8 +333,9 @@ export default function SubmitAssignmentPage() {
             <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,1)]"></span>
             <span className="text-[11px] font-black text-slate-300 tracking-[0.3em] uppercase">Student Portal</span>
           </div>
-          <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter mb-4 drop-shadow-md">Submit Recitation</h2>
-          <p className="text-slate-400 font-light text-[17px] mix-blend-screen">Record your Tajweed lesson live and send it directly to your Ustad.</p>
+          {/* 👇 UPDATED TITLE */}
+          <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter mb-4 drop-shadow-md">Submit Task / Recitation</h2>
+          <p className="text-slate-400 font-light text-[17px] mix-blend-screen">Provide your written answers, assignment links, or record a live audio recitation.</p>
         </motion.div>
 
         <motion.form 
@@ -356,50 +377,68 @@ export default function SubmitAssignmentPage() {
             </AnimatePresence>
 
             <div className="space-y-8">
-              {/* Course Selection */}
-              <div>
-                <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Enrolled Course</label>
-                <div className="relative group">
-                  <select 
-                    value={selectedCourse}
-                    onChange={(e) => setSelectedCourse(e.target.value)}
-                    className="relative w-full pl-6 pr-12 py-4 appearance-none bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1.25rem] focus:bg-[#020510] focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all duration-300 text-slate-200 cursor-pointer shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-bold z-10"
-                  >
-                    <option value="" className="bg-[#040814] text-slate-500">-- Choose Course --</option>
-                    {courses.map((course: any) => (
-                      <option key={course?._id} value={course?._id} className="bg-[#040814]">{course?.title}</option>
-                    ))}
-                  </select>
-                  <div className="absolute inset-y-0 right-0 pr-5 flex items-center pointer-events-none z-20">
-                    <svg className="h-5 w-5 text-slate-400 group-focus-within:text-emerald-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
+              
+              {/* --- DROPDOWNS ROW --- */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Course Selection */}
+                <div>
+                  <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Enrolled Course</label>
+                  <div className="relative group">
+                    <select 
+                      value={selectedCourse}
+                      onChange={(e) => setSelectedCourse(e.target.value)}
+                      className="relative w-full pl-6 pr-12 py-4 appearance-none bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1.25rem] focus:bg-[#020510] focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all duration-300 text-slate-200 cursor-pointer shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-bold z-10"
+                    >
+                      <option value="" className="bg-[#040814] text-slate-500">-- Choose Course --</option>
+                      {courses.map((course: any) => (
+                        <option key={course?._id} value={course?._id} className="bg-[#040814]">{course?.title}</option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 pr-5 flex items-center pointer-events-none z-20">
+                      <svg className="h-5 w-5 text-slate-400 group-focus-within:text-emerald-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Lesson Selection */}
+                <div>
+                  <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Target Module</label>
+                  <div className="relative group">
+                    <select 
+                      value={selectedLesson}
+                      onChange={(e) => setSelectedLesson(e.target.value)}
+                      disabled={!selectedCourse || lessons.length === 0}
+                      className="relative w-full pl-6 pr-12 py-4 appearance-none bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1.25rem] focus:bg-[#020510] focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all duration-300 text-slate-200 cursor-pointer shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-bold z-10 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <option value="" className="bg-[#040814] text-slate-500">{lessons.length === 0 && selectedCourse ? "No modules found" : "-- Choose Module --"}</option>
+                      {lessons.map((lesson) => (
+                        <option key={lesson._id} value={lesson._id} className="bg-[#040814]">{lesson.title}</option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 pr-5 flex items-center pointer-events-none z-20">
+                      <svg className="h-5 w-5 text-slate-400 group-focus-within:text-emerald-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Lesson Selection */}
-              <div>
-                <label className="block text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Select Target Lesson</label>
-                <div className="relative group">
-                  <select 
-                    value={selectedLesson}
-                    onChange={(e) => setSelectedLesson(e.target.value)}
-                    disabled={!selectedCourse || lessons.length === 0}
-                    className="relative w-full pl-6 pr-12 py-4 appearance-none bg-[#010206]/80 backdrop-blur-md border border-white/[0.06] rounded-[1.25rem] focus:bg-[#020510] focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all duration-300 text-slate-200 cursor-pointer shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] font-bold z-10 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <option value="" className="bg-[#040814] text-slate-500">{lessons.length === 0 && selectedCourse ? "No lessons found in this course" : "-- Choose Lesson --"}</option>
-                    {lessons.map((lesson) => (
-                      <option key={lesson._id} value={lesson._id} className="bg-[#040814]">{lesson.title}</option>
-                    ))}
-                  </select>
-                  <div className="absolute inset-y-0 right-0 pr-5 flex items-center pointer-events-none z-20">
-                    <svg className="h-5 w-5 text-slate-400 group-focus-within:text-emerald-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
-                  </div>
-                </div>
+              {/* 👇 NEW: TEXT SUBMISSION AREA */}
+              <div className="bg-[#010206]/60 border border-white/[0.04] rounded-[2rem] p-8 md:p-10 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] relative overflow-hidden">
+                <label className="flex items-center gap-3 text-[11px] font-black text-emerald-500 uppercase tracking-[0.3em] mb-6 relative z-10">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  Written Work / Link
+                </label>
+                <textarea
+                  value={textContent}
+                  onChange={(e) => setTextContent(e.target.value)}
+                  placeholder="Paste your assignment link or type your notes here..."
+                  rows={4}
+                  className="w-full bg-[#020510]/80 border border-white/[0.08] rounded-[1.25rem] px-6 py-5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all duration-300 resize-none shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] font-medium"
+                ></textarea>
               </div>
 
-              {/* Live Audio Recorder Section */}
-              <div className="bg-[#010206]/60 border border-white/[0.04] rounded-[2rem] p-10 text-center shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] relative overflow-hidden">
-                {/* Radar sweep effect when recording */}
+              {/* LIVE AUDIO RECORDER AREA */}
+              <div className="bg-[#010206]/60 border border-white/[0.04] rounded-[2rem] p-8 md:p-10 text-center shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] relative overflow-hidden">
                 {isRecording && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <motion.div animate={{ scale: [1, 2, 2.5], opacity: [0.5, 0.2, 0] }} transition={{ duration: 1.5, repeat: Infinity }} className="absolute w-32 h-32 bg-red-500/30 rounded-full"></motion.div>
@@ -407,7 +446,10 @@ export default function SubmitAssignmentPage() {
                     </div>
                 )}
 
-                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.3em] mb-8 relative z-10">Voice Recorder</label>
+                <label className="flex items-center justify-center gap-3 text-[11px] font-black text-amber-500 uppercase tracking-[0.3em] mb-8 relative z-10">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                  Voice Recorder (Optional)
+                </label>
                 
                 {!audioBlob ? (
                   <div className="relative z-10">
@@ -429,17 +471,17 @@ export default function SubmitAssignmentPage() {
                       <button 
                         type="button" 
                         onClick={startRecording}
-                        className="w-28 h-28 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 hover:border-emerald-400 rounded-full flex items-center justify-center mx-auto transition-all duration-300 group shadow-[0_0_30px_rgba(52,211,153,0.1),inset_0_1px_2px_rgba(255,255,255,0.1)] active:scale-95"
+                        className="w-24 h-24 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 hover:border-amber-400 rounded-full flex items-center justify-center mx-auto transition-all duration-300 group shadow-[0_0_30px_rgba(245,158,11,0.1),inset_0_1px_2px_rgba(255,255,255,0.1)] active:scale-95"
                       >
-                        <svg className="w-10 h-10 text-emerald-400 group-hover:scale-110 group-hover:drop-shadow-[0_0_10px_rgba(52,211,153,0.8)] transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                        <svg className="w-10 h-10 text-amber-400 group-hover:scale-110 group-hover:drop-shadow-[0_0_10px_rgba(245,158,11,0.8)] transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
                       </button>
                     )}
-                    {!isRecording && <p className="text-slate-500 mt-6 text-[13px] font-medium">Tap the microphone to capture recitation</p>}
+                    {!isRecording && <p className="text-slate-500 mt-6 text-[12px] font-medium">Tap the mic if your task requires a recitation</p>}
                   </div>
                 ) : (
                   <div className="flex flex-col items-center relative z-10 w-full">
                     <div className="w-full bg-[#040814] p-2 rounded-2xl border border-white/[0.05] mb-6 shadow-inner">
-                        <audio src={audioUrl} controls className="w-full" />
+                        <audio src={audioUrl} controls className="w-full custom-audio-player focus:outline-none" />
                     </div>
                     <button 
                       type="button" 
@@ -456,7 +498,7 @@ export default function SubmitAssignmentPage() {
               {/* Submit Button */}
               <button 
                 type="submit"
-                disabled={loading || !selectedLesson || !audioBlob}
+                disabled={loading || !selectedLesson || (!audioBlob && !textContent.trim())}
                 className="group relative px-10 py-5 w-full bg-gradient-to-b from-emerald-400 to-teal-500 text-[#010206] text-[15px] font-black uppercase tracking-widest rounded-[1.5rem] transition-all duration-500 shadow-[0_0_30px_-5px_rgba(52,211,153,0.6),inset_0_1px_1px_rgba(255,255,255,0.8)] disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed flex items-center justify-center gap-3 overflow-hidden ring-1 ring-white/20 active:scale-95"
               >
                 {!loading && <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>}
