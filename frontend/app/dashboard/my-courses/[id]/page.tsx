@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, useMotionTemplate, Variants } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, Variants } from "framer-motion";
 
 // 👇 AUTH CONTEXT IMPORT
 import { useAuth } from "../../../../context/AuthContext";
@@ -28,6 +28,15 @@ const globalAnimations = `
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.15); }
+  
+  /* Custom Audio Player Styling */
+  audio::-webkit-media-controls-panel {
+    background-color: #040814;
+  }
+  audio::-webkit-media-controls-current-time-display,
+  audio::-webkit-media-controls-time-remaining-display {
+    color: #4ade80;
+  }
 `;
 
 // --- PRE-COMPUTED HYPER-DENSE PARTICLE ARRAY (60fps Optimized) ---
@@ -74,7 +83,14 @@ export default function CoursePlayerPage() {
   const [submittingTask, setSubmittingTask] = useState(false);
   const [submissionMessage, setSubmissionMessage] = useState({ type: "", text: "" });
 
-  // 👇 NEW STATES FOR SMART SUBMISSION CHECK
+  // 👇 NEW: Audio Recording States
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string>("");
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  // Smart Submission Check
   const [existingSubmission, setExistingSubmission] = useState<any>(null);
   const [checkingSubmission, setCheckingSubmission] = useState(false);
 
@@ -93,7 +109,7 @@ export default function CoursePlayerPage() {
   const bgX = useTransform(smoothMouseX, (v) => v * 0.3);
   const bgY = useTransform(smoothMouseY, (v) => v * 0.3);
 
-  // 👇 SECURITY LOCK ACTIVE: Sirf Admin ya Ustad ko Edit/Delete buttons dikhenge
+  // SECURITY LOCK ACTIVE: Sirf Admin ya Ustad ko Edit/Delete buttons dikhenge
   const isOwnerOrAdmin = user?.role === 'Admin' || (user?.role === 'Ustad' && (course?.teacherId?._id === user?._id || course?.teacherId === user?._id));
 
   useEffect(() => {
@@ -148,13 +164,18 @@ export default function CoursePlayerPage() {
     return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
   }, [courseId, mouseX, mouseY]);
 
-  // 👇 FIX: Strict String matching for existing submissions
+  // Check for existing submissions when lesson changes
   useEffect(() => {
     if (!activeLesson || isOwnerOrAdmin) return;
 
     const checkExistingSubmission = async () => {
       setCheckingSubmission(true);
       setExistingSubmission(null);
+      // Reset assignment & recording states when changing lessons
+      setAssignmentContent("");
+      discardRecording();
+      setSubmissionMessage({ type: "", text: "" });
+
       try {
         const token = localStorage.getItem("token");
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/submissions/my-submissions`, {
@@ -165,7 +186,6 @@ export default function CoursePlayerPage() {
           const data = await res.json();
           const submissionsArray = Array.isArray(data) ? data : (data.data || []);
           
-          // STRICT MATCHING: Convert both to strings to avoid ObjectID vs String mismatch
           const found = submissionsArray.find((sub: any) => {
             const subLessonId = sub.lessonId?._id ? String(sub.lessonId._id) : String(sub.lessonId);
             return subLessonId === String(activeLesson._id);
@@ -194,9 +214,57 @@ export default function CoursePlayerPage() {
     return url; 
   };
 
+  // 👇 Audio Recording Handlers
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        setAudioBlob(audioBlob);
+        setAudioUrl(audioUrl);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error("Microphone access denied", error);
+      setSubmissionMessage({ type: "error", text: "Please allow microphone access to record." });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+    }
+  };
+
+  const discardRecording = () => {
+    setAudioBlob(null);
+    setAudioUrl("");
+  };
+
+  // 👇 UPDATED: Form Submission Handlers for Text & Audio using FormData
   const handleAssignmentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!assignmentContent.trim()) return;
+    
+    // Check if at least text or audio is provided
+    if (!assignmentContent.trim() && !audioBlob) {
+      setSubmissionMessage({ type: "error", text: "Please provide a written answer or record an audio recitation." });
+      return;
+    }
 
     setSubmittingTask(true);
     setSubmissionMessage({ type: "", text: "" });
@@ -205,19 +273,26 @@ export default function CoursePlayerPage() {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Authentication required");
 
-      const payload = {
-        courseId: courseId,
-        lessonId: activeLesson?._id,
-        content: assignmentContent
-      };
+      const formData = new FormData();
+      formData.append("courseId", courseId);
+      if (activeLesson?._id) {
+        formData.append("lessonId", activeLesson._id);
+      }
+      
+      if (assignmentContent.trim()) {
+        formData.append("content", assignmentContent);
+      }
+      
+      if (audioBlob) {
+        formData.append("audio", audioBlob, "recording.webm");
+      }
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/submissions`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify(payload)
+        body: formData
       });
 
       const data = await response.json();
@@ -228,9 +303,10 @@ export default function CoursePlayerPage() {
 
       setSubmissionMessage({ type: "success", text: "Assignment submitted successfully! Ustad will review it soon." });
       
-      // FIX: Ensure UI immediately updates using the returned data or fallback
-      setExistingSubmission(data.submission || data || { content: assignmentContent, status: "Pending" });
+      // Update UI with the new submission
+      setExistingSubmission(data.submission || data || { content: assignmentContent, audioFileUrl: audioBlob ? "Audio Uploaded" : null, status: "Pending" });
       setAssignmentContent(""); 
+      discardRecording();
       
     } catch (err: unknown) {
         if (err instanceof Error) {
@@ -364,8 +440,9 @@ export default function CoursePlayerPage() {
                 {/* 1. TOP HALF: Click to Play Lesson */}
                 <button 
                   onClick={() => {
-                    setActiveLesson(lesson);
-                    setSubmissionMessage({ type: "", text: "" }); 
+                    if(activeLesson?._id !== lesson._id) {
+                      setActiveLesson(lesson);
+                    }
                   }}
                   className="w-full p-5 flex items-start gap-4 cursor-pointer hover:bg-white/[0.02] text-left transition-colors"
                 >
@@ -475,7 +552,7 @@ export default function CoursePlayerPage() {
               </div>
             )}
 
-            {/* 👇 UPDATED: Assignment Submission Section 👇 */}
+            {/* 👇 UPDATED: Assignment & Recitation Submission Section 👇 */}
             {isOwnerOrAdmin ? (
               <div className="bg-[#030612]/60 border border-white/[0.05] rounded-[2.5rem] p-10 text-center shadow-lg">
                  <div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-700/50">
@@ -483,7 +560,7 @@ export default function CoursePlayerPage() {
                  </div>
                  <h3 className="text-xl font-bold text-white mb-2">Task Submission Area</h3>
                  <p className="text-slate-400 text-sm font-light max-w-md mx-auto">
-                    Students enrolled in this course will see the assignment submission form here. 
+                    Students enrolled in this course will see the text & audio submission form here. 
                     (As an instructor, this form is hidden from your view).
                  </p>
               </div>
@@ -506,13 +583,23 @@ export default function CoursePlayerPage() {
                   </div>
                 </div>
 
-                <div className="bg-[#010206]/80 p-6 rounded-[1.5rem] border border-white/[0.08] text-slate-300 whitespace-pre-wrap relative z-10 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
+                <div className="bg-[#010206]/80 p-6 rounded-[1.5rem] border border-white/[0.08] text-slate-300 whitespace-pre-wrap relative z-10 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] mb-6">
                   <span className="text-[10px] text-emerald-400 uppercase font-black tracking-widest block mb-3 flex items-center gap-2">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                    Your Answer
+                    Your Written Answer
                   </span>
-                  {existingSubmission.content}
+                  {existingSubmission.content || "No written answer provided."}
                 </div>
+
+                {existingSubmission.audioFileUrl && (
+                  <div className="bg-[#010206]/80 p-4 rounded-[1.5rem] border border-white/[0.08] relative z-10 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
+                     <span className="text-[10px] text-amber-400 uppercase font-black tracking-widest block mb-3 flex items-center gap-2">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                        Your Recitation
+                     </span>
+                     <audio controls src={existingSubmission.audioFileUrl} className="w-full custom-audio-player focus:outline-none" />
+                  </div>
+                )}
 
                 <div className="mt-8 flex flex-wrap items-center gap-3 relative z-10">
                   <span className="text-[11px] uppercase tracking-widest font-bold text-slate-500">Evaluation Status:</span>
@@ -527,20 +614,56 @@ export default function CoursePlayerPage() {
                 
                 <h3 className="text-2xl font-black text-white mb-3 flex items-center gap-3 tracking-tight drop-shadow-md">
                   <svg className="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                  Task Submission
+                  Task & Recitation Submission
                 </h3>
-                <p className="text-slate-400 text-[15px] font-light mb-8 mix-blend-screen">Write your reflections, answers, or paste a link to your assignment document below.</p>
+                <p className="text-slate-400 text-[15px] font-light mb-8 mix-blend-screen">Provide your written answers, or use the voice recorder below for Tajweed & recitation tasks.</p>
                 
-                <form onSubmit={handleAssignmentSubmit}>
+                <form onSubmit={handleAssignmentSubmit} className="space-y-6">
+                  
+                  {/* TEXT INPUT AREA */}
                   <div className="relative">
                       <textarea
                       value={assignmentContent}
                       onChange={(e) => setAssignmentContent(e.target.value)}
-                      placeholder="Start typing your assignment here..."
-                      rows={6}
-                      required
-                      className="w-full bg-[#010206]/80 backdrop-blur-md border border-white/[0.08] rounded-[1.5rem] px-6 py-5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all duration-300 resize-none mb-6 shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] font-medium"
+                      placeholder="Start typing your written assignment here (Optional if only sending audio)..."
+                      rows={4}
+                      className="w-full bg-[#010206]/80 backdrop-blur-md border border-white/[0.08] rounded-[1.5rem] px-6 py-5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all duration-300 resize-none shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] font-medium"
                       ></textarea>
+                  </div>
+
+                  {/* AUDIO RECORDING AREA */}
+                  <div className="bg-[#010206]/60 border border-white/[0.04] rounded-[2rem] p-8 text-center shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] relative overflow-hidden">
+                    {isRecording && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <motion.div animate={{ scale: [1, 2, 2.5], opacity: [0.5, 0.2, 0] }} transition={{ duration: 1.5, repeat: Infinity }} className="absolute w-32 h-32 bg-red-500/30 rounded-full"></motion.div>
+                            <motion.div animate={{ scale: [1, 1.5, 2], opacity: [0.8, 0.4, 0] }} transition={{ duration: 1.5, delay: 0.5, repeat: Infinity }} className="absolute w-32 h-32 bg-red-500/40 rounded-full"></motion.div>
+                        </div>
+                    )}
+                    <label className="flex items-center justify-center gap-3 text-[11px] font-black text-amber-500 uppercase tracking-[0.3em] mb-6 relative z-10">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                      Voice Recorder (Optional)
+                    </label>
+                    
+                    {!audioBlob ? (
+                      <div className="relative z-10">
+                        {isRecording ? (
+                          <div className="flex flex-col items-center">
+                            <div className="w-20 h-20 bg-red-500/10 border border-red-500/30 rounded-full flex items-center justify-center mb-4 shadow-[0_0_40px_rgba(239,68,68,0.2)]"><div className="w-10 h-10 bg-red-500 rounded-full shadow-[0_0_20px_rgba(239,68,68,0.8)] animate-pulse"></div></div>
+                            <p className="text-red-400 font-bold mb-4 tracking-wide drop-shadow-md">Recording active...</p>
+                            <button type="button" onClick={stopRecording} className="px-6 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-black tracking-widest uppercase text-[12px] rounded-full border border-red-500/30 transition-colors shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">Stop & Save</button>
+                          </div>
+                        ) : (
+                          <button type="button" onClick={startRecording} className="w-20 h-20 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 hover:border-amber-400 rounded-full flex items-center justify-center mx-auto transition-all duration-300 group shadow-[0_0_30px_rgba(245,158,11,0.1),inset_0_1px_2px_rgba(255,255,255,0.1)] active:scale-95">
+                            <svg className="w-8 h-8 text-amber-400 group-hover:scale-110 group-hover:drop-shadow-[0_0_10px_rgba(245,158,11,0.8)] transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center relative z-10 w-full">
+                        <div className="w-full bg-[#040814] p-2 rounded-2xl border border-white/[0.05] mb-4 shadow-inner"><audio src={audioUrl} controls className="w-full custom-audio-player focus:outline-none" /></div>
+                        <button type="button" onClick={discardRecording} className="group flex items-center gap-2 text-slate-500 hover:text-red-400 text-[12px] font-black uppercase tracking-widest transition-colors"><svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg> Discard Audio</button>
+                      </div>
+                    )}
                   </div>
                   
                   {/* Status Messages */}
@@ -548,7 +671,7 @@ export default function CoursePlayerPage() {
                       {submissionMessage.text && (
                       <motion.div 
                           initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                          className={`p-4 rounded-[1rem] text-[13px] font-bold tracking-wide border mb-6 flex items-center gap-3 ${submissionMessage.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-[inset_0_1px_1px_rgba(52,211,153,0.2)]' : 'bg-red-500/10 border-red-500/30 text-red-400 shadow-[inset_0_1px_1px_rgba(239,68,68,0.2)]'}`}
+                          className={`p-4 rounded-[1rem] text-[13px] font-bold tracking-wide border flex items-center gap-3 ${submissionMessage.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-[inset_0_1px_1px_rgba(52,211,153,0.2)]' : 'bg-red-500/10 border-red-500/30 text-red-400 shadow-[inset_0_1px_1px_rgba(239,68,68,0.2)]'}`}
                       >
                           {submissionMessage.type === 'success' ? (
                               <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
@@ -560,10 +683,10 @@ export default function CoursePlayerPage() {
                       )}
                   </AnimatePresence>
 
-                  <div className="flex justify-end">
+                  <div className="flex justify-end pt-2">
                     <button 
                       type="submit"
-                      disabled={submittingTask}
+                      disabled={submittingTask || (!assignmentContent.trim() && !audioBlob)}
                       className="group relative px-10 py-5 bg-gradient-to-b from-emerald-400 to-teal-500 text-[#010206] text-[14px] font-black uppercase tracking-widest rounded-full transition-all duration-300 shadow-[0_0_30px_-5px_rgba(52,211,153,0.6),inset_0_1px_1px_rgba(255,255,255,0.8)] disabled:opacity-50 flex items-center gap-3 overflow-hidden ring-1 ring-white/20 active:scale-95"
                     >
                       {!submittingTask && <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>}
@@ -575,7 +698,7 @@ export default function CoursePlayerPage() {
                               </>
                           ) : (
                               <>
-                              Submit Work
+                              Submit Assignment
                               <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                               </>
                           )}
