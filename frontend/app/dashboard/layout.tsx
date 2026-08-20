@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "../context/AuthContext"; // 👇 IMPORT AUTH CONTEXT (Adjust path if needed)
+import { useAuth } from "../../context/AuthContext"; // 👇 IMPORT AUTH CONTEXT (Adjust path if needed)
 
 // --- GLOBAL SCROLLBAR ---
 const globalStyles = `
