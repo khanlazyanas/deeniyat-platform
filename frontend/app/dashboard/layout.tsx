@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "../context/AuthContext"; // 👇 IMPORT AUTH CONTEXT (Adjust path if needed)
 
 // --- GLOBAL SCROLLBAR ---
 const globalStyles = `
@@ -23,6 +24,11 @@ export default function DashboardLayout({
   
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  // 👇 Get user data to check role
+  const { user } = useAuth(); 
+  const isInstructor = user?.role === 'Admin' || user?.role === 'Ustad';
+  const isStudent = user?.role === 'Student';
 
   useEffect(() => {
     setMounted(true);
@@ -95,7 +101,7 @@ export default function DashboardLayout({
               initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "spring", stiffness: 300, damping: 30 }}
               className="fixed inset-y-0 left-0 z-50 w-[280px] sm:w-[300px] bg-[#020510]/95 backdrop-blur-xl border-r border-white/[0.06] flex flex-col shrink-0 shadow-[30px_0_60px_rgba(0,0,0,0.8)] will-change-transform"
             >
-              <MobileSidebarContent pathname={pathname || ""} handleLogout={handleLogout} />
+              <MobileSidebarContent pathname={pathname || ""} handleLogout={handleLogout} isInstructor={isInstructor} isStudent={isStudent} />
             </motion.aside>
           </>
         )}
@@ -129,32 +135,33 @@ export default function DashboardLayout({
             <NavLink href="/dashboard/my-courses" currentPath={pathname || ""}>My Courses</NavLink>
           </div>
 
-          {/* Student Tools Section */}
-          <div className="space-y-2">
-            <p className="px-4 lg:px-5 text-[9px] lg:text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-700"></span>
-                Student Hub
-            </p>
-            <NavLink href="/dashboard/submit-assignment" currentPath={pathname || ""}>Submit Assignment</NavLink>
-            <NavLink href="/dashboard/my-grades" currentPath={pathname || ""}>My Grades</NavLink>
-          </div>
+          {/* 👇 Student Tools Section - Only visible to Students 👇 */}
+          {isStudent && (
+            <div className="space-y-2">
+              <p className="px-4 lg:px-5 text-[9px] lg:text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-700"></span>
+                  Student Hub
+              </p>
+              <NavLink href="/dashboard/submit-assignment" currentPath={pathname || ""}>Submit Assignment</NavLink>
+              <NavLink href="/dashboard/my-grades" currentPath={pathname || ""}>My Grades</NavLink>
+            </div>
+          )}
 
-          {/* Teacher Tools Section */}
-          <div className="space-y-2">
-            <p className="px-4 lg:px-5 text-[9px] lg:text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
-                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-700"></span>
-                Ustad Portal
-            </p>
-            <NavLink href="/dashboard/create-course" currentPath={pathname || ""}>Create Curriculum</NavLink>
-            
-            {/* 👇 MANAGE COURSES LINK ADDED HERE 👇 */}
-            <NavLink href="/dashboard/manage-courses" currentPath={pathname || ""}>Manage Courses</NavLink>
-            
-            <NavLink href="/dashboard/add-lesson" currentPath={pathname || ""}>Add Module</NavLink>
-            <NavLink href="/dashboard/submissions" currentPath={pathname || ""}>Evaluation</NavLink>
-          </div>
+          {/* 👇 Teacher Tools Section - Only visible to Ustad/Admin 👇 */}
+          {isInstructor && (
+            <div className="space-y-2">
+              <p className="px-4 lg:px-5 text-[9px] lg:text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-700"></span>
+                  Ustad Portal
+              </p>
+              <NavLink href="/dashboard/create-course" currentPath={pathname || ""}>Create Curriculum</NavLink>
+              <NavLink href="/dashboard/manage-courses" currentPath={pathname || ""}>Manage Courses</NavLink>
+              <NavLink href="/dashboard/add-lesson" currentPath={pathname || ""}>Add Module</NavLink>
+              <NavLink href="/dashboard/submissions" currentPath={pathname || ""}>Evaluation</NavLink>
+            </div>
+          )}
 
-          {/* Settings Section */}
+          {/* Settings Section (Visible to both typically, but can restrict if you want) */}
           <div className="space-y-2">
             <p className="px-4 lg:px-5 text-[9px] lg:text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-slate-700"></span>
@@ -232,7 +239,8 @@ function NavLink({ href, currentPath, children }: { href: string, currentPath: s
 }
 
 // --- MOBILE SIDEBAR EXTRACTED COMPONENT ---
-function MobileSidebarContent({ pathname, handleLogout }: { pathname: string, handleLogout: () => void }) {
+// 👇 Added role props here so mobile view works exactly like desktop
+function MobileSidebarContent({ pathname, handleLogout, isInstructor, isStudent }: { pathname: string, handleLogout: () => void, isInstructor: boolean, isStudent: boolean }) {
   return (
     <div className="flex flex-col h-full bg-[#020510]/90">
       {/* Mobile Logo */}
@@ -257,22 +265,25 @@ function MobileSidebarContent({ pathname, handleLogout }: { pathname: string, ha
           <NavLink href="/dashboard/my-courses" currentPath={pathname}>My Courses</NavLink>
         </div>
 
-        <div className="space-y-1.5 sm:space-y-2">
-          <p className="px-4 sm:px-5 text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] mb-2 sm:mb-3">Student Hub</p>
-          <NavLink href="/dashboard/submit-assignment" currentPath={pathname}>Submit Assignment</NavLink>
-          <NavLink href="/dashboard/my-grades" currentPath={pathname}>My Grades</NavLink>
-        </div>
+        {/* 👇 Student tools restricted 👇 */}
+        {isStudent && (
+          <div className="space-y-1.5 sm:space-y-2">
+            <p className="px-4 sm:px-5 text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] mb-2 sm:mb-3">Student Hub</p>
+            <NavLink href="/dashboard/submit-assignment" currentPath={pathname}>Submit Assignment</NavLink>
+            <NavLink href="/dashboard/my-grades" currentPath={pathname}>My Grades</NavLink>
+          </div>
+        )}
 
-        <div className="space-y-1.5 sm:space-y-2">
-          <p className="px-4 sm:px-5 text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] mb-2 sm:mb-3">Ustad Portal</p>
-          <NavLink href="/dashboard/create-course" currentPath={pathname}>Create Curriculum</NavLink>
-          
-          {/* 👇 MANAGE COURSES LINK ADDED HERE 👇 */}
-          <NavLink href="/dashboard/manage-courses" currentPath={pathname}>Manage Courses</NavLink>
-          
-          <NavLink href="/dashboard/add-lesson" currentPath={pathname}>Add Module</NavLink>
-          <NavLink href="/dashboard/submissions" currentPath={pathname}>Evaluation</NavLink>
-        </div>
+        {/* 👇 Instructor tools restricted 👇 */}
+        {isInstructor && (
+          <div className="space-y-1.5 sm:space-y-2">
+            <p className="px-4 sm:px-5 text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] mb-2 sm:mb-3">Ustad Portal</p>
+            <NavLink href="/dashboard/create-course" currentPath={pathname}>Create Curriculum</NavLink>
+            <NavLink href="/dashboard/manage-courses" currentPath={pathname}>Manage Courses</NavLink>
+            <NavLink href="/dashboard/add-lesson" currentPath={pathname}>Add Module</NavLink>
+            <NavLink href="/dashboard/submissions" currentPath={pathname}>Evaluation</NavLink>
+          </div>
+        )}
 
         <div className="space-y-1.5 sm:space-y-2">
           <p className="px-4 sm:px-5 text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] mb-2 sm:mb-3">System</p>
