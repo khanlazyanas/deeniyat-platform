@@ -3,25 +3,32 @@ import Submission from '../models/Submission';
 import Lesson from '../models/Lesson';
 import catchAsync from '../utils/catchAsync';
 
-// @desc    Submit assignment (Audio or Text)
+// @desc    Submit assignment (Text, Audio, or Document)
 // @route   POST /api/v1/submissions
 // @access  Private (Student only)
 export const submitAssignment = catchAsync(async (req: any, res: Response) => {
-  const { lessonId, courseId, content } = req.body; // 👈 NEW: Added courseId & content
+  const { lessonId, courseId, content } = req.body; 
   const studentId = req.user?._id;
 
   let audioFileUrl = req.body.audioFileUrl || ''; 
+  let documentUrl = req.body.documentUrl || ''; 
 
-  // Check if a real-time recorded file was uploaded via Multer
-  if (req.file) {
-    // Generate public accessible URL for the uploaded audio file
-    audioFileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+  // 👇 UPDATED: Check for files array when using upload.fields
+  if (req.files) {
+    // Process Audio File if it exists
+    if (req.files['audio'] && req.files['audio'].length > 0) {
+      audioFileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.files['audio'][0].filename}`;
+    }
+    // Process Document File if it exists
+    if (req.files['document'] && req.files['document'].length > 0) {
+      documentUrl = `${req.protocol}://${req.get('host')}/uploads/${req.files['document'][0].filename}`;
+    }
   }
 
-  // 👇 Validation: Kam se kam Text(content) ya Audio hona zaroori hai
-  if (!audioFileUrl && !content) {
+  // 👇 Validation: Kam se kam Text(content), Audio, ya Document hona zaroori hai
+  if (!audioFileUrl && !content && !documentUrl) {
     res.status(400);
-    throw new Error('Please provide an audio recording or text assignment content');
+    throw new Error('Please provide text, an audio recording, or upload a document');
   }
 
   // Verify that the lesson exists
@@ -34,10 +41,11 @@ export const submitAssignment = catchAsync(async (req: any, res: Response) => {
   // Create the submission record in the database
   const submission = await Submission.create({
     studentId,
-    courseId, // 👈 NEW
+    courseId, 
     lessonId,
-    content,  // 👈 NEW
+    content,  
     audioFileUrl,
+    documentUrl, // 👈 NEW
     status: 'Pending',
   });
 

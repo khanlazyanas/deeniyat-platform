@@ -13,21 +13,28 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Configure Multer storage for audio files
+// Configure Multer storage for both audio and documents
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    // Save file as: audio-1623456789.webm
-    cb(null, 'audio-' + Date.now() + path.extname(file.originalname));
+    // Generate unique name based on fieldname (audio or document)
+    cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
   }
 });
 const upload = multer({ storage: storage });
 
 // Routes
 // Student routes
-router.post('/', protect, authorize('Student'), upload.single('audio'), submitAssignment);
+// 👇 UPDATED: Use upload.fields to handle multiple potential file fields
+router.post(
+  '/', 
+  protect, 
+  authorize('Student'), 
+  upload.fields([{ name: 'audio', maxCount: 1 }, { name: 'document', maxCount: 1 }]), 
+  submitAssignment
+);
 router.get('/my-submissions', protect, authorize('Student'), getMySubmissions);
 
 // Ustad/Admin routes
