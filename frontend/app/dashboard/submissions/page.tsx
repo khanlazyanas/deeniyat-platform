@@ -7,7 +7,7 @@ interface Submission {
   _id: string;
   content?: string; 
   audioFileUrl?: string; 
-  documentUrl?: string; // 👈 NEW: File upload ke liye add kiya hai
+  documentUrl?: string; 
   grade: string;
   feedback: string;
   status: 'Pending' | 'Graded';
@@ -18,6 +18,11 @@ interface Submission {
     email: string;
   };
   lessonId: {
+    _id: string;
+    title: string;
+  };
+  // 👇 NEW: Interface me courseId add kiya hai
+  courseId?: {
     _id: string;
     title: string;
   };
@@ -131,10 +136,19 @@ function HolographicSubmissionCard({
             </div>
             <div>
               <h4 className="text-white font-black text-xl tracking-tight drop-shadow-md">{sub.studentId?.name || 'Unknown Student'}</h4>
-              <p className="text-[12px] font-bold text-slate-500 mt-1 uppercase tracking-[0.15em] flex items-center gap-2">
-                <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-                {sub.lessonId?.title || 'Unknown Module'}
-              </p>
+              
+              {/* 👇 UPDATED: Course and Lesson Name Section 👇 */}
+              <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <span className="text-[11px] font-bold text-amber-400/80 uppercase tracking-[0.15em] flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-md w-fit">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                  {sub.courseId?.title || 'Unknown Course'}
+                </span>
+                <span className="hidden sm:block text-slate-600">•</span>
+                <span className="text-[11px] font-bold text-emerald-400/80 uppercase tracking-[0.15em] flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-md w-fit">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" /></svg>
+                  {sub.lessonId?.title || 'Unknown Lecture'}
+                </span>
+              </div>
             </div>
           </div>
           <div className="text-left md:text-right flex flex-col md:items-end">
@@ -148,7 +162,7 @@ function HolographicSubmissionCard({
         {/* Middle Row: Content Display (Audio, Text, AND Document) */}
         <div className="mb-8 space-y-6">
           
-          {/* 👇 NEW: Document Section (Shows if student uploaded an image/pdf) */}
+          {/* Document Section */}
           {sub.documentUrl && (
             <div>
               <p className="text-[11px] font-black text-slate-500 mb-4 uppercase tracking-[0.25em] flex items-center gap-2">

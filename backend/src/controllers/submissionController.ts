@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import Submission from '../models/Submission';
 import Lesson from '../models/Lesson';
-import Course from '../models/Course'; // 👈 NEW: Course model import kiya gaya hai
+import Course from '../models/Course'; // 
 import catchAsync from '../utils/catchAsync';
 
 // @desc    Submit assignment (Text, Audio, or Document)
@@ -104,7 +104,8 @@ export const getAllSubmissions = catchAsync(async (req: any, res: Response) => {
 
   const submissions = await Submission.find(filter)
     .populate('studentId', 'name email profileImage')
-    .populate('lessonId', 'title') 
+    .populate('lessonId', 'title')
+    .populate('courseId', 'title') // 👈 NEW: Frontend ko course ka naam bhejne ke liye 
     .sort({ createdAt: -1 });
     
   res.json(submissions);
@@ -117,6 +118,7 @@ export const getMySubmissions = catchAsync(async (req: any, res: Response) => {
   // Fetch submissions only for the currently logged-in student
   const submissions = await Submission.find({ studentId: req.user?._id })
     .populate('lessonId', 'title')
+    .populate('courseId', 'title') // 👈 NEW: Frontend ko course ka naam bhejne ke liye
     .sort({ createdAt: -1 });
     
   res.json(submissions);
