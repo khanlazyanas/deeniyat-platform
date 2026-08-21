@@ -1,11 +1,10 @@
-import { streamText } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
+import OpenAI from "openai";
 
-// 👇 MAIN FIX: Vercel ko Edge Runtime use karne ka command
-export const runtime = 'edge'; 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
-// DeepSeek API configuration
-const deepseek = createOpenAI({
+// DeepSeek client initialization (Direct OpenAI SDK)
+const openai = new OpenAI({
   baseURL: 'https://api.deepseek.com',
   apiKey: process.env.DEEPSEEK_API_KEY,
 });
@@ -13,6 +12,13 @@ const deepseek = createOpenAI({
 export async function POST(req: Request) {
   try {
     const { content, grade, studentName } = await req.json();
+
+    if (!process.env.DEEPSEEK_API_KEY) {
+      return new Response(JSON.stringify({ error: "API key missing in environment variables" }), { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
 
     const prompt = `You are a respectful, encouraging, and knowledgeable Islamic Ustad (teacher). 
     Review the following student assignment.
@@ -26,15 +32,25 @@ export async function POST(req: Request) {
     - Base the tone on the grade (e.g., highly praising for A+, encouraging to improve for C or Needs Revision).
     - Keep it strictly professional, supportive, and in English. Do not use markdown formatting.`;
 
-    // Streaming the response from DeepSeek
-    const result = await streamText({
-      model: deepseek('deepseek-chat'),
-      prompt,
+    // Direct non-streaming or standard stream call to ensure stability
+    const completion = await openai.chat.completions.create({
+      model: "deepseek-chat",
+      messages: [{ role: "user", content: prompt }],
+      stream: false, // Non-streaming rakhte hain taaki Vercel par 0 bytes ka lafda hi khatam ho jaye
     });
 
-    return result.toTextStreamResponse();
-  } catch (error) {
-    console.error("AI Feedback Error:", error);
-    return new Response("Error generating feedback", { status: 500 });
+    const feedbackText = completion.choices[0]?.message?.content || "MashaAllah, good effort!";
+
+    return new Response(feedbackText, {
+      status: 200,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    });
+
+  } catch (error: any) {
+    console.error("DeepSeek API Error Detail:", error);
+    return new Response(JSON.stringify({ error: error.message || "Failed to generate feedback" }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
