@@ -101,11 +101,11 @@ function HolographicSubmissionCard({
     mouseY.set(0);
   };
 
-  // 👇 AI Streaming Function
+  // 👇 AI Text Generation Function (Updated for Non-Streaming)
   const generateAIFeedback = async () => {
     if (!gradeInput) return;
     setIsGeneratingAI(true);
-    setFeedbackInput(""); // Clear existing text before streaming
+    setFeedbackInput("Generating AI feedback... please wait..."); // Loading indicator
 
     try {
       const response = await fetch('/api/generate-feedback', {
@@ -118,26 +118,19 @@ function HolographicSubmissionCard({
         })
       });
 
-      if (!response.ok) throw new Error("Network response was not ok");
-
-      // Read the stream chunk by chunk
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (reader) {
-        let aiText = "";
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          
-          const chunk = decoder.decode(value, { stream: true });
-          aiText += chunk;
-          setFeedbackInput(aiText); // Live typing effect
-        }
+      // Agar API se koi error aaya (jaise API Key ya Balance ka issue)
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Server Error");
       }
-    } catch (error) {
+
+      // Simple text read karna
+      const aiText = await response.text();
+      setFeedbackInput(aiText); 
+      
+    } catch (error: any) {
       console.error("Failed to generate AI feedback:", error);
-      setFeedbackInput("Error generating feedback. Please write manually.");
+      setFeedbackInput(`Error: ${error.message || 'Please write manually.'}`);
     } finally {
       setIsGeneratingAI(false);
     }
