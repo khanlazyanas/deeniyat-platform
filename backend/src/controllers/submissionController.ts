@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import Submission from '../models/Submission';
 import Lesson from '../models/Lesson';
+import Course from '../models/Course'; // 👈 NEW: Course model import kiya gaya hai
 import catchAsync from '../utils/catchAsync';
 
 // @desc    Submit assignment (Text, Audio, or Document)
@@ -13,7 +14,7 @@ export const submitAssignment = catchAsync(async (req: any, res: Response) => {
   let audioFileUrl = req.body.audioFileUrl || ''; 
   let documentUrl = req.body.documentUrl || ''; 
 
-  // 👇 UPDATED: Check for files array when using upload.fields
+  // Check for files array when using upload.fields
   if (req.files) {
     // Process Audio File if it exists
     if (req.files['audio'] && req.files['audio'].length > 0) {
@@ -25,7 +26,7 @@ export const submitAssignment = catchAsync(async (req: any, res: Response) => {
     }
   }
 
-  // 👇 Validation: Kam se kam Text(content), Audio, ya Document hona zaroori hai
+  // Validation: Kam se kam Text(content), Audio, ya Document hona zaroori hai
   if (!audioFileUrl && !content && !documentUrl) {
     res.status(400);
     throw new Error('Please provide text, an audio recording, or upload a document');
@@ -45,7 +46,7 @@ export const submitAssignment = catchAsync(async (req: any, res: Response) => {
     lessonId,
     content,  
     audioFileUrl,
-    documentUrl, // 👈 NEW
+    documentUrl,
     status: 'Pending',
   });
 
@@ -85,11 +86,23 @@ export const getSubmissionsByLesson = catchAsync(async (req: Request, res: Respo
   res.json(submissions);
 });
 
-// @desc    Get ALL submissions across all lessons (For Ustad Dashboard)
+// @desc    Get ALL submissions across all lessons (Filtered by Ustad)
 // @route   GET /api/v1/submissions/all
 // @access  Private (Ustad & Admin)
-export const getAllSubmissions = catchAsync(async (req: Request, res: Response) => {
-  const submissions = await Submission.find()
+export const getAllSubmissions = catchAsync(async (req: any, res: Response) => {
+  let filter = {};
+
+  // 👇 MAIN LOGIC: Agar Ustad hai, toh sirf uske courses ke submissions filter karo
+  if (req.user?.role === 'Ustad') {
+    // 1. Ustad ke saare courses find karo
+    const myCourses = await Course.find({ teacherId: req.user._id }).select('_id');
+    const myCourseIds = myCourses.map(course => course._id);
+    
+    // 2. Filter me courseId set kar do
+    filter = { courseId: { $in: myCourseIds } };
+  }
+
+  const submissions = await Submission.find(filter)
     .populate('studentId', 'name email profileImage')
     .populate('lessonId', 'title') 
     .sort({ createdAt: -1 });
