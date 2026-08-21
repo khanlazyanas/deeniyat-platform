@@ -1,6 +1,9 @@
 import { streamText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 
+// 👇 MAIN FIX: Vercel ko Edge Runtime use karne ka command
+export const runtime = 'edge'; 
+
 // DeepSeek API configuration
 const deepseek = createOpenAI({
   baseURL: 'https://api.deepseek.com',
@@ -11,7 +14,6 @@ export async function POST(req: Request) {
   try {
     const { content, grade, studentName } = await req.json();
 
-    // Ustad ke liye ekdum mast aur tailored prompt
     const prompt = `You are a respectful, encouraging, and knowledgeable Islamic Ustad (teacher). 
     Review the following student assignment.
     
