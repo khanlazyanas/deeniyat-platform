@@ -21,7 +21,6 @@ interface Submission {
     _id: string;
     title: string;
   };
-  // 👇 Interface me courseId add kiya hua hai
   courseId?: {
     _id: string;
     title: string;
@@ -82,6 +81,9 @@ function HolographicSubmissionCard({
 
   const [isHovered, setIsHovered] = useState(false);
   const [glarePosition, setGlarePosition] = useState({ x: 0, y: 0 });
+  
+  // 👇 AI Generation State
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;
@@ -97,6 +99,48 @@ function HolographicSubmissionCard({
     setIsHovered(false);
     mouseX.set(0);
     mouseY.set(0);
+  };
+
+  // 👇 AI Streaming Function
+  const generateAIFeedback = async () => {
+    if (!gradeInput) return;
+    setIsGeneratingAI(true);
+    setFeedbackInput(""); // Clear existing text before streaming
+
+    try {
+      const response = await fetch('/api/generate-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: sub.content || '',
+          grade: gradeInput,
+          studentName: sub.studentId?.name || 'Student'
+        })
+      });
+
+      if (!response.ok) throw new Error("Network response was not ok");
+
+      // Read the stream chunk by chunk
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (reader) {
+        let aiText = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          const chunk = decoder.decode(value, { stream: true });
+          aiText += chunk;
+          setFeedbackInput(aiText); // Live typing effect
+        }
+      }
+    } catch (error) {
+      console.error("Failed to generate AI feedback:", error);
+      setFeedbackInput("Error generating feedback. Please write manually.");
+    } finally {
+      setIsGeneratingAI(false);
+    }
   };
 
   const isGradingThis = gradingId === sub._id;
@@ -137,9 +181,7 @@ function HolographicSubmissionCard({
             <div>
               <h4 className="text-white font-black text-xl tracking-tight drop-shadow-md">{sub.studentId?.name || 'Unknown Student'}</h4>
               
-              {/* 👇 UPDATED: Premium Badges for Course and Lecture 👇 */}
               <div className="mt-3 flex flex-wrap items-center gap-2 sm:gap-3">
-                {/* Course Badge */}
                 <span className="text-[10px] sm:text-[11px] font-black text-amber-400 uppercase tracking-[0.15em] flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-lg shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] transition-all">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
                   {sub.courseId?.title || 'Unknown Course'}
@@ -147,13 +189,11 @@ function HolographicSubmissionCard({
                 
                 <span className="hidden sm:block text-slate-600 font-black tracking-widest">•</span>
                 
-                {/* Lecture Badge */}
                 <span className="text-[10px] sm:text-[11px] font-black text-emerald-400 uppercase tracking-[0.15em] flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] transition-all">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" /></svg>
                   {sub.lessonId?.title || 'Unknown Lecture'}
                 </span>
               </div>
-
             </div>
           </div>
           <div className="text-left md:text-right flex flex-col md:items-end">
@@ -167,7 +207,6 @@ function HolographicSubmissionCard({
         {/* Middle Row: Content Display (Audio, Text, AND Document) */}
         <div className="mb-8 space-y-6">
           
-          {/* Document Section */}
           {sub.documentUrl && (
             <div>
               <p className="text-[11px] font-black text-slate-500 mb-4 uppercase tracking-[0.25em] flex items-center gap-2">
@@ -190,7 +229,6 @@ function HolographicSubmissionCard({
             </div>
           )}
 
-          {/* Audio Section */}
           {sub.audioFileUrl && (
             <div>
               <p className="text-[11px] font-black text-slate-500 mb-4 uppercase tracking-[0.25em] flex items-center gap-2">
@@ -205,7 +243,6 @@ function HolographicSubmissionCard({
             </div>
           )}
 
-          {/* Text Section */}
           {sub.content && (
             <div>
               <p className="text-[11px] font-black text-slate-500 mb-4 uppercase tracking-[0.25em] flex items-center gap-2">
@@ -220,7 +257,6 @@ function HolographicSubmissionCard({
             </div>
           )}
 
-          {/* Fallback */}
           {!sub.audioFileUrl && !sub.content && !sub.documentUrl && (
              <div className="text-center p-6 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
                No submission content found for this record.
@@ -239,7 +275,7 @@ function HolographicSubmissionCard({
             </div>
             <div className="z-10 relative">
               <span className="block text-[11px] font-black text-emerald-500 uppercase mb-2 tracking-[0.25em]">Your Feedback</span>
-              <p className="text-slate-300 text-sm font-light leading-relaxed mix-blend-screen">{sub.feedback || "No feedback provided."}</p>
+              <p className="text-slate-300 text-sm font-light leading-relaxed mix-blend-screen whitespace-pre-wrap">{sub.feedback || "No feedback provided."}</p>
             </div>
           </div>
         ) : (
@@ -264,7 +300,8 @@ function HolographicSubmissionCard({
                       <select 
                         value={gradeInput}
                         onChange={(e) => setGradeInput(e.target.value)}
-                        className="w-full bg-[#020510] border border-white/[0.08] text-white font-bold rounded-xl px-4 py-3.5 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/50 outline-none transition-all shadow-inner cursor-pointer"
+                        disabled={isGeneratingAI || submitLoading}
+                        className="w-full bg-[#020510] border border-white/[0.08] text-white font-bold rounded-xl px-4 py-3.5 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/50 outline-none transition-all shadow-inner cursor-pointer disabled:opacity-50"
                       >
                         <option value="A+">A+ (Excellent)</option>
                         <option value="A">A (Very Good)</option>
@@ -273,14 +310,35 @@ function HolographicSubmissionCard({
                         <option value="Needs Revision">Needs Revision</option>
                       </select>
                     </div>
+                    
                     <div className="md:col-span-3">
-                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Ustad Feedback <span className="lowercase tracking-normal text-slate-500 font-medium">(Optional)</span></label>
-                      <input 
-                        type="text"
-                        placeholder="e.g., MashaAllah, perfect answer!"
+                      {/* 👇 AI GENERATION BUTTON UPDATED HERE 👇 */}
+                      <div className="flex items-center justify-between mb-3">
+                        <label className="block text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                          Ustad Feedback <span className="lowercase tracking-normal text-slate-500 font-medium">(Optional)</span>
+                        </label>
+                        <button
+                          onClick={generateAIFeedback}
+                          disabled={isGeneratingAI || submitLoading}
+                          className="flex items-center gap-2 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-lg text-[10px] font-bold transition-all uppercase tracking-widest active:scale-95 disabled:opacity-50"
+                        >
+                          {isGeneratingAI ? (
+                            <>
+                              <span className="w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></span>
+                              Generating...
+                            </>
+                          ) : (
+                            <>✨ AI Draft</>
+                          )}
+                        </button>
+                      </div>
+                      <textarea 
+                        rows={3}
+                        placeholder="e.g., MashaAllah, perfect answer! Keep up the good work."
                         value={feedbackInput}
                         onChange={(e) => setFeedbackInput(e.target.value)}
-                        className="w-full bg-[#020510] border border-white/[0.08] text-white rounded-xl px-5 py-3.5 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/50 outline-none transition-all shadow-inner"
+                        disabled={isGeneratingAI || submitLoading}
+                        className="w-full custom-scrollbar bg-[#020510] border border-white/[0.08] text-white rounded-xl px-5 py-3.5 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/50 outline-none transition-all shadow-inner resize-none disabled:opacity-50 leading-relaxed"
                       />
                     </div>
                   </div>
@@ -288,13 +346,14 @@ function HolographicSubmissionCard({
                   <div className="flex justify-end gap-4 relative z-10">
                     <button 
                       onClick={() => setGradingId(null)}
-                      className="px-6 py-3 rounded-xl text-[13px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/[0.05] transition-colors"
+                      disabled={isGeneratingAI || submitLoading}
+                      className="px-6 py-3 rounded-xl text-[13px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/[0.05] transition-colors disabled:opacity-50"
                     >
                       Cancel
                     </button>
                     <button 
                       onClick={() => handleGradeSubmit(sub._id)}
-                      disabled={submitLoading}
+                      disabled={isGeneratingAI || submitLoading}
                       className="px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-[#010206] text-[13px] font-black uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(245,158,11,0.4),inset_0_1px_1px_rgba(255,255,255,0.6)] flex items-center gap-2 active:scale-95 disabled:opacity-50"
                     >
                       {submitLoading ? "Saving..." : "Lock Grade"}
@@ -306,7 +365,7 @@ function HolographicSubmissionCard({
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                   onClick={() => {
                     setGradingId(sub._id);
-                    setGradeInput("A"); // Reset on open
+                    setGradeInput("A"); 
                     setFeedbackInput("");
                   }}
                   className="w-full group/eval relative px-8 py-4 bg-white/[0.02] border border-white/[0.06] hover:border-amber-500/50 rounded-2xl transition-all duration-300 flex items-center justify-center gap-3 overflow-hidden shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]"
