@@ -9,6 +9,8 @@ import { motion, AnimatePresence, Variants, useMotionValue, useSpring, useTransf
 import { useAuth } from "../../context/AuthContext";
 // 👇 2. USTAD OVERVIEW COMPONENT IMPORT
 import UstadOverview from "../../components/UstadOverview";
+// 👇 3. NAYA 3D CRYSTAL COMPONENT IMPORT 🔥
+import ProgressCrystal from "../../components/ProgressCrystal";
 
 // --- Types ---
 interface Activity {
@@ -164,11 +166,6 @@ export default function Dashboard() {
   const smoothCursorX = useSpring(useTransform(cursorPos, p => p.x), { stiffness: 50, damping: 20 });
   const smoothCursorY = useSpring(useTransform(cursorPos, p => p.y), { stiffness: 50, damping: 20 });
 
-  // SVG Circle calculation
-  const radius = 90; 
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (stats.attendanceRate / 100) * circumference;
-
   useEffect(() => {
     if (!authLoading && !user) {
       router.push("/login");
@@ -320,56 +317,36 @@ export default function Dashboard() {
             </div>
           </HolographicCard>
 
-          <HolographicCard className="group flex flex-col items-center justify-center text-center p-8 sm:p-12">
-            <p className="text-slate-400 text-[10px] sm:text-[12px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] mb-8 sm:mb-12 flex items-center gap-2 sm:gap-3 bg-[#030612]/50 px-4 sm:px-6 py-2 sm:py-3 rounded-full border border-white/[0.08] shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
+          {/* 👇 NAYA 3D CRYSTAL CARD 🔥 */}
+          <HolographicCard className="group flex flex-col items-center justify-center text-center p-8 sm:p-12 relative">
+            <p className="text-slate-400 text-[10px] sm:text-[12px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3 bg-[#030612]/50 px-4 sm:px-6 py-2 sm:py-3 rounded-full border border-white/[0.08] shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] z-10 relative">
               <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-teal-400 shadow-[0_0_16px_rgba(45,212,191,1)] animate-pulse"></span>
               Attendance Core
             </p>
 
-            <div className="relative flex items-center justify-center w-48 h-48 sm:w-64 sm:h-64 mb-4 sm:mb-6">
-              <svg className="absolute w-0 h-0">
-                <defs>
-                  <linearGradient id="attendanceGradExtreme" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#34d399" />
-                    <stop offset="50%" stopColor="#0ea5e9" />
-                    <stop offset="100%" stopColor="#8b5cf6" />
-                  </linearGradient>
-                  <filter id="hyperGlowExtreme" x="-50%" y="-50%" width="200%" height="200%">
-                    <feGaussianBlur stdDeviation="16" result="blur" />
-                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                  </filter>
-                </defs>
-              </svg>
-              
-              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 256 256">
-                <circle cx="128" cy="128" r={radius} stroke="currentColor" strokeWidth="16" fill="transparent" className="text-white/[0.02]" />
-                {!loading && (
-                  <motion.circle 
-                    cx="128" cy="128" r={radius} 
-                    stroke="url(#attendanceGradExtreme)" strokeWidth="16" fill="transparent" 
-                    strokeDasharray={circumference} 
-                    initial={{ strokeDashoffset: circumference }}
-                    animate={{ strokeDashoffset }}
-                    transition={{ duration: 2.5, ease: [0.16, 1, 0.3, 1], delay: 0.5 }}
-                    strokeLinecap="round" 
-                    filter="url(#hyperGlowExtreme)"
-                  />
-                )}
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
+            {/* Container for 3D Canvas and Text */}
+            <div className="relative w-full h-56 sm:h-72 mb-4">
+              {/* 3D Crystal in Background */}
+              <div className="absolute inset-0 z-0 rounded-2xl overflow-hidden pointer-events-auto">
+                {!loading && <ProgressCrystal progress={stats.attendanceRate} />}
+              </div>
+
+              {/* Text Overlaying the Crystal */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
                 {loading ? (
                   <span className="text-5xl sm:text-6xl font-black text-slate-800 animate-pulse">--</span>
                 ) : (
-                  <div className="flex items-start drop-shadow-[0_0_30px_rgba(255,255,255,0.3)]">
-                    <span className="text-5xl sm:text-6xl md:text-7xl font-black text-white tracking-tighter">
+                  <div className="flex items-start drop-shadow-[0_0_40px_rgba(0,0,0,0.8)] bg-black/30 backdrop-blur-[4px] px-6 py-3 rounded-[2rem] border border-white/10">
+                    <span className="text-5xl sm:text-6xl md:text-7xl font-black text-white tracking-tighter drop-shadow-lg">
                       <CinematicNumber value={stats.attendanceRate} />
                     </span>
-                    <span className="text-2xl sm:text-3xl font-bold text-teal-400 mt-1 sm:mt-2 ml-1">%</span>
+                    <span className="text-2xl sm:text-3xl font-bold text-teal-400 mt-1 sm:mt-2 ml-1 drop-shadow-md">%</span>
                   </div>
                 )}
               </div>
             </div>
-            <p className="text-sm sm:text-base text-slate-500 font-medium tracking-widest uppercase mt-2">Presence unlocks mastery.</p>
+
+            <p className="text-sm sm:text-base text-slate-500 font-medium tracking-widest uppercase mt-2 z-10 relative">Presence unlocks mastery.</p>
           </HolographicCard>
         </div>
 
