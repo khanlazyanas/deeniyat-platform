@@ -3,10 +3,10 @@ import OpenAI from "openai";
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-// DeepSeek client initialization (Direct OpenAI SDK)
+// 👇 Groq Free API setup (Naam purana, Engine naya!)
 const openai = new OpenAI({
-  baseURL: 'https://api.deepseek.com',
-  apiKey: process.env.DEEPSEEK_API_KEY,
+  baseURL: 'https://api.groq.com/openai/v1', 
+  apiKey: process.env.DEEPSEEK_API_KEY, 
 });
 
 export async function POST(req: Request) {
@@ -32,11 +32,10 @@ export async function POST(req: Request) {
     - Base the tone on the grade (e.g., highly praising for A+, encouraging to improve for C or Needs Revision).
     - Keep it strictly professional, supportive, and in English. Do not use markdown formatting.`;
 
-    // Direct non-streaming or standard stream call to ensure stability
     const completion = await openai.chat.completions.create({
-      model: "deepseek-chat",
+      model: "llama3-8b-8192", // Groq fast model
       messages: [{ role: "user", content: prompt }],
-      stream: false, // Non-streaming rakhte hain taaki Vercel par 0 bytes ka lafda hi khatam ho jaye
+      stream: false, 
     });
 
     const feedbackText = completion.choices[0]?.message?.content || "MashaAllah, good effort!";
@@ -47,7 +46,7 @@ export async function POST(req: Request) {
     });
 
   } catch (error: any) {
-    console.error("DeepSeek API Error Detail:", error);
+    console.error("AI API Error Detail:", error);
     return new Response(JSON.stringify({ error: error.message || "Failed to generate feedback" }), { 
       status: 500,
       headers: { 'Content-Type': 'application/json' }
