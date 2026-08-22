@@ -234,7 +234,8 @@ export default function SubmitAssignmentPage() {
 
       if (textContent.trim()) formData.append("content", textContent);
       if (audioBlob) formData.append("audio", audioBlob, "recording.webm");
-      if (attachedFile) formData.append("file", attachedFile);
+      // 👇 FIX: Backend req.files['document'] dhoondh raha hai, isliye yahan "document" pass karna zaroori tha.
+      if (attachedFile) formData.append("document", attachedFile);
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/submissions`, {
         method: "POST",
@@ -414,7 +415,7 @@ export default function SubmitAssignmentPage() {
                 ></textarea>
               </div>
 
-              {/* 👇 EXTACT SAME BLUE FILE UPLOAD AREA FROM SUBMISSIONS PAGE 👇 */}
+              {/* BLUE FILE UPLOAD AREA */}
               <div className="bg-[#010206]/60 border border-white/[0.04] rounded-[2rem] p-8 md:p-10 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] relative overflow-hidden">
                 <label className="flex items-center gap-3 text-[11px] font-black text-blue-500 uppercase tracking-[0.3em] mb-6 relative z-10">
                   <svg className="w-5 h-5 text-blue-500/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
