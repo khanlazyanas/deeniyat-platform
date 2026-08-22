@@ -141,7 +141,7 @@ export default function SubmitAssignmentPage() {
     fetchCoursesList();
   }, []);
 
-  // 👇 BULLETPROOF FETCH LOGIC FOR MODULES/LESSONS
+  // 👇 100% PERFECT MATCH FOR YOUR BACKEND
   useEffect(() => {
     const fetchLessons = async () => {
       if (!selectedCourse) {
@@ -150,26 +150,23 @@ export default function SubmitAssignmentPage() {
       }
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${selectedCourse}`, {
+        
+        // Tumhare lessonRoutes.ts ke mutabiq EXACT correct URL path aur Token
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lessons/course/${selectedCourse}`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
         
         if (response.ok) {
           const data = await response.json();
-          
-          let extractedLessons: any[] = [];
-          
-          if (Array.isArray(data.lessons)) extractedLessons = data.lessons;
-          else if (data.data && Array.isArray(data.data.lessons)) extractedLessons = data.data.lessons;
-          else if (data.course && Array.isArray(data.course.lessons)) extractedLessons = data.course.lessons;
-          else if (data.data && data.data.course && Array.isArray(data.data.course.lessons)) extractedLessons = data.data.course.lessons;
-          else if (Array.isArray(data.modules)) extractedLessons = data.modules;
-          else if (data.data && Array.isArray(data.data.modules)) extractedLessons = data.data.modules;
-
-          setLessons(extractedLessons);
+          // Tumhara lessonController direct array bhej raha hai (res.json(lessons);)
+          setLessons(data || []);
+        } else {
+          setLessons([]);
+          console.error("Failed to fetch modules, Status:", response.status);
         }
       } catch (error) {
         console.error("Failed to load modules", error);
+        setLessons([]);
       }
     };
     fetchLessons();
