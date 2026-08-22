@@ -114,27 +114,22 @@ export default function SubmitAssignmentPage() {
     return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
   }, [mouseX, mouseY, isHovered]);
 
-  // 👇 DIRECT FETCH LOGIC (Ab ye 100% SAARE Courses layega!)
+  // 👇 DIRECT FETCH LOGIC FOR COURSES
   useEffect(() => {
     const fetchCoursesList = async () => {
       try {
         const token = localStorage.getItem("token");
-        
-        // Ab hum direct '/courses' API hit kar rahe hain bina kisi enrollment filter ke
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
         
         if (response.ok) {
           const data = await response.json();
-          
-          // Data format handle karna
           let sourceArray: any[] = [];
           if (Array.isArray(data)) sourceArray = data;
           else if (data.data && Array.isArray(data.data)) sourceArray = data.data;
           else if (data.courses && Array.isArray(data.courses)) sourceArray = data.courses;
 
-          // Valid courses filter karke direct dropdown me daal dena
           const validCourses = sourceArray.filter((c: any) => c && c._id && c.title);
           setCourses(validCourses as Course[]); 
         }
@@ -146,6 +141,7 @@ export default function SubmitAssignmentPage() {
     fetchCoursesList();
   }, []);
 
+  // 👇 BULLETPROOF FETCH LOGIC FOR MODULES/LESSONS
   useEffect(() => {
     const fetchLessons = async () => {
       if (!selectedCourse) {
@@ -153,13 +149,27 @@ export default function SubmitAssignmentPage() {
         return;
       }
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${selectedCourse}`);
+        const token = localStorage.getItem("token");
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${selectedCourse}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        
         if (response.ok) {
           const data = await response.json();
-          setLessons(data.lessons || []);
+          
+          let extractedLessons: any[] = [];
+          
+          if (Array.isArray(data.lessons)) extractedLessons = data.lessons;
+          else if (data.data && Array.isArray(data.data.lessons)) extractedLessons = data.data.lessons;
+          else if (data.course && Array.isArray(data.course.lessons)) extractedLessons = data.course.lessons;
+          else if (data.data && data.data.course && Array.isArray(data.data.course.lessons)) extractedLessons = data.data.course.lessons;
+          else if (Array.isArray(data.modules)) extractedLessons = data.modules;
+          else if (data.data && Array.isArray(data.data.modules)) extractedLessons = data.data.modules;
+
+          setLessons(extractedLessons);
         }
       } catch (error) {
-        console.error("Failed to load lessons", error);
+        console.error("Failed to load modules", error);
       }
     };
     fetchLessons();
