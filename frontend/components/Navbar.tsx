@@ -52,7 +52,7 @@ export default function Navbar() {
     }
   ];
 
-  // 🔥 OPTIMIZED SCROLL TRACKING FOR 60FPS (Prevents unnecessary re-renders)
+  // 🔥 OPTIMIZED SCROLL TRACKING FOR 60FPS
   useMotionValueEvent(scrollY, "change", (latest) => {
     const previous = scrollY.getPrevious() ?? 0;
     const isScrolled = latest > 20;
@@ -142,29 +142,37 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* 3. AUTH BUTTONS */}
+          {/* 3. ULTRA PREMIUM AUTH BUTTONS */}
           <div className="hidden md:flex items-center space-x-3 pr-1 relative z-10">
             {user ? (
               <div className="flex items-center gap-3">
+                {/* 🌟 NEW: Glassmorphic Stealth Dashboard Button */}
                 <Link 
                   href="/dashboard" 
-                  className="px-6 py-2.5 text-[14px] font-black text-[#010206] bg-white rounded-full hover:bg-slate-100 transition-all duration-300 hover:scale-105 shadow-[0_0_25px_rgba(255,255,255,0.3)] flex items-center gap-2"
+                  className="group relative flex items-center gap-3 px-5 py-2 rounded-[24px] bg-[#0a0f1c]/80 backdrop-blur-xl border border-white/[0.08] hover:border-emerald-500/50 hover:bg-[#0a0f1c] transition-all duration-500 ease-out shadow-[0_0_20px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.05)] hover:shadow-[0_0_25px_rgba(52,211,153,0.15)] overflow-hidden"
                 >
-                  <div className="w-6 h-6 rounded-full bg-[#030612] overflow-hidden flex items-center justify-center text-white text-xs border border-slate-200">
+                  {/* Subtle Hover Gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
+                  
+                  <div className="relative z-10 w-7 h-7 rounded-full bg-[#030612] overflow-hidden flex items-center justify-center text-white text-xs border border-white/[0.1] shadow-[0_0_10px_rgba(0,0,0,0.8)] ring-2 ring-transparent group-hover:ring-emerald-500/30 transition-all duration-300">
                       {user.avatar ? (
                           <img src={getFullImageUrl(user.avatar)} alt="Avatar" className="w-full h-full object-cover" />
                       ) : (
                           user.name ? user.name.charAt(0) : "U"
                       )}
                   </div>
-                  Dashboard
+                  <span className="relative z-10 text-[13px] font-black tracking-widest uppercase text-slate-300 group-hover:text-white transition-colors duration-300">
+                    Dashboard
+                  </span>
                 </Link>
+
+                {/* 🌟 NEW: Stealth Logout Button */}
                 <button 
                   onClick={logout}
-                  className="p-2.5 text-slate-400 hover:text-rose-400 bg-white/[0.03] hover:bg-rose-500/10 border border-white/[0.05] hover:border-rose-500/30 rounded-full transition-all duration-300"
+                  className="group relative flex items-center justify-center w-11 h-11 bg-white/[0.02] border border-white/[0.05] rounded-full hover:bg-rose-500/10 hover:border-rose-500/30 transition-all duration-300 shadow-inner"
                   title="Logout"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                  <svg className="w-4 h-4 text-slate-500 group-hover:text-rose-400 group-hover:-translate-x-0.5 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
                 </button>
               </div>
             ) : (
@@ -307,16 +315,16 @@ export default function Navbar() {
               >
                 {user ? (
                   <>
-                    <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="w-full flex justify-center items-center gap-2 text-center py-4 text-[16px] font-black text-[#010206] bg-white rounded-[22px] shadow-[0_0_30px_rgba(255,255,255,0.3)] active:scale-[0.98] transition-transform duration-300 ease-out">
+                    <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="w-full flex justify-center items-center gap-2 text-center py-4 text-[16px] font-black text-white bg-white/[0.05] border border-white/[0.1] rounded-[22px] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] active:scale-[0.98] transition-transform duration-300 ease-out">
                       Dashboard
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 8l4 4m0 0l-4-4m4-4H3" /></svg>
+                      <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 8l4 4m0 0l-4-4m4-4H3" /></svg>
                     </Link>
                     <button 
                         onClick={() => { logout(); setMobileMenuOpen(false); }} 
                         className="w-full flex items-center justify-center gap-2 py-4 text-[16px] font-bold text-rose-400 bg-rose-500/10 rounded-[22px] border border-rose-500/20 hover:bg-rose-500/20 transition-all active:scale-[0.98] duration-300 ease-out"
                     >
                         Log Out
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 16l4-4m0 0l-4-4m4-4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
                     </button>
                   </>
                 ) : (
