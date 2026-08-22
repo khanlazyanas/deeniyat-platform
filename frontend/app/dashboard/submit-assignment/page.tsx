@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { useAuth } from "../../../../frontend/context/AuthContext"; // 👈 Added Auth Context
+import { useAuth } from "../../../../frontend/context/AuthContext";
 
 interface Course {
   _id: string;
@@ -51,7 +51,7 @@ const generateBubbles = (count: number) => {
 const ambientBubbles = generateBubbles(45);
 
 export default function SubmitAssignmentPage() {
-  const { user } = useAuth(); // 👈 Added user role access
+  const { user } = useAuth();
 
   const [courses, setCourses] = useState<Course[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -60,10 +60,7 @@ export default function SubmitAssignmentPage() {
   const [selectedCourse, setSelectedCourse] = useState("");
   const [selectedLesson, setSelectedLesson] = useState("");
   
-  // 👇 NEW: Text Submission State
   const [textContent, setTextContent] = useState("");
-
-  // Recording States
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string>("");
@@ -88,7 +85,6 @@ export default function SubmitAssignmentPage() {
   const bgX = useTransform(smoothMouseX, (v) => v * 0.3);
   const bgY = useTransform(smoothMouseY, (v) => v * 0.3);
 
-  // Holographic Card Config 
   const cardRef = useRef<HTMLFormElement>(null); 
   const cardSpringConfig = { damping: 40, stiffness: 250, mass: 0.5 };
   const rotateX = useSpring(useTransform(smoothMouseY, [-50, 50], [4, -4]), cardSpringConfig);
@@ -96,7 +92,6 @@ export default function SubmitAssignmentPage() {
   const [isHovered, setIsHovered] = useState(false);
   const [glarePosition, setGlarePosition] = useState({ x: 0, y: 0 });
 
-  // Setup Mouse Tracking
   useEffect(() => {
     setMounted(true);
 
@@ -119,10 +114,9 @@ export default function SubmitAssignmentPage() {
     return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
   }, [mouseX, mouseY, isHovered]);
 
-  // 👇 BULLETPROOF COURSES FETCH LOGIC
+  // 👇 BULLETPROOF COURSES FETCH LOGIC (FIXED)
   useEffect(() => {
     const fetchCoursesList = async () => {
-      // User auth check
       if (!user) return; 
 
       try {
@@ -136,20 +130,26 @@ export default function SubmitAssignmentPage() {
         
         if (response.ok) {
           const data = await response.json();
-          console.log("Raw Course Data Fetched:", data);
-
-          const sourceData = Array.isArray(data) ? data : (data.data || []);
           
-          // Smart mapping to extract course object correctly from enrollments
-          const extractedCourses = sourceData.map((item: any) => {
-            if (item.courseId && item.courseId._id) return item.courseId;
-            if (item.course && item.course._id) return item.course;
+          // 1. Array dhoondho (Chahe response mein jahan bhi chhupa ho)
+          let sourceArray: any[] = [];
+          if (Array.isArray(data)) sourceArray = data;
+          else if (data.data && Array.isArray(data.data)) sourceArray = data.data;
+          else if (data.courses && Array.isArray(data.courses)) sourceArray = data.courses;
+          else if (data.enrollments && Array.isArray(data.enrollments)) sourceArray = data.enrollments;
+
+          // 2. Course object extract karo
+          const extractedCourses = sourceArray.map((item: any) => {
+            if (item.course && typeof item.course === 'object') return item.course;
+            if (item.courseId && typeof item.courseId === 'object') return item.courseId;
             return item; 
           });
 
-          // Filter valid courses
+          // 3. Valid courses filter karo aur Duplicate courses hatao (React key errors bachane ke liye)
           const validCourses = extractedCourses.filter((c: any) => c && c._id && c.title);
-          setCourses(validCourses); 
+          const uniqueCourses = Array.from(new Map(validCourses.map((c: any) => [c._id, c])).values());
+
+          setCourses(uniqueCourses as Course[]); 
         }
       } catch (error) {
         console.error("Failed to load courses", error);
@@ -159,7 +159,6 @@ export default function SubmitAssignmentPage() {
     fetchCoursesList();
   }, [user]);
 
-  // Fetch lessons when a specific course is selected
   useEffect(() => {
     const fetchLessons = async () => {
       if (!selectedCourse) {
@@ -179,7 +178,6 @@ export default function SubmitAssignmentPage() {
     fetchLessons();
   }, [selectedCourse]);
 
-  // Start recording using Web Audio API
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -208,7 +206,6 @@ export default function SubmitAssignmentPage() {
     }
   };
 
-  // Stop the ongoing recording
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
@@ -217,13 +214,11 @@ export default function SubmitAssignmentPage() {
     }
   };
 
-  // Discard the recorded audio
   const discardRecording = () => {
     setAudioBlob(null);
     setAudioUrl("");
   };
 
-  // 👇 UPDATED: Submit the assignment supporting BOTH Text and Audio
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -247,21 +242,12 @@ export default function SubmitAssignmentPage() {
       formData.append("courseId", selectedCourse);
       formData.append("lessonId", selectedLesson);
       
-      // Append text if exists
-      if (textContent.trim()) {
-        formData.append("content", textContent);
-      }
-      
-      // Append audio if exists
-      if (audioBlob) {
-        formData.append("audio", audioBlob, "recording.webm");
-      }
+      if (textContent.trim()) formData.append("content", textContent);
+      if (audioBlob) formData.append("audio", audioBlob, "recording.webm");
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/submissions`, {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}` 
-        },
+        headers: { "Authorization": `Bearer ${token}` },
         body: formData
       });
 
@@ -285,11 +271,9 @@ export default function SubmitAssignmentPage() {
   return (
     <div className="min-h-screen pt-24 pb-20 bg-[#010206] text-slate-50 flex items-center justify-center font-sans selection:bg-emerald-500/30 selection:text-emerald-200 overflow-hidden relative px-4 sm:px-6 lg:px-8 perspective-[2000px] custom-scrollbar">
       
-      {/* GLOBAL BACKGROUND */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none"></div>
       <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.035] mix-blend-overlay pointer-events-none z-0"></div>
 
-      {/* --- HYPER-DENSE 3D PARTICLES ENGINE --- */}
       {mounted && (
         <div className="fixed inset-0 z-[5] pointer-events-none overflow-hidden">
           <motion.div style={{ x: fgX, y: fgY }} className="absolute inset-0 will-change-transform">
@@ -330,7 +314,6 @@ export default function SubmitAssignmentPage() {
         </div>
       )}
 
-      {/* Ambient Background Glows */}
       <div className="absolute top-[10%] right-[10%] w-[500px] h-[500px] bg-emerald-900/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen animate-[pulse_10s_ease-in-out_infinite]"></div>
       <div className="absolute bottom-[10%] left-[10%] w-[600px] h-[600px] bg-teal-900/10 rounded-full blur-[140px] pointer-events-none mix-blend-screen animate-[pulse_15s_ease-in-out_infinite_reverse]"></div>
 
@@ -425,7 +408,7 @@ export default function SubmitAssignmentPage() {
                 </div>
               </div>
 
-              {/* 👇 TEXT SUBMISSION AREA */}
+              {/* TEXT SUBMISSION AREA */}
               <div className="bg-[#010206]/60 border border-white/[0.04] rounded-[2rem] p-8 md:p-10 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] relative overflow-hidden">
                 <label className="flex items-center gap-3 text-[11px] font-black text-emerald-500 uppercase tracking-[0.3em] mb-6 relative z-10">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
