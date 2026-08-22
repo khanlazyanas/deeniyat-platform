@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     - Keep it strictly professional, supportive, and in English. Do not use markdown formatting.`;
 
     const completion = await openai.chat.completions.create({
-      model: "llama3-8b-8192", // Groq fast model
+      model: "llama-3.1-8b-instant", 
       messages: [{ role: "user", content: prompt }],
       stream: false, 
     });
