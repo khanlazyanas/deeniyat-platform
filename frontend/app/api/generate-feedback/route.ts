@@ -33,11 +33,10 @@ export async function POST(req: Request) {
     - Keep it strictly professional, supportive, and in English. Do not use markdown formatting.`;
 
     const completion = await openai.chat.completions.create({
-      model: "llama-3.1-8b-instant", 
+      model: "mixtral-8x7b-32768", // 👇 Yahan Mixtral model daal diya
       messages: [{ role: "user", content: prompt }],
       stream: false, 
     });
-
     const feedbackText = completion.choices[0]?.message?.content || "MashaAllah, good effort!";
 
     return new Response(feedbackText, {
