@@ -65,7 +65,7 @@ export default function SubmitAssignmentPage() {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string>("");
   
-  // 👇 NEW: File Upload State 
+  // 👇 File Upload State
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -116,7 +116,6 @@ export default function SubmitAssignmentPage() {
     return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
   }, [mouseX, mouseY, isHovered]);
 
-  // DIRECT FETCH LOGIC FOR COURSES
   useEffect(() => {
     const fetchCoursesList = async () => {
       try {
@@ -143,7 +142,6 @@ export default function SubmitAssignmentPage() {
     fetchCoursesList();
   }, []);
 
-  // EXACT MODULES/LESSONS FETCH LOGIC
   useEffect(() => {
     const fetchLessons = async () => {
       if (!selectedCourse) {
@@ -212,7 +210,6 @@ export default function SubmitAssignmentPage() {
     setAudioUrl("");
   };
 
-  // 👇 Handle Submission updated with File Upload logic
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -402,57 +399,55 @@ export default function SubmitAssignmentPage() {
                 </div>
               </div>
 
-              {/* 👇 UPDATED TEXT AND FILE SUBMISSION AREA */}
-              <div className="bg-[#010206]/60 border border-white/[0.04] rounded-[2rem] p-8 md:p-10 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] relative overflow-hidden flex flex-col gap-6">
-                
-                {/* Text Area Section */}
-                <div>
-                  <label className="flex items-center gap-3 text-[11px] font-black text-emerald-500 uppercase tracking-[0.3em] mb-6 relative z-10">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                    Written Work / Link
-                  </label>
-                  <textarea
-                    value={textContent}
-                    onChange={(e) => setTextContent(e.target.value)}
-                    placeholder="Paste your assignment link or type your notes here..."
-                    rows={4}
-                    className="w-full bg-[#020510]/80 border border-white/[0.08] rounded-[1.25rem] px-6 py-5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all duration-300 resize-none shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] font-medium"
-                  ></textarea>
-                </div>
+              {/* TEXT SUBMISSION AREA */}
+              <div className="bg-[#010206]/60 border border-white/[0.04] rounded-[2rem] p-8 md:p-10 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] relative overflow-hidden">
+                <label className="flex items-center gap-3 text-[11px] font-black text-emerald-500 uppercase tracking-[0.3em] mb-6 relative z-10">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  Written Work / Link
+                </label>
+                <textarea
+                  value={textContent}
+                  onChange={(e) => setTextContent(e.target.value)}
+                  placeholder="Paste your assignment link or type your notes here..."
+                  rows={4}
+                  className="w-full bg-[#020510]/80 border border-white/[0.08] rounded-[1.25rem] px-6 py-5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all duration-300 resize-none shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] font-medium"
+                ></textarea>
+              </div>
 
-                {/* File Attachment Section - MADE PROMINENT */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#020510]/80 border border-white/[0.08] rounded-[1.25rem] px-6 py-5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] relative z-10">
-                  <div className="flex items-center gap-4 w-full">
-                    <div className={`p-3 rounded-full ${attachedFile ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+              {/* 👇 EXTACT SAME BLUE FILE UPLOAD AREA FROM SUBMISSIONS PAGE 👇 */}
+              <div className="bg-[#010206]/60 border border-white/[0.04] rounded-[2rem] p-8 md:p-10 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] relative overflow-hidden">
+                <label className="flex items-center gap-3 text-[11px] font-black text-blue-500 uppercase tracking-[0.3em] mb-6 relative z-10">
+                  <svg className="w-5 h-5 text-blue-500/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                  Attach Document / File
+                </label>
+                
+                <div className="w-full bg-[#040814]/80 p-4 rounded-2xl border border-white/[0.05] shadow-inner flex flex-col md:flex-row items-center justify-between gap-4 relative z-10">
+                  <div className="flex items-center gap-4 overflow-hidden w-full">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center border shrink-0 ${attachedFile ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-slate-800/50 border-slate-700 text-slate-500'}`}>
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                     </div>
                     <div className="flex flex-col overflow-hidden">
-                      <span className="text-[13px] font-bold text-slate-200">Attachment (Optional)</span>
-                      <span className="text-[12px] font-medium text-slate-500 truncate max-w-[200px] md:max-w-[300px]">
-                        {attachedFile ? attachedFile.name : "Upload document or image"}
+                      <span className="text-slate-200 text-[14px] truncate font-bold max-w-[200px] md:max-w-md">
+                        {attachedFile ? attachedFile.name : "No file selected"}
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
+                        {attachedFile ? `${(attachedFile.size / 1024 / 1024).toFixed(2)} MB` : "PDF, Images, or DOCX allowed"}
                       </span>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-                    <label className="cursor-pointer px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-[#010206] font-black uppercase tracking-wider text-[11px] rounded-xl transition-all shadow-[0_0_15px_rgba(52,211,153,0.3)] whitespace-nowrap">
+                  <div className="flex items-center gap-3 w-full md:w-auto justify-end shrink-0">
+                    <label className="cursor-pointer px-6 py-2.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-lg text-[11px] font-black uppercase tracking-widest transition-colors shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] whitespace-nowrap">
                       Browse File
                       <input type="file" className="hidden" onChange={(e) => setAttachedFile(e.target.files?.[0] || null)} />
                     </label>
-                    
                     {attachedFile && (
-                      <button 
-                        type="button" 
-                        onClick={() => setAttachedFile(null)} 
-                        className="p-2.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-xl border border-red-500/30 transition-colors"
-                        title="Remove file"
-                      >
+                      <button type="button" onClick={() => setAttachedFile(null)} className="p-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg transition-colors" title="Remove file">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                       </button>
                     )}
                   </div>
                 </div>
-
               </div>
 
               {/* LIVE AUDIO RECORDER AREA */}
