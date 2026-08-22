@@ -21,7 +21,7 @@ const globalAnimations = `
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.15); }
-  
+
   /* Custom Audio Player Styling to match dark theme */
   audio::-webkit-media-controls-panel {
     background-color: #040814;
@@ -56,15 +56,18 @@ export default function SubmitAssignmentPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [mounted, setMounted] = useState(false);
-  
+
   const [selectedCourse, setSelectedCourse] = useState("");
   const [selectedLesson, setSelectedLesson] = useState("");
-  
+
   const [textContent, setTextContent] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string>("");
   
+  // 👇 NEW: File Upload State added back
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
@@ -74,7 +77,7 @@ export default function SubmitAssignmentPage() {
   // --- MOUSE PARALLAX TRACKING LOGIC ---
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
-  
+
   const smoothMouseX = useSpring(mouseX, { stiffness: 50, damping: 20 });
   const smoothMouseY = useSpring(mouseY, { stiffness: 50, damping: 20 });
 
@@ -109,12 +112,12 @@ export default function SubmitAssignmentPage() {
         });
       }
     };
-    
+
     window.addEventListener('mousemove', handleGlobalMouseMove);
     return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
   }, [mouseX, mouseY, isHovered]);
 
-  // 👇 DIRECT FETCH LOGIC FOR COURSES
+  // DIRECT FETCH LOGIC FOR COURSES
   useEffect(() => {
     const fetchCoursesList = async () => {
       try {
@@ -122,7 +125,7 @@ export default function SubmitAssignmentPage() {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           let sourceArray: any[] = [];
@@ -141,7 +144,7 @@ export default function SubmitAssignmentPage() {
     fetchCoursesList();
   }, []);
 
-  // 👇 100% PERFECT MATCH FOR YOUR BACKEND
+  // EXACT MODULES/LESSONS FETCH LOGIC
   useEffect(() => {
     const fetchLessons = async () => {
       if (!selectedCourse) {
@@ -150,15 +153,13 @@ export default function SubmitAssignmentPage() {
       }
       try {
         const token = localStorage.getItem("token");
-        
-        // Tumhare lessonRoutes.ts ke mutabiq EXACT correct URL path aur Token
+
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lessons/course/${selectedCourse}`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
-        
+
         if (response.ok) {
           const data = await response.json();
-          // Tumhara lessonController direct array bhej raha hai (res.json(lessons);)
           setLessons(data || []);
         } else {
           setLessons([]);
@@ -213,16 +214,18 @@ export default function SubmitAssignmentPage() {
     setAudioUrl("");
   };
 
+  // 👇 Handle Submission updated with File Upload logic
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedCourse || !selectedLesson) {
       setMessage({ type: "error", text: "Please select a course and lesson." });
       return;
     }
 
-    if (!audioBlob && !textContent.trim()) {
-      setMessage({ type: "error", text: "Please provide either a text answer or an audio recording." });
+    // Must have at least one of these: text, audio, or a file
+    if (!audioBlob && !textContent.trim() && !attachedFile) {
+      setMessage({ type: "error", text: "Please provide text, upload a file, or record audio." });
       return;
     }
 
@@ -231,13 +234,15 @@ export default function SubmitAssignmentPage() {
 
     try {
       const token = localStorage.getItem("token");
-      
       const formData = new FormData();
       formData.append("courseId", selectedCourse);
       formData.append("lessonId", selectedLesson);
-      
+
       if (textContent.trim()) formData.append("content", textContent);
       if (audioBlob) formData.append("audio", audioBlob, "recording.webm");
+      
+      // 👇 Append file to formData
+      if (attachedFile) formData.append("file", attachedFile);
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/submissions`, {
         method: "POST",
@@ -250,6 +255,7 @@ export default function SubmitAssignmentPage() {
         setSelectedLesson("");
         setTextContent("");
         discardRecording();
+        setAttachedFile(null); // Clear file input
       } else {
         const data = await response.json();
         setMessage({ type: "error", text: data.message || "Failed to submit assignment." });
@@ -264,7 +270,7 @@ export default function SubmitAssignmentPage() {
 
   return (
     <div className="min-h-screen pt-24 pb-20 bg-[#010206] text-slate-50 flex items-center justify-center font-sans selection:bg-emerald-500/30 selection:text-emerald-200 overflow-hidden relative px-4 sm:px-6 lg:px-8 perspective-[2000px] custom-scrollbar">
-      
+
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none"></div>
       <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.035] mix-blend-overlay pointer-events-none z-0"></div>
 
@@ -341,7 +347,7 @@ export default function SubmitAssignmentPage() {
           />
 
           <div className="relative z-10 w-full h-full transform-gpu" style={{ transform: "translateZ(20px)" }}>
-            
+
             <AnimatePresence>
               {message.text && (
                 <motion.div 
@@ -359,7 +365,7 @@ export default function SubmitAssignmentPage() {
             </AnimatePresence>
 
             <div className="space-y-8">
-              
+
               {/* --- DROPDOWNS ROW --- */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -402,7 +408,7 @@ export default function SubmitAssignmentPage() {
                 </div>
               </div>
 
-              {/* TEXT SUBMISSION AREA */}
+              {/* TEXT AND FILE SUBMISSION AREA */}
               <div className="bg-[#010206]/60 border border-white/[0.04] rounded-[2rem] p-8 md:p-10 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] relative overflow-hidden">
                 <label className="flex items-center gap-3 text-[11px] font-black text-emerald-500 uppercase tracking-[0.3em] mb-6 relative z-10">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
@@ -415,6 +421,35 @@ export default function SubmitAssignmentPage() {
                   rows={4}
                   className="w-full bg-[#020510]/80 border border-white/[0.08] rounded-[1.25rem] px-6 py-5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all duration-300 resize-none shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] font-medium"
                 ></textarea>
+
+                {/* 👇 FILE ATTACHMENT UI */}
+                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#020510]/80 border border-white/[0.08] rounded-[1.25rem] px-6 py-4 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] relative z-10">
+                  <div className="flex items-center gap-3 w-full">
+                    <svg className={`w-5 h-5 flex-shrink-0 ${attachedFile ? 'text-emerald-400' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                    <span className="text-[13px] font-semibold text-slate-300 truncate max-w-[200px] md:max-w-[300px]">
+                      {attachedFile ? attachedFile.name : "Attach document/image (Optional)"}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <label className="cursor-pointer px-5 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold uppercase tracking-wider text-[11px] rounded-lg border border-emerald-500/30 transition-colors whitespace-nowrap">
+                      Browse
+                      <input type="file" className="hidden" onChange={(e) => setAttachedFile(e.target.files?.[0] || null)} />
+                    </label>
+                    
+                    {attachedFile && (
+                      <button 
+                        type="button" 
+                        onClick={() => setAttachedFile(null)} 
+                        className="p-2.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg border border-red-500/30 transition-colors"
+                        title="Remove file"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
               </div>
 
               {/* LIVE AUDIO RECORDER AREA */}
@@ -430,7 +465,7 @@ export default function SubmitAssignmentPage() {
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
                   Voice Recorder (Optional)
                 </label>
-                
+
                 {!audioBlob ? (
                   <div className="relative z-10">
                     {isRecording ? (
@@ -476,9 +511,10 @@ export default function SubmitAssignmentPage() {
               </div>
 
               {/* Submit Button */}
+              {/* 👇 Button disabled logic updated to check for attachedFile too */}
               <button 
                 type="submit"
-                disabled={loading || !selectedLesson || (!audioBlob && !textContent.trim())}
+                disabled={loading || !selectedLesson || (!audioBlob && !textContent.trim() && !attachedFile)}
                 className="group relative px-10 py-5 w-full bg-gradient-to-b from-emerald-400 to-teal-500 text-[#010206] text-[15px] font-black uppercase tracking-widest rounded-[1.5rem] transition-all duration-500 shadow-[0_0_30px_-5px_rgba(52,211,153,0.6),inset_0_1px_1px_rgba(255,255,255,0.8)] disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed flex items-center justify-center gap-3 overflow-hidden ring-1 ring-white/20 active:scale-95"
               >
                 {!loading && <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>}
@@ -500,7 +536,7 @@ export default function SubmitAssignmentPage() {
           </div>
         </motion.form>
       </div>
-      
+
       {/* Global CSS for Animations */}
       <style dangerouslySetInnerHTML={{ __html: globalAnimations }} />
     </div>
