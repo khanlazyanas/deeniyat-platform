@@ -32,8 +32,8 @@ export async function POST(req: Request) {
     - Base the tone on the grade (e.g., highly praising for A+, encouraging to improve for C or Needs Revision).
     - Keep it strictly professional, supportive, and in English. Do not use markdown formatting.`;
 
-    const completion = await openai.chat.completions.create({
-      model: "mixtral-8x7b-32768", // 👇 Yahan Mixtral model daal diya
+   const completion = await openai.chat.completions.create({
+      model: "openai/gpt-oss-120b", 
       messages: [{ role: "user", content: prompt }],
       stream: false, 
     });
