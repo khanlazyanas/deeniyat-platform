@@ -114,50 +114,37 @@ export default function SubmitAssignmentPage() {
     return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
   }, [mouseX, mouseY, isHovered]);
 
-  // 👇 BULLETPROOF COURSES FETCH LOGIC (FIXED)
+  // 👇 DIRECT FETCH LOGIC (Ab ye 100% SAARE Courses layega!)
   useEffect(() => {
     const fetchCoursesList = async () => {
-      if (!user) return; 
-
       try {
         const token = localStorage.getItem("token");
-        const isInstructor = user.role === 'Admin' || user.role === 'Ustad';
-        const endpoint = isInstructor ? '/courses' : '/enrollments/my-courses';
-
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
+        
+        // Ab hum direct '/courses' API hit kar rahe hain bina kisi enrollment filter ke
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
         
         if (response.ok) {
           const data = await response.json();
           
-          // 1. Array dhoondho (Chahe response mein jahan bhi chhupa ho)
+          // Data format handle karna
           let sourceArray: any[] = [];
           if (Array.isArray(data)) sourceArray = data;
           else if (data.data && Array.isArray(data.data)) sourceArray = data.data;
           else if (data.courses && Array.isArray(data.courses)) sourceArray = data.courses;
-          else if (data.enrollments && Array.isArray(data.enrollments)) sourceArray = data.enrollments;
 
-          // 2. Course object extract karo
-          const extractedCourses = sourceArray.map((item: any) => {
-            if (item.course && typeof item.course === 'object') return item.course;
-            if (item.courseId && typeof item.courseId === 'object') return item.courseId;
-            return item; 
-          });
-
-          // 3. Valid courses filter karo aur Duplicate courses hatao (React key errors bachane ke liye)
-          const validCourses = extractedCourses.filter((c: any) => c && c._id && c.title);
-          const uniqueCourses = Array.from(new Map(validCourses.map((c: any) => [c._id, c])).values());
-
-          setCourses(uniqueCourses as Course[]); 
+          // Valid courses filter karke direct dropdown me daal dena
+          const validCourses = sourceArray.filter((c: any) => c && c._id && c.title);
+          setCourses(validCourses as Course[]); 
         }
       } catch (error) {
-        console.error("Failed to load courses", error);
+        console.error("Failed to load all courses", error);
       }
     };
 
     fetchCoursesList();
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     const fetchLessons = async () => {
