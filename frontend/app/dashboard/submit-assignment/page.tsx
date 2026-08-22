@@ -65,8 +65,9 @@ export default function SubmitAssignmentPage() {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string>("");
   
-  // 👇 File Upload State
-  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  // 👇 FIX: Iska naam same "selectedFile" rakha hai takki dono page ka behaviour same ho
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -210,6 +211,12 @@ export default function SubmitAssignmentPage() {
     setAudioUrl("");
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -218,7 +225,7 @@ export default function SubmitAssignmentPage() {
       return;
     }
 
-    if (!audioBlob && !textContent.trim() && !attachedFile) {
+    if (!audioBlob && !textContent.trim() && !selectedFile) {
       setMessage({ type: "error", text: "Please provide text, upload a file, or record audio." });
       return;
     }
@@ -234,8 +241,9 @@ export default function SubmitAssignmentPage() {
 
       if (textContent.trim()) formData.append("content", textContent);
       if (audioBlob) formData.append("audio", audioBlob, "recording.webm");
-      // 👇 FIX: Backend req.files['document'] dhoondh raha hai, isliye yahan "document" pass karna zaroori tha.
-      if (attachedFile) formData.append("document", attachedFile);
+      
+      // 👇 PERFECT MATCH WITH BACKEND NOW
+      if (selectedFile) formData.append("document", selectedFile);
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/submissions`, {
         method: "POST",
@@ -248,7 +256,8 @@ export default function SubmitAssignmentPage() {
         setSelectedLesson("");
         setTextContent("");
         discardRecording();
-        setAttachedFile(null);
+        setSelectedFile(null);
+        if(fileInputRef.current) fileInputRef.current.value = "";
       } else {
         const data = await response.json();
         setMessage({ type: "error", text: data.message || "Failed to submit assignment." });
@@ -422,28 +431,47 @@ export default function SubmitAssignmentPage() {
                   Attach Document / File
                 </label>
                 
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleFileChange} 
+                  className="hidden" 
+                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" 
+                />
+
                 <div className="w-full bg-[#040814]/80 p-4 rounded-2xl border border-white/[0.05] shadow-inner flex flex-col md:flex-row items-center justify-between gap-4 relative z-10">
                   <div className="flex items-center gap-4 overflow-hidden w-full">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center border shrink-0 ${attachedFile ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-slate-800/50 border-slate-700 text-slate-500'}`}>
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center border shrink-0 ${selectedFile ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-slate-800/50 border-slate-700 text-slate-500'}`}>
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                     </div>
                     <div className="flex flex-col overflow-hidden">
                       <span className="text-slate-200 text-[14px] truncate font-bold max-w-[200px] md:max-w-md">
-                        {attachedFile ? attachedFile.name : "No file selected"}
+                        {selectedFile ? selectedFile.name : "No file selected"}
                       </span>
                       <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
-                        {attachedFile ? `${(attachedFile.size / 1024 / 1024).toFixed(2)} MB` : "PDF, Images, or DOCX allowed"}
+                        {selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : "PDF, Images, or DOCX allowed"}
                       </span>
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-3 w-full md:w-auto justify-end shrink-0">
-                    <label className="cursor-pointer px-6 py-2.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-lg text-[11px] font-black uppercase tracking-widest transition-colors shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] whitespace-nowrap">
+                    <button 
+                      type="button" 
+                      onClick={() => fileInputRef.current?.click()} 
+                      className="px-6 py-2.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-lg text-[11px] font-black uppercase tracking-widest transition-colors shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] whitespace-nowrap"
+                    >
                       Browse File
-                      <input type="file" className="hidden" onChange={(e) => setAttachedFile(e.target.files?.[0] || null)} />
-                    </label>
-                    {attachedFile && (
-                      <button type="button" onClick={() => setAttachedFile(null)} className="p-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg transition-colors" title="Remove file">
+                    </button>
+                    {selectedFile && (
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          setSelectedFile(null);
+                          if(fileInputRef.current) fileInputRef.current.value = "";
+                        }} 
+                        className="p-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg transition-colors" 
+                        title="Remove file"
+                      >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                       </button>
                     )}
@@ -512,7 +540,7 @@ export default function SubmitAssignmentPage() {
               {/* Submit Button */}
               <button 
                 type="submit"
-                disabled={loading || !selectedLesson || (!audioBlob && !textContent.trim() && !attachedFile)}
+                disabled={loading || !selectedLesson || (!audioBlob && !textContent.trim() && !selectedFile)}
                 className="group relative px-10 py-5 w-full bg-gradient-to-b from-emerald-400 to-teal-500 text-[#010206] text-[15px] font-black uppercase tracking-widest rounded-[1.5rem] transition-all duration-500 shadow-[0_0_30px_-5px_rgba(52,211,153,0.6),inset_0_1px_1px_rgba(255,255,255,0.8)] disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed flex items-center justify-center gap-3 overflow-hidden ring-1 ring-white/20 active:scale-95"
               >
                 {!loading && <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>}
