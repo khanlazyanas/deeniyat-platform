@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion, Variants, useScroll, useTransform, useSpring, useMotionValue, useMotionTemplate } from "framer-motion";
+import { motion, Variants, useScroll, useTransform, useSpring, useMotionValue, useMotionTemplate, AnimatePresence } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
 
 // --- GLOBAL STYLES & KEYFRAMES (Optimized) ---
@@ -23,7 +23,7 @@ const globalAnimations = `
 
 // --- Strict Framer Motion Variants ---
 const fadeInUp: Variants = {
-  hidden: { opacity: 0, y: 40 }, // Removed blur for performance
+  hidden: { opacity: 0, y: 40 },
   visible: { 
     opacity: 1, 
     y: 0, 
@@ -40,7 +40,7 @@ const staggerContainer: Variants = {
 };
 
 const wordAnimation: Variants = {
-  hidden: { opacity: 0, y: 20, rotateX: -45 }, // Simplified rotation
+  hidden: { opacity: 0, y: 20, rotateX: -45 }, 
   visible: { 
     opacity: 1, 
     y: 0, 
@@ -137,6 +137,44 @@ function HolographicCard({ children, className = "" }: { children: React.ReactNo
   );
 }
 
+// --- NEW COMPONENT: FAQ Item ---
+function FAQItem({ question, answer }: { question: string, answer: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="border-b border-white/[0.05] py-5">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between text-left focus:outline-none"
+      >
+        <span className="text-lg font-medium text-slate-200">{question}</span>
+        <motion.div 
+          animate={{ rotate: isOpen ? 45 : 0 }}
+          transition={{ type: "spring", stiffness: 200, damping: 20 }}
+          className="w-8 h-8 rounded-full bg-white/[0.02] border border-white/[0.05] flex items-center justify-center shrink-0 ml-4 text-emerald-400"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
+        </motion.div>
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="overflow-hidden"
+          >
+            <p className="pt-4 text-slate-400 font-light leading-relaxed">
+              {answer}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // --- MAIN PAGE COMPONENT ---
 export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -162,6 +200,19 @@ export default function Home() {
   const fgY = useTransform(smoothMouseY, (v) => v * 1.5);
   const bgX = useTransform(smoothMouseX, (v) => v * 0.3);
   const bgY = useTransform(smoothMouseY, (v) => v * 0.3);
+
+  // NEW: Parallax for Floating Hero Elements
+  const floatY1 = useTransform(smoothProgress, [0, 1], ["0px", "-150px"]);
+  const floatY2 = useTransform(smoothProgress, [0, 1], ["0px", "100px"]);
+
+  // Curriculum Preview State
+  const [activeCurriculumTab, setActiveCurriculumTab] = useState(0);
+  const curriculumTabs = [
+    { title: "Noorani Qaida", desc: "Build a flawless foundation in reading the Quran with proper Makharij (pronunciation)." },
+    { title: "Tajweed Mastery", desc: "Learn the rules of recitation to read the Quran exactly as it was revealed." },
+    { title: "Fiqh Basics", desc: "Understand the essential rulings of purification, prayer, and daily life." },
+    { title: "Tafseer", desc: "Dive deep into the meanings, context, and wisdom behind the verses of the Quran." }
+  ];
 
   useEffect(() => {
     const handleGlobalMouseMove = (e: MouseEvent) => {
@@ -227,6 +278,31 @@ export default function Home() {
       {/* --- 1. CINEMATIC HERO SECTION --- */}
       <section className="relative w-full min-h-screen flex flex-col items-center justify-center text-center px-4 sm:px-6 lg:px-8 overflow-hidden pt-24 pb-20">
         
+        {/* Floating Elements (NEW) */}
+        <motion.div 
+          style={{ y: floatY1 }}
+          className="hidden lg:flex absolute top-40 left-20 z-30 items-center gap-3 px-5 py-3 rounded-2xl bg-[#030612]/60 border border-white/[0.08] backdrop-blur-md shadow-xl transform-gpu"
+        >
+          <span className="text-2xl">⭐</span>
+          <div className="text-left">
+            <p className="text-white font-bold text-sm leading-tight">4.9/5 Rating</p>
+            <p className="text-slate-400 text-xs">Student Reviews</p>
+          </div>
+        </motion.div>
+
+        <motion.div 
+          style={{ y: floatY2 }}
+          className="hidden lg:flex absolute bottom-40 right-20 z-30 items-center gap-3 px-5 py-3 rounded-2xl bg-[#030612]/60 border border-white/[0.08] backdrop-blur-md shadow-xl transform-gpu"
+        >
+          <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 text-emerald-400">
+             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+          </div>
+          <div className="text-left">
+            <p className="text-white font-bold text-sm leading-tight">10+ Ustads</p>
+            <p className="text-slate-400 text-xs">Certified Scholars</p>
+          </div>
+        </motion.div>
+
         <motion.div 
           style={{ y: yBg, opacity: opacityBg }} 
           className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none transform-gpu"
@@ -310,20 +386,6 @@ export default function Home() {
         <div className="absolute bottom-0 w-full h-32 sm:h-64 bg-gradient-to-t from-[#010206] via-[#010206]/80 to-transparent z-10 pointer-events-none"></div>
       </section>
 
-      {/* --- EDGE-MASKED INFINITE SCROLLING TICKER --- */}
-      <section className="py-6 sm:py-8 border-y border-white/[0.04] bg-white/[0.01] backdrop-blur-lg relative z-20 flex overflow-hidden shadow-xl">
-        <div className="absolute inset-0 z-10 pointer-events-none" style={{ background: 'linear-gradient(to right, #010206 0%, transparent 15%, transparent 85%, #010206 100%)' }}></div>
-        <motion.div animate={{ x: [0, -1000] }} transition={{ repeat: Infinity, duration: 40, ease: "linear" }} className="flex whitespace-nowrap items-center w-max will-change-transform">
-          {[...islamicValues, ...islamicValues, ...islamicValues].map((val, idx) => (
-            <div key={idx} className="flex items-center mx-6 sm:mx-16 group cursor-default">
-              <span className="text-emerald-500/80 mr-3 sm:mr-4 animate-pulse">✦</span>
-              <span className="text-2xl sm:text-3xl font-serif text-slate-300 mr-3 sm:mr-4 group-hover:text-white transition-colors">{val.ar}</span>
-              <span className="text-[11px] sm:text-[13px] font-black tracking-[0.2em] sm:tracking-[0.3em] text-slate-500 uppercase">{val.en}</span>
-            </div>
-          ))}
-        </motion.div>
-      </section>
-
       {/* --- 2. MAJESTIC HADEETH SECTION --- */}
       <section className="relative py-24 sm:py-48 bg-[#010206] z-20 overflow-hidden">
         <div className="absolute top-0 left-0 sm:left-1/4 w-[60vw] sm:w-[40vw] h-[60vw] sm:h-[40vw] bg-emerald-900/10 rounded-full blur-[80px] sm:blur-[150px] pointer-events-none"></div>
@@ -361,6 +423,61 @@ export default function Home() {
               <div className="h-px w-16 sm:w-32 bg-gradient-to-l from-transparent to-amber-500/60"></div>
             </div>
           </HolographicCard>
+        </motion.div>
+      </section>
+
+      {/* --- INTERACTIVE CURRICULUM PREVIEW (NEW) --- */}
+      <section className="py-20 sm:py-32 bg-[#010206] relative z-20 border-t border-white/[0.04]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-5xl font-black text-white mb-6 tracking-tight">Explore the Curriculum</h2>
+            <div className="w-16 h-1 bg-emerald-500/50 mx-auto rounded-full"></div>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-4 mb-10">
+            {curriculumTabs.map((tab, idx) => (
+              <button 
+                key={idx}
+                onClick={() => setActiveCurriculumTab(idx)}
+                className={`px-6 py-3 rounded-full text-sm font-bold transition-all duration-300 ${activeCurriculumTab === idx ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-[#030612] text-slate-400 border border-white/[0.05] hover:bg-white/[0.02]'}`}
+              >
+                {tab.title}
+              </button>
+            ))}
+          </div>
+
+          <HolographicCard className="p-10 sm:p-14 rounded-[2rem]">
+            <AnimatePresence mode="wait">
+              <motion.div 
+                key={activeCurriculumTab}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+                className="text-center"
+              >
+                <div className="w-16 h-16 mx-auto bg-[#020510] border border-white/[0.08] rounded-2xl flex items-center justify-center mb-6 text-emerald-400">
+                   <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                </div>
+                <h3 className="text-2xl font-black text-white mb-4">{curriculumTabs[activeCurriculumTab].title}</h3>
+                <p className="text-slate-400 font-light text-lg max-w-2xl mx-auto leading-relaxed">{curriculumTabs[activeCurriculumTab].desc}</p>
+              </motion.div>
+            </AnimatePresence>
+          </HolographicCard>
+        </div>
+      </section>
+
+      {/* --- EDGE-MASKED INFINITE SCROLLING TICKER --- */}
+      <section className="py-6 sm:py-8 border-y border-white/[0.04] bg-white/[0.01] backdrop-blur-lg relative z-20 flex overflow-hidden shadow-xl">
+        <div className="absolute inset-0 z-10 pointer-events-none" style={{ background: 'linear-gradient(to right, #010206 0%, transparent 15%, transparent 85%, #010206 100%)' }}></div>
+        <motion.div animate={{ x: [0, -1000] }} transition={{ repeat: Infinity, duration: 40, ease: "linear" }} className="flex whitespace-nowrap items-center w-max will-change-transform">
+          {[...islamicValues, ...islamicValues, ...islamicValues].map((val, idx) => (
+            <div key={idx} className="flex items-center mx-6 sm:mx-16 group cursor-default">
+              <span className="text-emerald-500/80 mr-3 sm:mr-4 animate-pulse">✦</span>
+              <span className="text-2xl sm:text-3xl font-serif text-slate-300 mr-3 sm:mr-4 group-hover:text-white transition-colors">{val.ar}</span>
+              <span className="text-[11px] sm:text-[13px] font-black tracking-[0.2em] sm:tracking-[0.3em] text-slate-500 uppercase">{val.en}</span>
+            </div>
+          ))}
         </motion.div>
       </section>
 
@@ -417,7 +534,7 @@ export default function Home() {
                     Attendance analytics, assignment tracking, and crystal-clear progress maps to keep your motivation at its peak.
                   </p>
                 </div>
-                <Link href="/register" className="w-full md:w-auto shrink-0 px-10 sm:px-14 py-5 sm:py-7 bg-white text-slate-950 font-black rounded-[1.25rem] sm:rounded-[1.5rem] shadow-lg hover:scale-105 transition-transform duration-300 flex items-center justify-center gap-3 sm:gap-4 text-base sm:text-lg uppercase tracking-[0.1em] sm:tracking-[0.2em]">
+                <Link href="/register" className="w-full md:w-auto shrink-0 px-10 sm:px-14 py-5 sm:py-7 bg-white text-slate-950 font-black rounded-[1.25rem] sm:rounded-[1.5rem] shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:scale-105 transition-transform duration-300 flex items-center justify-center gap-3 sm:gap-4 text-base sm:text-lg uppercase tracking-[0.1em] sm:tracking-[0.2em]">
                   Join Platform
                   <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                 </Link>
@@ -426,6 +543,45 @@ export default function Home() {
 
           </div>
         </motion.div>
+      </section>
+
+      {/* --- TESTIMONIALS MARQUEE --- */}
+      <section className="py-12 bg-white/[0.01] border-y border-white/[0.04] relative z-20 flex overflow-hidden shadow-xl">
+        <div className="absolute inset-0 z-10 pointer-events-none" style={{ background: 'linear-gradient(to right, #010206 0%, transparent 15%, transparent 85%, #010206 100%)' }}></div>
+        <motion.div animate={{ x: ["0%", "-50%"] }} transition={{ repeat: Infinity, duration: 30, ease: "linear" }} className="flex whitespace-nowrap items-center w-max will-change-transform">
+          {[1, 2, 3, 4, 1, 2, 3, 4].map((val, idx) => (
+            <div key={idx} className="flex items-center mx-8 bg-[#030612]/80 border border-white/[0.05] rounded-full px-6 py-3 backdrop-blur-md">
+              <span className="text-amber-400 mr-3 text-lg">★★★★★</span>
+              <span className="text-slate-300 font-medium italic mr-3 text-sm">"Alhamdulillah, incredible learning platform."</span>
+              <span className="text-slate-500 font-bold text-xs">- Student</span>
+            </div>
+          ))}
+        </motion.div>
+      </section>
+
+      {/* --- FAQ SECTION --- */}
+      <section className="py-24 sm:py-32 bg-[#010206] relative z-20">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-black text-white mb-4 tracking-tight">Frequently Asked Questions</h2>
+            <div className="w-12 h-1 bg-emerald-500/50 mx-auto rounded-full"></div>
+          </div>
+          
+          <div className="space-y-2">
+            <FAQItem 
+              question="Do I need prior Islamic knowledge to join?" 
+              answer="No, our curriculum is designed to accommodate everyone, from complete beginners starting with Noorani Qaida to advanced students looking to master Tafseer." 
+            />
+            <FAQItem 
+              question="Are the classes live or pre-recorded?" 
+              answer="We offer a hybrid model. The core material is available via high-quality video modules, and you submit your assignments and recitations for Ustads to review personally." 
+            />
+            <FAQItem 
+              question="Is the platform free?" 
+              answer="Creating an account and accessing the orientation materials is completely free. Full course enrollments may require a subscription depending on the specific program." 
+            />
+          </div>
+        </div>
       </section>
 
       {/* --- 4. CTA SECTION --- */}
