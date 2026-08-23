@@ -52,7 +52,6 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
 
-  // 👇 NEW: Download states for loading feedback
   const [isDownloadingStatement, setIsDownloadingStatement] = useState(false);
   const [downloadingReceiptId, setDownloadingReceiptId] = useState<string | null>(null);
 
@@ -68,7 +67,6 @@ export default function TransactionsPage() {
   const bgX = useTransform(smoothMouseX, (v) => v * 0.15);
   const bgY = useTransform(smoothMouseY, (v) => v * 0.15);
 
-  // Holographic Spotlight Config
   const cardRef = useRef<HTMLDivElement>(null);
   const glareX = useMotionValue(0);
   const glareY = useMotionValue(0);
@@ -141,7 +139,7 @@ export default function TransactionsPage() {
     return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
   }, [mouseX, mouseY, isHovered, glareX, glareY]);
 
-  // 👇 FUNCTION 1: Download All Transactions as CSV (Excel)
+  // Download All Transactions as CSV (Excel)
   const handleDownloadStatement = () => {
     if (transactions.length === 0) return;
     setIsDownloadingStatement(true);
@@ -152,7 +150,6 @@ export default function TransactionsPage() {
       transactions.forEach(tx => {
         const date = new Date(tx.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
         const courseName = tx.courseId?.title || "Unknown Course";
-        // Enclose strings in quotes to handle commas in course names
         csvContent += `${tx.transactionId},"${date}","${courseName}",${tx.amount},${tx.status}\n`;
       });
 
@@ -166,47 +163,147 @@ export default function TransactionsPage() {
       document.body.removeChild(link);
       
       setIsDownloadingStatement(false);
-    }, 800); // Fake delay for premium feedback
+    }, 800);
   };
 
-  // 👇 FUNCTION 2: Download Individual Receipt as Text File
+  // 👇 NEW: THERMAL PARCHI (BILL) HTML GENERATOR
   const handleDownloadReceipt = (tx: Transaction) => {
     setDownloadingReceiptId(tx._id);
 
     setTimeout(() => {
       const date = new Date(tx.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit' });
       const courseName = tx.courseId?.title || "Unknown Course";
+      const statusColor = tx.status === 'Completed' ? '#10b981' : tx.status === 'Pending' ? '#f59e0b' : '#ef4444';
       
-      const receiptContent = `
-========================================
-           DEENIYAT RECEIPT
-========================================
+      // HTML for the Parchi (Receipt)
+      const receiptHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Receipt - ${tx.transactionId}</title>
+          <style>
+            body { 
+              font-family: 'Courier New', Courier, monospace; 
+              color: #111; 
+              background: #f1f5f9; 
+              display: flex; 
+              justify-content: center; 
+              padding: 40px 20px;
+            }
+            .parchi { 
+              background: #fff; 
+              width: 100%; 
+              max-width: 380px; 
+              padding: 30px; 
+              box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+              position: relative;
+            }
+            /* Zig-zag top and bottom for thermal receipt look */
+            .parchi::before, .parchi::after {
+              content: "";
+              position: absolute;
+              left: 0; right: 0;
+              height: 8px;
+              background-size: 16px 16px;
+            }
+            .parchi::before {
+              top: -8px;
+              background-image: linear-gradient(135deg, #fff 25%, transparent 25%), linear-gradient(225deg, #fff 25%, transparent 25%);
+              background-position: -8px 0;
+            }
+            .parchi::after {
+              bottom: -8px;
+              background-image: linear-gradient(45deg, #fff 25%, transparent 25%), linear-gradient(-45deg, #fff 25%, transparent 25%);
+              background-position: -8px 0;
+            }
+            .header { text-align: center; margin-bottom: 25px; }
+            .logo { font-size: 28px; font-weight: 900; letter-spacing: -1px; margin-bottom: 5px; }
+            .subtitle { font-size: 12px; color: #64748b; letter-spacing: 2px; text-transform: uppercase; }
+            .divider { border-bottom: 1px dashed #cbd5e1; margin: 20px 0; }
+            .row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
+            .col-left { color: #64748b; }
+            .col-right { font-weight: bold; text-align: right; max-width: 60%; }
+            .status { color: ${statusColor}; border: 1px solid ${statusColor}; padding: 2px 8px; border-radius: 12px; font-size: 11px; text-transform: uppercase; }
+            .total-row { font-size: 18px; font-weight: 900; margin-top: 5px; }
+            .footer { text-align: center; margin-top: 30px; font-size: 13px; color: #64748b; }
+            .footer strong { color: #111; display: block; margin-bottom: 5px; }
+            @media print {
+              body { background: #fff; padding: 0; }
+              .parchi { box-shadow: none; max-width: 100%; border: none; }
+              .parchi::before, .parchi::after { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="parchi">
+            <div class="header">
+              <div class="logo">Deeniyat.</div>
+              <div class="subtitle">Payment Receipt</div>
+            </div>
+            
+            <div class="row">
+              <span class="col-left">Txn ID:</span>
+              <span class="col-right">${tx.transactionId}</span>
+            </div>
+            <div class="row">
+              <span class="col-left">Date:</span>
+              <span class="col-right">${date}</span>
+            </div>
+            <div class="row">
+              <span class="col-left">Status:</span>
+              <span class="col-right"><span class="status">${tx.status}</span></span>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="row" style="color:#94a3b8; font-size:12px; text-transform:uppercase;">
+              <span>Description</span>
+              <span>Amount</span>
+            </div>
+            <div class="row">
+              <span class="col-left" style="color:#111; font-weight:600;">${courseName}</span>
+              <span class="col-right">Rs. ${tx.amount.toLocaleString()}</span>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="row total-row">
+              <span>TOTAL PAID</span>
+              <span>₹${tx.amount.toLocaleString()}</span>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="footer">
+              <strong>Jazakallah Khair!</strong>
+              May Allah bless your educational journey. Keep this receipt for your records.
+            </div>
+          </div>
+          
+          <script>
+            // Automatically open print dialog when loaded
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 500);
+            }
+          </script>
+        </body>
+        </html>
+      `;
 
-Transaction ID : ${tx.transactionId}
-Date           : ${date}
-Status         : ${tx.status.toUpperCase()}
-
-----------------------------------------
-Course / Item  : ${courseName}
-Amount Paid    : Rs. ${tx.amount.toLocaleString()}
-----------------------------------------
-
-Thank you for choosing Deeniyat.
-May Allah bless your educational journey.
-========================================
-`;
-
-      const blob = new Blob([receiptContent], { type: 'text/plain;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", `Receipt_${tx.transactionId}.txt`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Open in new window/tab and write HTML
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(receiptHTML);
+        printWindow.document.close();
+      } else {
+        alert("Please allow popups to view the receipt.");
+      }
       
       setDownloadingReceiptId(null);
-    }, 600); // Fake delay for premium feedback
+    }, 600);
   };
 
   return (
@@ -281,7 +378,7 @@ May Allah bless your educational journey.
           </button>
         </motion.div>
 
-        {/* Data Table Section (Spotlight Refined) */}
+        {/* Data Table Section */}
         <motion.div 
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -296,7 +393,6 @@ May Allah bless your educational journey.
             className="pointer-events-none absolute -inset-px rounded-[inherit] opacity-0 transition duration-300 group-hover:opacity-100 z-0"
             style={{ background: backgroundTemplate }}
           />
-          {/* Top light reflection border for a glass feel */}
           <div className="absolute inset-0 z-0 pointer-events-none border-t border-white/[0.05] rounded-[inherit] mix-blend-overlay"></div>
 
           <div className="relative z-10 w-full h-full p-2 sm:p-4">
@@ -369,7 +465,7 @@ May Allah bless your educational journey.
                                           className="text-slate-500 hover:text-emerald-400 font-bold text-[11px] uppercase tracking-widest transition-colors duration-300 flex items-center justify-end gap-2 w-full disabled:opacity-50"
                                         >
                                             {downloadingReceiptId === tx._id ? (
-                                              <>Downloading <span className="w-3 h-3 border-2 border-slate-500 border-t-emerald-400 rounded-full animate-spin"></span></>
+                                              <>Opening <span className="w-3 h-3 border-2 border-slate-500 border-t-emerald-400 rounded-full animate-spin"></span></>
                                             ) : (
                                               <>Receipt <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg></>
                                             )}
@@ -385,7 +481,6 @@ May Allah bless your educational journey.
         </motion.div>
       </div>
       
-      {/* Global CSS for Animations */}
       <style dangerouslySetInnerHTML={{ __html: globalAnimations }} />
     </div>
   );
