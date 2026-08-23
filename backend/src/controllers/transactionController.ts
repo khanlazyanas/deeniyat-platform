@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import Transaction from '../models/Transaction';
 import catchAsync from '../utils/catchAsync';
 import User from '../models/User'; 
+import Enrollment from '../models/Enrollment'; // 👈 Naya Import add kiya
 
 // @desc    Create a new transaction (Course Fee/Donation)
 // @route   POST /api/v1/transactions
@@ -26,9 +27,20 @@ export const createTransaction = catchAsync(async (req: Request, res: Response) 
 
   // 🚨 THE MAGIC FIX: Agar payment success hai, toh Student ko Course ka access do!
   if (finalStatus === 'Completed' && courseId) {
+    // 1. User ke account mein course add karo
     await User.findByIdAndUpdate(userId, {
       $addToSet: { enrolledCourses: courseId } // $addToSet duplicate entry rokta hai
     });
+
+    // 2. 👇 NAYA CODE: Enrollment record create karo attendance aur My Courses ke liye
+    const existingEnrollment = await Enrollment.findOne({ studentId: userId, courseId });
+    if (!existingEnrollment) {
+      await Enrollment.create({
+        studentId: userId,
+        courseId: courseId,
+        progress: 0,
+      });
+    }
   }
 
   res.status(201).json(transaction);
