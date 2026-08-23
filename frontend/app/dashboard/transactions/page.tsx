@@ -7,7 +7,7 @@ import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, useMo
 interface Transaction {
   _id: string;
   amount: number;
-  status: 'Completed' | 'Pending' | 'Failed'; // 👈 FIXED: Matching backend 'Completed'
+  status: 'Completed' | 'Pending' | 'Failed';
   transactionId: string;
   createdAt: string;
   courseId?: {
@@ -51,6 +51,10 @@ export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+
+  // 👇 NEW: Download states for loading feedback
+  const [isDownloadingStatement, setIsDownloadingStatement] = useState(false);
+  const [downloadingReceiptId, setDownloadingReceiptId] = useState<string | null>(null);
 
   // --- MOUSE PARALLAX TRACKING LOGIC ---
   const mouseX = useMotionValue(0);
@@ -114,7 +118,7 @@ export default function TransactionsPage() {
             _id: "tx_1",
             transactionId: "PAY-987654321",
             amount: 1499,
-            status: "Completed", // 👈 Fallback bhi update kiya
+            status: "Completed",
             createdAt: new Date().toISOString(),
             courseId: { title: "Advanced Tajweed Rules" }
           },
@@ -136,6 +140,74 @@ export default function TransactionsPage() {
 
     return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
   }, [mouseX, mouseY, isHovered, glareX, glareY]);
+
+  // 👇 FUNCTION 1: Download All Transactions as CSV (Excel)
+  const handleDownloadStatement = () => {
+    if (transactions.length === 0) return;
+    setIsDownloadingStatement(true);
+
+    setTimeout(() => {
+      let csvContent = "Transaction ID,Date,Course Name,Amount,Status\n";
+      
+      transactions.forEach(tx => {
+        const date = new Date(tx.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+        const courseName = tx.courseId?.title || "Unknown Course";
+        // Enclose strings in quotes to handle commas in course names
+        csvContent += `${tx.transactionId},"${date}","${courseName}",${tx.amount},${tx.status}\n`;
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Deeniyat_Statement_${new Date().getTime()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setIsDownloadingStatement(false);
+    }, 800); // Fake delay for premium feedback
+  };
+
+  // 👇 FUNCTION 2: Download Individual Receipt as Text File
+  const handleDownloadReceipt = (tx: Transaction) => {
+    setDownloadingReceiptId(tx._id);
+
+    setTimeout(() => {
+      const date = new Date(tx.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit' });
+      const courseName = tx.courseId?.title || "Unknown Course";
+      
+      const receiptContent = `
+========================================
+           DEENIYAT RECEIPT
+========================================
+
+Transaction ID : ${tx.transactionId}
+Date           : ${date}
+Status         : ${tx.status.toUpperCase()}
+
+----------------------------------------
+Course / Item  : ${courseName}
+Amount Paid    : Rs. ${tx.amount.toLocaleString()}
+----------------------------------------
+
+Thank you for choosing Deeniyat.
+May Allah bless your educational journey.
+========================================
+`;
+
+      const blob = new Blob([receiptContent], { type: 'text/plain;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Receipt_${tx.transactionId}.txt`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setDownloadingReceiptId(null);
+    }, 600); // Fake delay for premium feedback
+  };
 
   return (
     <div className="min-h-screen pt-24 pb-12 bg-[#000000] text-slate-50 flex flex-col font-sans overflow-x-hidden relative">
@@ -193,10 +265,19 @@ export default function TransactionsPage() {
             <p className="text-slate-400 font-light text-[17px] mix-blend-screen max-w-xl">View all your secure course purchases, detailed receipts, and current payment statuses.</p>
           </div>
 
-          <button className="group relative px-8 py-4 bg-[#050505] hover:bg-[#0a0f1c] border border-white/[0.08] hover:border-emerald-500/50 rounded-2xl text-[13px] font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all duration-500 flex items-center gap-3 overflow-hidden shadow-2xl w-fit">
+          <button 
+            onClick={handleDownloadStatement}
+            disabled={isDownloadingStatement || transactions.length === 0}
+            className="group relative px-8 py-4 bg-[#050505] hover:bg-[#0a0f1c] border border-white/[0.08] hover:border-emerald-500/50 rounded-2xl text-[13px] font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all duration-500 flex items-center gap-3 overflow-hidden shadow-2xl w-fit disabled:opacity-50 disabled:cursor-not-allowed"
+          >
              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500/10 to-emerald-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 translate-x-[-100%] group-hover:translate-x-[100%]"></div>
-             <svg className="w-5 h-5 text-emerald-400 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-             <span className="relative z-10">Download Statement</span>
+             
+             {isDownloadingStatement ? (
+               <div className="w-5 h-5 border-2 border-slate-500 border-t-emerald-400 rounded-full animate-spin relative z-10"></div>
+             ) : (
+               <svg className="w-5 h-5 text-emerald-400 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+             )}
+             <span className="relative z-10">{isDownloadingStatement ? "Generating..." : "Download Statement"}</span>
           </button>
         </motion.div>
 
@@ -267,7 +348,7 @@ export default function TransactionsPage() {
                                         <span className="text-[16px] font-black text-emerald-400">₹{tx.amount.toLocaleString()}</span>
                                     </td>
                                     <td className="p-6 sm:p-8 whitespace-nowrap">
-                                        {tx.status === 'Completed' ? ( // 👈 FIXED: Matches backend logic exactly
+                                        {tx.status === 'Completed' ? (
                                             <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-[0.1em]">
                                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(52,211,153,1)]"></span> Success
                                             </span>
@@ -282,8 +363,16 @@ export default function TransactionsPage() {
                                         )}
                                     </td>
                                     <td className="p-6 sm:p-8 text-right">
-                                        <button className="text-slate-500 group-hover:text-emerald-400 font-bold text-[11px] uppercase tracking-widest transition-colors duration-300 flex items-center justify-end gap-2 w-full">
-                                            Receipt <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+                                        <button 
+                                          onClick={() => handleDownloadReceipt(tx)}
+                                          disabled={downloadingReceiptId === tx._id}
+                                          className="text-slate-500 hover:text-emerald-400 font-bold text-[11px] uppercase tracking-widest transition-colors duration-300 flex items-center justify-end gap-2 w-full disabled:opacity-50"
+                                        >
+                                            {downloadingReceiptId === tx._id ? (
+                                              <>Downloading <span className="w-3 h-3 border-2 border-slate-500 border-t-emerald-400 rounded-full animate-spin"></span></>
+                                            ) : (
+                                              <>Receipt <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg></>
+                                            )}
                                         </button>
                                     </td>
                                 </tr>
