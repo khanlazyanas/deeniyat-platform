@@ -4,13 +4,13 @@ import { protect, authorize } from '../middlewares/authMiddleware';
 
 const router = express.Router();
 
-// Ustad attendance mark kar sakte hain
+// STRICT ACCESS: Sirf Ustad aur Admin hi attendance mark kar sakte hain
 router.post('/', protect, authorize('Admin', 'Ustad'), markAttendance);
 
-// Ustad course ki attendance report dekh sakte hain
+// STRICT ACCESS: Sirf Ustad aur Admin course ki attendance report dekh sakte hain
 router.get('/course/:courseId', protect, authorize('Admin', 'Ustad'), getAttendanceByCourse);
 
-// Student apni attendance check kar sakta hai
+// Student sirf apni attendance check kar sakta hai
 router.get('/my-attendance', protect, authorize('Student'), getMyAttendance);
 
 export default router;
