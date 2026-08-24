@@ -47,7 +47,7 @@ export default function CoursesScreen() {
             </Text>
 
             <TouchableOpacity 
-              onPress={() => router.push(`/course/${course.id}`)}
+              onPress={() => router.push(`/course/${course.id}` as any)}
               className="bg-white/[0.03] border border-white/[0.1] py-3 rounded-2xl items-center active:bg-emerald-400 active:border-emerald-400"
             >
               <Text className="text-white text-xs font-bold tracking-[2] uppercase">
