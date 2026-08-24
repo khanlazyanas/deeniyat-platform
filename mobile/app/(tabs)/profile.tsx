@@ -1,6 +1,9 @@
 import { View, Text, StatusBar, TouchableOpacity, ScrollView } from 'react-native';
+import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {
+  const router = useRouter();
+
   return (
     <View className="flex-1 bg-[#010206] pt-16 px-6">
       <StatusBar barStyle="light-content" />
@@ -45,7 +48,10 @@ export default function ProfileScreen() {
         ))}
 
         {/* Logout Button */}
-        <TouchableOpacity className="mt-4 p-4 rounded-2xl border border-red-500/20 bg-red-500/10 items-center active:bg-red-500/20">
+        <TouchableOpacity 
+          onPress={() => router.push('/login')}
+          className="mt-4 p-4 rounded-2xl border border-red-500/20 bg-red-500/10 items-center active:bg-red-500/20 mb-8"
+        >
           <Text className="text-red-400 text-sm font-bold tracking-[2] uppercase">
             Log Out
           </Text>
