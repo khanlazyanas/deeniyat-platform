@@ -5,17 +5,17 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerShown: false, // Upar ka default white header gayab!
+        headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#030612', // Premium dark background
+          backgroundColor: '#030612',
           borderTopWidth: 1,
-          borderTopColor: 'rgba(255,255,255,0.05)', // Halka sa glass effect
+          borderTopColor: 'rgba(255,255,255,0.05)',
           height: 60,
           paddingBottom: 8,
           paddingTop: 8,
         },
-        tabBarActiveTintColor: '#34d399', // Emerald green jab active ho
-        tabBarInactiveTintColor: '#64748b', // Slate color jab inactive ho
+        tabBarActiveTintColor: '#34d399',
+        tabBarInactiveTintColor: '#64748b',
       }}>
       
       <Tabs.Screen
@@ -23,7 +23,7 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => (
-            <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: color, opacity: 0.8 }} />
+            <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: color, opacity: 0.8 }} />
           ),
         }}
       />
@@ -32,7 +32,17 @@ export default function TabLayout() {
         options={{
           title: 'Courses',
           tabBarIcon: ({ color }) => (
-            <View style={{ width: 24, height: 24, borderRadius: 4, backgroundColor: color, opacity: 0.8 }} />
+            <View style={{ width: 22, height: 22, borderRadius: 4, backgroundColor: color, opacity: 0.8 }} />
+          ),
+        }}
+      />
+      {/* Naya Profile Tab */}
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color }) => (
+            <View style={{ width: 22, height: 22, borderTopLeftRadius: 10, borderBottomRightRadius: 10, backgroundColor: color, opacity: 0.8 }} />
           ),
         }}
       />
