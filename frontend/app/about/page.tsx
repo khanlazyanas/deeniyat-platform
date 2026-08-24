@@ -4,8 +4,14 @@ import Link from "next/link";
 import { motion, Variants, useScroll, useTransform, useSpring, useMotionValue, useMotionTemplate } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
 
-// --- GLOBAL STYLES & KEYFRAMES (Safe from VS Code parser bugs) ---
+// --- GLOBAL STYLES & KEYFRAMES (Premium Font Applied Globally) ---
 const globalAnimations = `
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&display=swap');
+
+  .font-cinzel { 
+    font-family: 'Cinzel', serif; 
+  }
+
   @keyframes liquid-morph {
     0% { border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; transform: rotate(0deg); }
     33% { border-radius: 70% 30% 50% 50% / 30% 30% 70% 70%; transform: rotate(120deg); }
@@ -16,7 +22,7 @@ const globalAnimations = `
 
 // --- Framer Motion Variants ---
 const fadeInUp: Variants = {
-  hidden: { opacity: 0, y: 40 }, // Removed heavy CSS blur for performance
+  hidden: { opacity: 0, y: 40 }, 
   visible: { 
     opacity: 1, 
     y: 0, 
@@ -47,7 +53,6 @@ const generateBubbles = (count: number) => {
   }));
 };
 
-// Reduced from 45 to 25 to save mobile GPU memory while keeping the visual density feeling high
 const ambientBubbles = generateBubbles(25); 
 
 // --- 3D Holographic Card Component (GPU OPTIMIZED) ---
@@ -56,7 +61,6 @@ function HolographicCard({ children, className = "" }: { children: React.ReactNo
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
   
-  // Refactored from useState to useMotionValue to PREVENT React re-renders on mousemove
   const glareX = useMotionValue(0);
   const glareY = useMotionValue(0);
   const isHovered = useMotionValue(0);
@@ -68,7 +72,6 @@ function HolographicCard({ children, className = "" }: { children: React.ReactNo
   const backgroundTemplate = useMotionTemplate`radial-gradient(800px circle at ${glareX}px ${glareY}px, rgba(255,255,255,0.12), transparent 45%)`;
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    // 🛑 Optimize for mobile: Ignore 3D effects on small screens
     if (window.innerWidth < 768 || !cardRef.current) return;
 
     const rect = cardRef.current.getBoundingClientRect();
@@ -119,7 +122,7 @@ export default function AboutPage() {
   // --- Smooth Scroll Physics ---
   const { scrollYProgress } = useScroll({ target: containerRef, offset: ["start start", "end start"] });
   const smoothProgress = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
-  const yBg = useTransform(smoothProgress, [0, 1], ["0%", "30%"]); // Reduced depth for smoothness
+  const yBg = useTransform(smoothProgress, [0, 1], ["0%", "30%"]); 
 
   // --- MOUSE PARALLAX TRACKING LOGIC ---
   const mouseX = useMotionValue(0);
@@ -138,7 +141,6 @@ export default function AboutPage() {
   useEffect(() => {
     setMounted(true);
     const handleGlobalMouseMove = (e: MouseEvent) => {
-      // 🛑 Disable heavy global mouse tracking on Mobile devices
       if (window.innerWidth < 768) return; 
       const x = (e.clientX / window.innerWidth - 0.5) * 100;
       const y = (e.clientY / window.innerHeight - 0.5) * 100;
@@ -150,7 +152,8 @@ export default function AboutPage() {
   }, [mouseX, mouseY]);
 
   return (
-    <main ref={containerRef} className="min-h-screen bg-[#010206] text-slate-50 flex flex-col font-sans selection:bg-emerald-500/30 selection:text-emerald-200 overflow-x-hidden relative perspective-[2000px] pt-24 sm:pt-32">
+    // 👇 Added 'font-cinzel' to root container
+    <main ref={containerRef} className="min-h-screen bg-[#010206] text-slate-50 flex flex-col font-cinzel selection:bg-emerald-500/30 selection:text-emerald-200 overflow-x-hidden relative perspective-[2000px] pt-24 sm:pt-32">
       
       {/* Top Progress Bar */}
       {mounted && (
@@ -164,7 +167,7 @@ export default function AboutPage() {
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none"></div>
       <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.035] mix-blend-overlay pointer-events-none z-0"></div>
 
-      {/* --- HYPER-DENSE 3D PARTICLES ENGINE (Optimized) --- */}
+      {/* --- HYPER-DENSE 3D PARTICLES ENGINE --- */}
       {mounted && (
         <div className="hidden md:block fixed inset-0 z-[5] pointer-events-none overflow-hidden">
           {/* Layer 0: Foreground */}
@@ -232,12 +235,12 @@ export default function AboutPage() {
         <motion.div variants={fadeInUp} className="text-center max-w-4xl mx-auto mb-20 sm:mb-28">
           <div className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-white/[0.03] border border-white/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_4px_12px_rgba(0,0,0,0.2)] mb-6 sm:mb-8 backdrop-blur-xl">
             <span className="flex h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,1)]"></span>
-            <span className="text-[9px] sm:text-[11px] font-black text-slate-300 tracking-[0.2em] sm:tracking-[0.3em] uppercase">Our Story</span>
+            <span className="text-[9px] sm:text-[11px] font-black font-cinzel text-slate-300 tracking-[0.2em] sm:tracking-[0.3em] uppercase">Our Story</span>
           </div>
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-white tracking-tighter mb-6 sm:mb-8 leading-[1.05] drop-shadow-xl">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-black font-cinzel uppercase text-white tracking-widest mb-6 sm:mb-8 leading-[1.05] drop-shadow-xl">
             Bridging <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-400 to-blue-500 drop-shadow-[0_0_30px_rgba(52,211,153,0.3)] block sm:inline">Tradition</span> & Tech
           </h1>
-          <p className="text-lg sm:text-xl text-slate-400 font-light leading-relaxed mb-8 sm:mb-12 mix-blend-screen">
+          <p className="text-lg sm:text-xl text-slate-400 font-cinzel font-light leading-relaxed mb-8 sm:mb-12 mix-blend-screen">
             Deeniyat is a premium Islamic Learning Management System designed to bring authentic knowledge to seekers worldwide. We blend the timeless wisdom of classical scholars with cutting-edge spatial digital technology.
           </p>
         </motion.div>
@@ -245,7 +248,7 @@ export default function AboutPage() {
         {/* 2. Global Impact / Stats Section */}
         <motion.div variants={fadeInUp} className="relative mb-24 sm:mb-32 border-y border-white/[0.04] py-10 sm:py-16 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent">
           <div className="absolute inset-0 bg-gradient-to-r from-[#010206] via-transparent to-[#010206] pointer-events-none"></div>
-          <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 sm:gap-6 relative z-10">
+          <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 sm:gap-6 relative z-10 font-cinzel">
             {[
               { value: "10,000+", label: "Active Students" },
               { value: "50+", label: "Verified Scholars" },
@@ -263,13 +266,13 @@ export default function AboutPage() {
         </motion.div>
 
         {/* 3. Mission & Vision Grid */}
-        <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10 mb-24 sm:mb-32">
+        <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10 mb-24 sm:mb-32 font-cinzel">
           
           <HolographicCard className="p-8 sm:p-10 md:p-14 rounded-[2rem] sm:rounded-[2.5rem]">
             <div className="w-16 h-16 bg-[#040814] border border-white/[0.08] rounded-[1rem] sm:rounded-[1.25rem] flex items-center justify-center mb-8 sm:mb-10 relative z-10 text-emerald-400 shadow-md">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
-            <h3 className="text-3xl sm:text-4xl font-black text-white mb-4 sm:mb-6 tracking-tighter drop-shadow-md">Our Mission</h3>
+            <h3 className="text-3xl sm:text-4xl font-black uppercase tracking-wider text-white mb-4 sm:mb-6 drop-shadow-md">Our Mission</h3>
             <p className="text-slate-400 leading-relaxed font-light text-lg sm:text-xl relative z-10">
               To make authentic Islamic education accessible, interactive, and structured for everyone, regardless of their geographical location. We strive to connect dedicated students with verified, world-class scholars.
             </p>
@@ -279,7 +282,7 @@ export default function AboutPage() {
             <div className="w-16 h-16 bg-[#040814] border border-white/[0.08] rounded-[1rem] sm:rounded-[1.25rem] flex items-center justify-center mb-8 sm:mb-10 relative z-10 text-teal-400 shadow-md">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
             </div>
-            <h3 className="text-3xl sm:text-4xl font-black text-white mb-4 sm:mb-6 tracking-tighter drop-shadow-md">Our Vision</h3>
+            <h3 className="text-3xl sm:text-4xl font-black uppercase tracking-wider text-white mb-4 sm:mb-6 drop-shadow-md">Our Vision</h3>
             <p className="text-slate-400 leading-relaxed font-light text-lg sm:text-xl relative z-10">
               To become the global standard for digital Islamic learning, fostering a community of learners who are deeply rooted in their Deen while excelling in the modern, technological world.
             </p>
@@ -290,12 +293,12 @@ export default function AboutPage() {
         {/* 4. Eminent Scholars / Leadership Section */}
         <motion.div variants={fadeInUp} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="mb-24 sm:mb-32">
           <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-4 sm:mb-6 tracking-tighter">Guided by the Best</h2>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black font-cinzel uppercase tracking-widest text-white mb-4 sm:mb-6">Guided by the Best</h2>
             <div className="w-20 sm:w-24 h-1.5 bg-gradient-to-r from-emerald-400 to-transparent mx-auto rounded-full mb-6 sm:mb-8"></div>
-            <p className="text-slate-400 max-w-2xl mx-auto font-light text-lg sm:text-xl px-4">Learn directly from our board of certified scholars who bring decades of traditional teaching experience to the digital realm.</p>
+            <p className="text-slate-400 max-w-2xl mx-auto font-cinzel font-light text-lg sm:text-xl px-4">Learn directly from our board of certified scholars who bring decades of traditional teaching experience to the digital realm.</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 font-cinzel">
             {[
               { name: "Shaykh Abdullah", role: "Head of Tafseer Dept.", img: "A" },
               { name: "Ustadha Ayesha", role: "Tajweed & Qira'at Lead", img: "A" },
@@ -305,7 +308,7 @@ export default function AboutPage() {
                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#060d20] to-[#040814] border border-white/[0.08] flex items-center justify-center text-3xl font-black text-emerald-400 mb-5 shadow-lg group-hover:scale-110 transition-transform duration-500">
                   {scholar.img}
                 </div>
-                <h4 className="text-xl sm:text-2xl font-bold text-white mb-2 tracking-tight">{scholar.name}</h4>
+                <h4 className="text-xl sm:text-2xl font-bold uppercase tracking-wider text-white mb-2">{scholar.name}</h4>
                 <p className="text-emerald-400/90 text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] mb-4 sm:mb-6">{scholar.role}</p>
                 <p className="text-slate-400 text-sm sm:text-base font-light leading-relaxed">Certified in traditional Islamic sciences with over 15 years of teaching experience.</p>
               </div>
@@ -316,11 +319,11 @@ export default function AboutPage() {
         {/* 5. Core Values Section */}
         <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }}>
           <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-4 sm:mb-6 tracking-tighter">Core Values</h2>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black font-cinzel uppercase tracking-widest text-white mb-4 sm:mb-6">Core Values</h2>
             <div className="w-20 sm:w-24 h-1.5 bg-gradient-to-r from-emerald-400 to-transparent mx-auto rounded-full mb-8 sm:mb-12"></div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 mb-24 sm:mb-32">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 mb-24 sm:mb-32 font-cinzel">
             {[
               {
                 title: "Authenticity",
@@ -342,7 +345,7 @@ export default function AboutPage() {
                 <div className="w-16 h-16 mx-auto bg-[#040814] border border-white/[0.08] rounded-[1.25rem] flex items-center justify-center text-emerald-400 mb-6 sm:mb-8 shadow-md group-hover:scale-110 transition-transform duration-500">
                   <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">{val.icon}</svg>
                 </div>
-                <h4 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4 tracking-tight">{val.title}</h4>
+                <h4 className="text-xl sm:text-2xl font-bold uppercase tracking-wider text-white mb-3 sm:mb-4">{val.title}</h4>
                 <p className="text-slate-400 text-sm sm:text-base font-light leading-relaxed">{val.desc}</p>
               </motion.div>
             ))}
@@ -358,15 +361,15 @@ export default function AboutPage() {
         </div>
         
         <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp} className="relative z-10 max-w-5xl mx-auto px-4 text-center">
-          <h2 className="text-4xl sm:text-5xl md:text-7xl font-black text-white mb-6 sm:mb-8 tracking-tighter leading-[1.05] drop-shadow-2xl">
+          <h2 className="text-4xl sm:text-5xl md:text-7xl font-black font-cinzel text-white mb-6 sm:mb-8 uppercase tracking-widest leading-[1.05] drop-shadow-2xl">
             Ready to start your journey?
           </h2>
-          <p className="text-slate-400 mb-10 sm:mb-14 text-lg sm:text-xl md:text-2xl font-light max-w-3xl mx-auto leading-relaxed mix-blend-screen">
+          <p className="text-slate-400 mb-10 sm:mb-14 text-lg sm:text-xl md:text-2xl font-cinzel font-light max-w-3xl mx-auto leading-relaxed mix-blend-screen">
             Join thousands of students across the globe who are elevating their spiritual journey through the Deeniyat platform. Your pursuit of knowledge starts here.
           </p>
           
-          <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-6">
-            <Link href="/register" className="w-full sm:w-auto text-center group relative inline-flex items-center justify-center px-10 sm:px-12 py-5 sm:py-6 text-[15px] sm:text-[16px] font-black text-white bg-[#030612] rounded-full overflow-hidden transition-all duration-500 active:scale-95 sm:hover:scale-[1.05] shadow-[0_16px_32px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.1)] border border-white/[0.1] hover:border-emerald-500/50 uppercase tracking-[0.15em] sm:tracking-[0.2em]">
+          <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-6 font-cinzel">
+            <Link href="/register" className="w-full sm:w-auto text-center group relative inline-flex items-center justify-center px-10 sm:px-12 py-5 sm:py-6 text-[15px] sm:text-[16px] font-bold text-white bg-[#030612] rounded-full overflow-hidden transition-all duration-500 active:scale-95 sm:hover:scale-[1.05] shadow-[0_16px_32px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.1)] border border-white/[0.1] hover:border-emerald-500/50 uppercase tracking-[0.15em] sm:tracking-[0.2em]">
               <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               <span className="relative z-10 flex items-center justify-center gap-3 drop-shadow-md">
                 Enroll Now
