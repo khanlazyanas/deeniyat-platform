@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { motion, useMotionValue, useSpring, useTransform, useScroll, AnimatePresence, useMotionTemplate } from "framer-motion";
+import { motion, useMotionValue, useSpring, useTransform, useScroll, AnimatePresence, useMotionTemplate, Variants } from "framer-motion";
 
 interface Course {
   _id: string;
@@ -15,15 +15,38 @@ interface Course {
   };
 }
 
-// --- GLOBAL STYLES & KEYFRAMES ---
+// --- GLOBAL STYLES & KEYFRAMES (Premium Font Applied) ---
 const globalAnimations = `
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&display=swap');
+
+  .font-cinzel { 
+    font-family: 'Cinzel', serif; 
+  }
+
   @keyframes shimmer { 
     100% { transform: translateX(200%); } 
   }
 `;
 
+// --- Framer Motion Variants ---
+const fadeInUp: Variants = {
+  hidden: { opacity: 0, y: 40 },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    transition: { type: "spring" as const, stiffness: 250, damping: 24, mass: 1 } 
+  }
+};
+
+const staggerContainer: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1, delayChildren: 0.1 }
+  }
+};
+
 // --- OPTIMIZED PARTICLES ENGINE CONFIG ---
-// Reduced count and removed heavy CSS blurs, relying on box-shadow for better GPU performance
 const generateBubbles = (count: number) => {
   return Array.from({ length: count }).map((_, i) => ({
     id: i,
@@ -31,23 +54,22 @@ const generateBubbles = (count: number) => {
     xPos: Math.random() * 100,
     yPos: Math.random() * 100,
     delay: Math.random() * 5,
-    duration: Math.random() * 10 + 15, // Made slower for elegance
+    duration: Math.random() * 10 + 15,
     color: ['bg-emerald-400', 'bg-teal-400', 'bg-blue-400', 'bg-purple-400', 'bg-amber-400', 'bg-white'][Math.floor(Math.random() * 6)],
     opacity: Math.random() * 0.4 + 0.2,
     layer: Math.floor(Math.random() * 3) 
   }));
 };
 
-const ambientBubbles = generateBubbles(30); // Reduced from 45 to 30 for 60fps
+const ambientBubbles = generateBubbles(30);
 
-// --- 100,000x UPGRADE: Holographic 3D Spatial Course Card Component (GPU OPTIMIZED) ---
+// --- 100,000x UPGRADE: Holographic 3D Spatial Course Card Component ---
 function SpatialCourseCard({ course }: { course: Course }) {
   const cardRef = useRef<HTMLDivElement>(null);
   
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
   
-  // Refactored from useState to useMotionValue (Prevents React Re-renders)
   const glareX = useMotionValue(0);
   const glareY = useMotionValue(0);
   const isHovered = useMotionValue(0);
@@ -59,7 +81,6 @@ function SpatialCourseCard({ course }: { course: Course }) {
   const backgroundTemplate = useMotionTemplate`radial-gradient(800px circle at ${glareX}px ${glareY}px, rgba(255,255,255,0.12), transparent 45%)`;
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    // 🛑 Disable 3D effect on mobile for smooth scrolling
     if (window.innerWidth < 768 || !cardRef.current) return;
     
     const rect = cardRef.current.getBoundingClientRect();
@@ -111,14 +132,14 @@ function SpatialCourseCard({ course }: { course: Course }) {
         <div className="absolute inset-0 shadow-[inset_0_15px_30px_rgba(0,0,0,0.8)] pointer-events-none"></div>
 
         {/* Level Badge */}
-        <div className="absolute top-4 left-4 sm:top-5 sm:left-5 px-3 sm:px-4 py-1.5 sm:py-2 bg-[#020510]/80 backdrop-blur-xl border border-white/[0.08] shadow-[0_8px_16px_rgba(0,0,0,0.6)] rounded-full text-[9px] sm:text-[10px] font-black tracking-[0.2em] text-emerald-400 uppercase">
+        <div className="absolute top-4 left-4 sm:top-5 sm:left-5 px-3 sm:px-4 py-1.5 sm:py-2 bg-[#020510]/80 backdrop-blur-xl border border-white/[0.08] shadow-[0_8px_16px_rgba(0,0,0,0.6)] rounded-full text-[9px] sm:text-[10px] font-bold tracking-[0.2em] text-emerald-400 uppercase">
           {course.level || "Beginner"}
         </div>
       </div>
 
       {/* Content Area */}
-      <div className="p-6 sm:p-8 md:p-10 flex flex-col flex-grow relative z-10 bg-gradient-to-t from-[#010206] to-transparent">
-        <h2 className="text-2xl sm:text-3xl font-black text-white mb-3 sm:mb-4 line-clamp-2 tracking-tighter group-hover:text-emerald-400 transition-colors duration-500 drop-shadow-md">
+      <div className="p-6 sm:p-8 md:p-10 flex flex-col flex-grow relative z-10 bg-gradient-to-t from-[#010206] to-transparent font-cinzel">
+        <h2 className="text-2xl sm:text-3xl font-bold uppercase tracking-wider text-white mb-3 sm:mb-4 line-clamp-2 group-hover:text-emerald-400 transition-colors duration-500 drop-shadow-md">
           {course.title}
         </h2>
         <p className="text-slate-400 text-[14px] sm:text-[15px] mb-6 sm:mb-8 line-clamp-3 leading-relaxed font-light mix-blend-screen">
@@ -128,17 +149,17 @@ function SpatialCourseCard({ course }: { course: Course }) {
         {/* Instructor Area */}
         {course.instructor?.name && (
           <div className="flex items-center gap-3 sm:gap-4 mb-8 sm:mb-10 mt-auto">
-             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-[0.8rem] bg-[#040814] border border-white/[0.08] flex items-center justify-center text-[12px] sm:text-[13px] font-black text-slate-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-[0.8rem] bg-[#040814] border border-white/[0.08] flex items-center justify-center text-[12px] sm:text-[13px] font-bold uppercase tracking-wider text-slate-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
                {course.instructor.name.charAt(0)}
              </div>
-             <span className="text-[13px] sm:text-[14px] font-bold text-slate-300 tracking-wide">Ustad {course.instructor.name}</span>
+             <span className="text-[13px] sm:text-[14px] font-bold text-slate-300 tracking-widest uppercase">Ustad {course.instructor.name}</span>
           </div>
         )}
 
         {/* View Details Button */}
         <Link 
           href={`/courses/${course._id}`} 
-          className="mt-auto block w-full text-center py-4 sm:py-5 rounded-[1rem] sm:rounded-[1.25rem] text-[13px] sm:text-[15px] font-black tracking-[0.15em] uppercase text-white bg-white/[0.02] border border-white/[0.06] hover:bg-emerald-500 hover:text-[#010206] hover:border-emerald-400 transition-all duration-300 hover:shadow-[0_0_30px_rgba(52,211,153,0.4),inset_0_1px_1px_rgba(255,255,255,0.6)] active:scale-95"
+          className="mt-auto block w-full text-center py-4 sm:py-5 rounded-[1rem] sm:rounded-[1.25rem] text-[13px] sm:text-[15px] font-bold tracking-[0.2em] uppercase text-white bg-white/[0.02] border border-white/[0.06] hover:bg-emerald-500 hover:text-[#010206] hover:border-emerald-400 transition-all duration-300 hover:shadow-[0_0_30px_rgba(52,211,153,0.4),inset_0_1px_1px_rgba(255,255,255,0.6)] active:scale-95"
         >
           View & Enroll
         </Link>
@@ -192,7 +213,6 @@ export default function CoursesPage() {
 
     // Mouse tracker
     const handleGlobalMouseMove = (e: MouseEvent) => {
-      // 🛑 Disable heavy global mouse tracking on Mobile devices
       if (window.innerWidth < 768) return;
       const x = (e.clientX / window.innerWidth - 0.5) * 100;
       const y = (e.clientY / window.innerHeight - 0.5) * 100;
@@ -209,7 +229,8 @@ export default function CoursesPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#010206] pt-24 sm:pt-32 pb-24 relative overflow-hidden font-sans selection:bg-emerald-500/30 selection:text-emerald-200 perspective-[2000px]">
+    // 👇 Added font-cinzel globally for this page
+    <div className="min-h-screen bg-[#010206] pt-24 sm:pt-32 pb-24 relative overflow-hidden font-cinzel selection:bg-emerald-500/30 selection:text-emerald-200 perspective-[2000px]">
       
       {/* Top Progress Bar */}
       {mounted && (
@@ -293,9 +314,9 @@ export default function CoursesPage() {
         >
           <div className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-white/[0.03] border border-white/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_4px_12px_rgba(0,0,0,0.2)] mb-6 sm:mb-8 backdrop-blur-xl">
             <span className="flex h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,1)]"></span>
-            <span className="text-[9px] sm:text-[11px] font-black text-slate-300 tracking-[0.2em] sm:tracking-[0.3em] uppercase">Open Enrollment</span>
+            <span className="text-[9px] sm:text-[11px] font-bold text-slate-300 tracking-[0.2em] sm:tracking-[0.3em] uppercase">Open Enrollment</span>
           </div>
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-white tracking-tighter mb-6 sm:mb-8 leading-[1.05] drop-shadow-xl">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold uppercase tracking-widest text-white mb-6 sm:mb-8 leading-[1.05] drop-shadow-xl">
             Discover Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-400 to-blue-500 drop-shadow-[0_0_30px_rgba(52,211,153,0.3)] block sm:inline">Path</span>
           </h1>
           <p className="text-lg sm:text-xl text-slate-400 font-light leading-relaxed mb-8 sm:mb-12 mix-blend-screen">
@@ -310,10 +331,10 @@ export default function CoursesPage() {
             </div>
             <input
               type="text"
-              placeholder="Search for courses..."
+              placeholder="SEARCH FOR COURSES..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="relative w-full bg-[#030612]/80 backdrop-blur-2xl border border-white/[0.08] text-white rounded-full py-4 sm:py-5 pl-14 sm:pl-16 pr-6 sm:pr-8 text-base sm:text-lg focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all duration-300 placeholder-slate-500 shadow-[0_16px_32px_-10px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.05)] font-medium tracking-wide z-10"
+              className="relative w-full bg-[#030612]/80 backdrop-blur-2xl border border-white/[0.08] text-white rounded-full py-4 sm:py-5 pl-14 sm:pl-16 pr-6 sm:pr-8 text-base sm:text-lg focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all duration-300 placeholder-slate-500 shadow-[0_16px_32px_-10px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.05)] font-bold tracking-widest z-10 uppercase"
             />
           </div>
         </motion.div>
@@ -331,7 +352,7 @@ export default function CoursesPage() {
             <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 border border-red-500/20 text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.3)]">
               <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
             </div>
-            <h3 className="text-2xl sm:text-3xl font-black text-white mb-3 sm:mb-4 tracking-tight">Failed to load courses</h3>
+            <h3 className="text-2xl sm:text-3xl font-bold uppercase tracking-widest text-white mb-3 sm:mb-4">Failed to load courses</h3>
             <p className="text-slate-400 text-base sm:text-lg font-light leading-relaxed">{error}</p>
           </div>
         )}
@@ -346,11 +367,11 @@ export default function CoursesPage() {
                 <div className="w-16 h-16 sm:w-24 sm:h-24 bg-white/[0.02] rounded-2xl sm:rounded-3xl flex items-center justify-center mx-auto mb-6 sm:mb-8 border border-white/[0.05] text-slate-600 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]">
                   <svg className="w-8 h-8 sm:w-12 sm:h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                 </div>
-                <p className="text-2xl sm:text-3xl font-black text-white mb-3 sm:mb-4 tracking-tight">No courses found</p>
+                <p className="text-2xl sm:text-3xl font-bold uppercase tracking-widest text-white mb-3 sm:mb-4">No courses found</p>
                 <p className="text-slate-400 text-base sm:text-lg font-light mb-6 sm:mb-8 max-w-md mx-auto">We couldn't find any courses matching "{searchQuery}". Try adjusting your search keywords.</p>
                 <button 
                   onClick={() => setSearchQuery("")} 
-                  className="px-8 sm:px-10 py-3 sm:py-4 bg-white/[0.03] border border-white/[0.08] rounded-full text-emerald-400 font-bold hover:bg-emerald-500 hover:text-[#010206] transition-all duration-300 hover:shadow-[0_0_20px_rgba(52,211,153,0.4)] tracking-wide uppercase text-xs sm:text-sm"
+                  className="px-8 sm:px-10 py-3 sm:py-4 bg-white/[0.03] border border-white/[0.08] rounded-full text-emerald-400 font-bold hover:bg-emerald-500 hover:text-[#010206] transition-all duration-300 hover:shadow-[0_0_20px_rgba(52,211,153,0.4)] tracking-wider uppercase text-xs sm:text-sm"
                 >
                   Clear search
                 </button>
