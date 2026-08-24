@@ -93,7 +93,7 @@ export default function Navbar() {
                   <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
                 </svg>
               </div>
-              <span className="text-[26px] sm:text-[28px] font-black text-white tracking-tighter leading-none flex items-baseline ml-1 antialiased drop-shadow-md">
+              <span className="text-[26px] sm:text-[28px] font-black font-cinzel text-white tracking-tighter leading-none flex items-baseline ml-1 antialiased drop-shadow-md">
                 Deeniyat<span className="text-[#4ade80] ml-[1px] drop-shadow-[0_0_10px_rgba(74,222,128,0.8)]">.</span>
               </span>
             </Link>
@@ -125,7 +125,7 @@ export default function Navbar() {
                   
                   <Link 
                     href={link.path} 
-                    className={`relative z-10 text-[14px] font-bold tracking-wide transition-colors duration-300 ${isActive ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : 'text-slate-400 hover:text-slate-200'}`}
+                    className={`relative z-10 text-[14px] font-bold font-cinzel tracking-wide transition-colors duration-300 ${isActive ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : 'text-slate-400 hover:text-slate-200'}`}
                   >
                     {link.name}
                   </Link>
@@ -161,7 +161,7 @@ export default function Navbar() {
                           user.name ? user.name.charAt(0) : "U"
                       )}
                   </div>
-                  <span className="relative z-10 text-[13px] font-black tracking-widest uppercase text-slate-300 group-hover:text-white transition-colors duration-300">
+                  <span className="relative z-10 text-[13px] font-black font-cinzel tracking-widest uppercase text-slate-300 group-hover:text-white transition-colors duration-300">
                     Dashboard
                   </span>
                 </Link>
@@ -177,12 +177,12 @@ export default function Navbar() {
               </div>
             ) : (
               <>
-                <Link href="/login" className="px-5 py-2.5 text-[14px] font-bold text-slate-300 hover:text-white transition-colors">
+                <Link href="/login" className="px-5 py-2.5 text-[14px] font-bold font-cinzel text-slate-300 hover:text-white transition-colors">
                   Log in
                 </Link>
                 <Link 
                   href="/register" 
-                  className="relative group px-7 py-2.5 text-[14px] font-black text-[#010206] bg-gradient-to-b from-[#4ade80] to-[#10b981] rounded-full transition-all duration-400 ease-[0.23,1,0.32,1] hover:scale-[1.05] shadow-[0_0_30px_rgba(16,185,129,0.5),inset_0_1px_2px_rgba(255,255,255,0.8)] ring-1 ring-white/30"
+                  className="relative group px-7 py-2.5 text-[14px] font-black font-cinzel text-[#010206] bg-gradient-to-b from-[#4ade80] to-[#10b981] rounded-full transition-all duration-400 ease-[0.23,1,0.32,1] hover:scale-[1.05] shadow-[0_0_30px_rgba(16,185,129,0.5),inset_0_1px_2px_rgba(255,255,255,0.8)] ring-1 ring-white/30 uppercase tracking-wider"
                 >
                   <div className="absolute inset-0 bg-white/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <span className="relative z-10 drop-shadow-[0_1px_1px_rgba(255,255,255,0.4)]">Sign Up</span>
@@ -260,14 +260,14 @@ export default function Navbar() {
                           )}
                       </div>
                       <div>
-                          <p className="text-[12px] font-bold text-emerald-500 uppercase tracking-widest leading-none mb-1">Welcome</p>
-                          <p className="text-white font-black text-lg leading-none">{user.name}</p>
+                          <p className="text-[12px] font-bold font-cinzel text-emerald-500 uppercase tracking-widest leading-none mb-1">Welcome</p>
+                          <p className="text-white font-black font-cinzel text-lg leading-none tracking-wider">{user.name}</p>
                       </div>
                   </div>
               )}
 
               <div className="flex flex-col gap-1.5 px-1">
-                <p className="text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] px-3 mb-1 mt-2">Navigation</p>
+                <p className="text-[11px] font-black font-cinzel text-slate-500 uppercase tracking-[0.25em] px-3 mb-1 mt-2">Navigation</p>
                 {navLinks.map((link, i) => {
                   const isActive = pathname === link.path;
                   return (
@@ -292,7 +292,7 @@ export default function Navbar() {
                               {link.icon}
                             </svg>
                           </div>
-                          <span className={`text-[17px] font-bold tracking-tight transition-colors duration-300 ${isActive ? 'text-[#4ade80] drop-shadow-[0_0_10px_rgba(74,222,128,0.6)]' : 'text-slate-200 group-hover:text-white'}`}>
+                          <span className={`text-[17px] font-bold font-cinzel tracking-wider transition-colors duration-300 ${isActive ? 'text-[#4ade80] drop-shadow-[0_0_10px_rgba(74,222,128,0.6)]' : 'text-slate-200 group-hover:text-white'}`}>
                             {link.name}
                           </span>
                         </div>
@@ -315,13 +315,13 @@ export default function Navbar() {
               >
                 {user ? (
                   <>
-                    <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="w-full flex justify-center items-center gap-2 text-center py-4 text-[16px] font-black text-white bg-white/[0.05] border border-white/[0.1] rounded-[22px] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] active:scale-[0.98] transition-transform duration-300 ease-out">
+                    <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="w-full flex justify-center items-center gap-2 text-center py-4 text-[16px] font-black font-cinzel tracking-wider uppercase text-white bg-white/[0.05] border border-white/[0.1] rounded-[22px] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] active:scale-[0.98] transition-transform duration-300 ease-out">
                       Dashboard
                       <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 8l4 4m0 0l-4-4m4-4H3" /></svg>
                     </Link>
                     <button 
                         onClick={() => { logout(); setMobileMenuOpen(false); }} 
-                        className="w-full flex items-center justify-center gap-2 py-4 text-[16px] font-bold text-rose-400 bg-rose-500/10 rounded-[22px] border border-rose-500/20 hover:bg-rose-500/20 transition-all active:scale-[0.98] duration-300 ease-out"
+                        className="w-full flex items-center justify-center gap-2 py-4 text-[16px] font-bold font-cinzel tracking-wider uppercase text-rose-400 bg-rose-500/10 rounded-[22px] border border-rose-500/20 hover:bg-rose-500/20 transition-all active:scale-[0.98] duration-300 ease-out"
                     >
                         Log Out
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 16l4-4m0 0l-4-4m4-4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
@@ -329,13 +329,13 @@ export default function Navbar() {
                   </>
                 ) : (
                   <>
-                    <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="w-full flex items-center justify-center gap-2 py-4 text-[16px] font-bold text-slate-300 bg-white/[0.03] rounded-[22px] border border-white/[0.06] hover:bg-white/[0.08] hover:text-white transition-all active:scale-[0.98] duration-300 ease-out">
+                    <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="w-full flex items-center justify-center gap-2 py-4 text-[16px] font-bold font-cinzel tracking-wider uppercase text-slate-300 bg-white/[0.03] rounded-[22px] border border-white/[0.06] hover:bg-white/[0.08] hover:text-white transition-all active:scale-[0.98] duration-300 ease-out">
                       Log In
                     </Link>
                     <Link 
                       href="/register" 
                       onClick={() => setMobileMenuOpen(false)} 
-                      className="relative group w-full text-center py-4 text-[16px] font-black text-[#010206] bg-gradient-to-b from-[#4ade80] to-[#10b981] rounded-[22px] shadow-[0_0_35px_rgba(16,185,129,0.4),inset_0_1px_2px_rgba(255,255,255,0.8)] active:scale-[0.98] transition-transform duration-300 ease-out"
+                      className="relative group w-full text-center py-4 text-[16px] font-black font-cinzel tracking-wider uppercase text-[#010206] bg-gradient-to-b from-[#4ade80] to-[#10b981] rounded-[22px] shadow-[0_0_35px_rgba(16,185,129,0.4),inset_0_1px_2px_rgba(255,255,255,0.8)] active:scale-[0.98] transition-transform duration-300 ease-out"
                     >
                       <div className="absolute inset-0 bg-white/20 rounded-[22px] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <span className="relative z-10 drop-shadow-[0_1px_1px_rgba(255,255,255,0.4)]">Create Account</span>
