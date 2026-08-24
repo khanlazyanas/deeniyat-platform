@@ -38,7 +38,11 @@ export default function CourseDetailScreen() {
 
         {/* Dummy Syllabus List */}
         {[1, 2, 3, 4, 5].map((item) => (
-          <View key={item} className="flex-row items-center bg-white/[0.02] border border-white/[0.05] p-4 rounded-2xl mb-3">
+          <TouchableOpacity 
+            key={item} 
+            onPress={() => router.push(`/lesson/${item}` as any)} 
+            className="flex-row items-center bg-white/[0.02] border border-white/[0.05] p-4 rounded-2xl mb-3 active:bg-white/[0.05]"
+          >
             <View className="w-10 h-10 bg-[#010206] border border-white/[0.1] rounded-full items-center justify-center mr-4">
               <Text className="text-emerald-400 font-bold">{item}</Text>
             </View>
@@ -46,7 +50,7 @@ export default function CourseDetailScreen() {
               <Text className="text-white font-bold tracking-[1]">Lesson {item}: Introduction</Text>
               <Text className="text-slate-500 text-[10px] mt-1 tracking-[1] uppercase">15 mins • Video</Text>
             </View>
-          </View>
+          </TouchableOpacity>
         ))}
         
         <View className="h-32" /> {/* Bottom Button ke liye jagah */}
