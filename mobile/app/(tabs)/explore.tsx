@@ -1,6 +1,9 @@
 import { View, Text, StatusBar, ScrollView, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 
 export default function CoursesScreen() {
+  const router = useRouter();
+
   // Yeh dummy courses hain, backend connect karne ke baad yahan real data aayega!
   const dummyCourses = [
     { id: '1', title: 'Quranic Tajweed Masterclass', level: 'Beginner', desc: 'Learn proper pronunciation and articulation of Arabic letters.' },
@@ -43,7 +46,10 @@ export default function CoursesScreen() {
               {course.desc}
             </Text>
 
-            <TouchableOpacity className="bg-white/[0.03] border border-white/[0.1] py-3 rounded-2xl items-center active:bg-emerald-400 active:border-emerald-400">
+            <TouchableOpacity 
+              onPress={() => router.push(`/course/${course.id}`)}
+              className="bg-white/[0.03] border border-white/[0.1] py-3 rounded-2xl items-center active:bg-emerald-400 active:border-emerald-400"
+            >
               <Text className="text-white text-xs font-bold tracking-[2] uppercase">
                 View Details
               </Text>
