@@ -12,20 +12,19 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Login Handle karne ka function
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Validation Error', 'Bhai, email aur password dono dalna zaroori hai!');
+      Alert.alert('Validation Error', 'Email aur password dono dalna zaroori hai!');
       return;
     }
 
     setLoading(true);
     try {
-      // NOTE: Agar tumhara backend route '/auth/login' hai, toh yahan change kar lena
-      const response = await fetch(`${API_URL}/login`, {
-        method: 'POST',
+      // Yahan maine route '/auth/login' kar diya hai
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
       });
@@ -33,23 +32,32 @@ export default function LoginScreen() {
       const data = await response.json();
 
       if (response.ok) {
-        // Login Success! Token ko phone mein save karo
-        await AsyncStorage.setItem('userToken', data.token);
+        // Tumhare Next.js wale same logic ke hisaab se data uthaya
+        const userData = {
+          _id: data._id,
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          avatar: data.avatar || "",
+        };
         
-        // Agar user ka data bhi aa raha hai, toh use bhi save kar lo
-        if (data.user) {
-          await AsyncStorage.setItem('userData', JSON.stringify(data.user));
+        // Token aur User Data storage mein save kiya
+        if (data.token) {
+          await AsyncStorage.setItem('userToken', data.token);
+          await AsyncStorage.setItem('userData', JSON.stringify(userData));
+          
+          router.replace('/'); // Success par home page
+        } else {
+          Alert.alert('Error', 'Login toh hua par token nahi mila!');
         }
 
-        // Home screen par bhej do
-        router.replace('/');
       } else {
-        // Backend se error aayi (jaise wrong password)
+        // Backend ka error message sidha alert mein
         Alert.alert('Login Failed', data.message || 'Invalid email or password');
       }
     } catch (error) {
       console.error("Login Error:", error);
-      Alert.alert('Network Error', 'Server se connect nahi ho pa raha hai. Server chalu hai?');
+      Alert.alert('Network Error', 'Server se connect nahi ho pa raha hai.');
     } finally {
       setLoading(false);
     }
