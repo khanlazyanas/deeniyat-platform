@@ -148,9 +148,9 @@ export default function CourseDetailScreen() {
                     key={module._id || index} 
                     className="bg-white/[0.02] border border-white/[0.05] p-4 rounded-2xl mb-3 flex-row items-center active:bg-white/[0.05]"
                     onPress={() => {
-                      // Agar user enrolled hai toh video player page par bhejo
+                      // 👇 FIX: Yahan ab user seedha Lesson page par jayega
                       if (isEnrolled) {
-                        Alert.alert("Coming Soon", "Yahan se Video Player khulega!");
+                        router.push(`/lesson/${id}`);
                       } else {
                         Alert.alert("Locked", "Pehle course mein enroll karein.");
                       }
@@ -177,7 +177,8 @@ export default function CourseDetailScreen() {
           <View className="absolute bottom-0 left-0 right-0 bg-[#010206] px-6 py-6 border-t border-white/[0.05]">
             {isEnrolled ? (
               <TouchableOpacity 
-                onPress={() => Alert.alert("Coming Soon", "Agla page hum Video Player hi banayenge!")}
+                // 👇 FIX: Start Learning par dabaate hi Lesson page khulega
+                onPress={() => router.push(`/lesson/${id}`)}
                 className="w-full py-4 rounded-full items-center shadow-[0_0_20px_rgba(52,211,153,0.3)] bg-emerald-400 active:bg-emerald-500"
               >
                 <Text className="text-[#010206] font-black tracking-[2] uppercase text-sm">
