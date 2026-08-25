@@ -10,14 +10,32 @@ export default function CourseDetailScreen() {
   
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [enrolling, setEnrolling] = useState(false); // Enroll button ki loading state
+  const [enrolling, setEnrolling] = useState(false);
+  
+  // 🔥 Nayi State: Check karne ke liye ki user enrolled hai ya nahi
+  const [isEnrolled, setIsEnrolled] = useState(false); 
 
   useEffect(() => {
-    const fetchCourseDetail = async () => {
+    const fetchCourseAndCheckEnrollment = async () => {
       try {
+        // 1. Course ki details lao
         const response = await fetch(`${API_URL}/courses/${id}`);
         const data = await response.json();
         setCourse(data.course || data.data || data);
+
+        // 2. Check karo ki user isme enrolled hai ya nahi
+        const token = await AsyncStorage.getItem('userToken');
+        if (token) {
+          const enrollRes = await fetch(`${API_URL}/courses/my-courses`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (enrollRes.ok) {
+            const myCourses = await enrollRes.json();
+            // Agar ye course ID myCourses list mein hai, matlab user enrolled hai
+            const alreadyBought = myCourses.some((c: any) => c._id === id);
+            setIsEnrolled(alreadyBought);
+          }
+        }
       } catch (error) {
         console.error("Error fetching course details:", error);
       } finally {
@@ -26,11 +44,10 @@ export default function CourseDetailScreen() {
     };
 
     if (id) {
-      fetchCourseDetail();
+      fetchCourseAndCheckEnrollment();
     }
   }, [id]);
 
-  // 🔥 Enroll Button ka Sahi Function (Tumhare existing backend ke hisaab se)
   const handleEnroll = async () => {
     setEnrolling(true);
     try {
@@ -42,14 +59,12 @@ export default function CourseDetailScreen() {
         return;
       }
 
-      // 👇 FIX: Ab hum seedha /enrollments par request bhej rahe hain
       const response = await fetch(`${API_URL}/enrollments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}` 
         },
-        // Tumhare controller ko body mein courseId chahiye, toh yahan se bhej rahe hain
         body: JSON.stringify({ courseId: id })
       });
 
@@ -57,8 +72,9 @@ export default function CourseDetailScreen() {
 
       if (response.ok) {
         Alert.alert("Success! 🎉", "Mubarak ho! Tum is course mein enroll ho gaye ho.");
+        // 🔥 Jaise hi enroll ho, is button ko "Start Learning" mein badal do
+        setIsEnrolled(true); 
       } else {
-        // Agar backend error de (jaise 'You are already enrolled')
         Alert.alert("Enrollment Failed", data.message || "Pehle se enroll ho ya galti hui.");
       }
     } catch (error) {
@@ -68,6 +84,7 @@ export default function CourseDetailScreen() {
       setEnrolling(false);
     }
   };
+
   return (
     <View className="flex-1 bg-[#010206] pt-12">
       <StatusBar barStyle="light-content" />
@@ -95,7 +112,6 @@ export default function CourseDetailScreen() {
       ) : course ? (
         <>
           <ScrollView showsVerticalScrollIndicator={false} className="px-6">
-            {/* Header Area */}
             <View className="mb-8">
               <View className="flex-row items-center mb-4">
                 <Text className="text-[10px] font-bold text-emerald-400 tracking-[2] uppercase bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
@@ -121,27 +137,34 @@ export default function CourseDetailScreen() {
               </View>
             </View>
 
-            {/* 🔥 Dynamic Modules Section */}
             <View className="mb-24">
               <Text className="text-white font-black uppercase tracking-[2] mb-4 text-sm">
                 Curriculum Overview
               </Text>
               
-              {/* Check kar rahe hain ki backend se modules/lessons aaye hain ya nahi */}
               {course.modules && course.modules.length > 0 ? (
                 course.modules.map((module: any, index: number) => (
                   <TouchableOpacity 
                     key={module._id || index} 
                     className="bg-white/[0.02] border border-white/[0.05] p-4 rounded-2xl mb-3 flex-row items-center active:bg-white/[0.05]"
-                    onPress={() => Alert.alert("Module Details", `Bhai abhi ye module ka andar ka video player banana baaki hai!`)}
+                    onPress={() => {
+                      // Agar user enrolled hai toh video player page par bhejo
+                      if (isEnrolled) {
+                        Alert.alert("Coming Soon", "Yahan se Video Player khulega!");
+                      } else {
+                        Alert.alert("Locked", "Pehle course mein enroll karein.");
+                      }
+                    }}
                   >
-                    <View className="w-8 h-8 bg-emerald-500/10 rounded-full items-center justify-center mr-4 border border-emerald-500/20">
-                      <Text className="text-emerald-400 font-bold text-xs">{index + 1}</Text>
+                    <View className={`w-8 h-8 rounded-full items-center justify-center mr-4 border ${isEnrolled ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-slate-500/10 border-slate-500/20'}`}>
+                      <Text className={`${isEnrolled ? 'text-emerald-400' : 'text-slate-400'} font-bold text-xs`}>{index + 1}</Text>
                     </View>
                     <View className="flex-1">
                       <Text className="text-white font-bold text-sm mb-1">{module.title || `Module ${index + 1}`}</Text>
                       {module.duration && <Text className="text-slate-400 text-[10px]">{module.duration}</Text>}
                     </View>
+                    {/* Lock/Unlock Icon based on enrollment */}
+                    <Text className="text-lg">{isEnrolled ? '▶' : '🔒'}</Text>
                   </TouchableOpacity>
                 ))
               ) : (
@@ -150,21 +173,32 @@ export default function CourseDetailScreen() {
             </View>
           </ScrollView>
 
-          {/* Sticky Bottom Enroll Button */}
+          {/* Sticky Bottom Button (Dynamic) */}
           <View className="absolute bottom-0 left-0 right-0 bg-[#010206] px-6 py-6 border-t border-white/[0.05]">
-            <TouchableOpacity 
-              onPress={handleEnroll}
-              disabled={enrolling}
-              className={`w-full py-4 rounded-full items-center shadow-[0_0_20px_rgba(52,211,153,0.3)] ${enrolling ? 'bg-emerald-400/50' : 'bg-emerald-400 active:bg-emerald-500'}`}
-            >
-              {enrolling ? (
-                 <ActivityIndicator color="#010206" />
-              ) : (
+            {isEnrolled ? (
+              <TouchableOpacity 
+                onPress={() => Alert.alert("Coming Soon", "Agla page hum Video Player hi banayenge!")}
+                className="w-full py-4 rounded-full items-center shadow-[0_0_20px_rgba(52,211,153,0.3)] bg-emerald-400 active:bg-emerald-500"
+              >
                 <Text className="text-[#010206] font-black tracking-[2] uppercase text-sm">
-                  Enroll Now
+                  Start Learning
                 </Text>
-              )}
-            </TouchableOpacity>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity 
+                onPress={handleEnroll}
+                disabled={enrolling}
+                className={`w-full py-4 rounded-full items-center shadow-[0_0_20px_rgba(52,211,153,0.3)] ${enrolling ? 'bg-emerald-400/50' : 'bg-emerald-400 active:bg-emerald-500'}`}
+              >
+                {enrolling ? (
+                   <ActivityIndicator color="#010206" />
+                ) : (
+                  <Text className="text-[#010206] font-black tracking-[2] uppercase text-sm">
+                    Enroll Now
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
         </>
       ) : (
