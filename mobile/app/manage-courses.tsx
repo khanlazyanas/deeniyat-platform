@@ -1,6 +1,6 @@
 import { View, Text, StatusBar, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Image } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { API_URL } from '../constants/config';
@@ -18,7 +18,7 @@ export default function ManageCoursesScreen() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
 
-  // useFocusEffect taaki jab Ustad naya course bana kar wapas aaye, toh list refresh ho jaye
+  // useFocusEffect taaki jab Ustad naya course bana kar wapas aaye, ya edit karke aaye, toh list refresh ho jaye
   useFocusEffect(
     useCallback(() => {
       fetchMyCourses();
@@ -198,8 +198,8 @@ export default function ManageCoursesScreen() {
                     <View className="space-y-3">
                       {/* Manage Modules / Add Lesson */}
                       <TouchableOpacity 
-                        // Ispe click karke Ustad Lesson Player (ya Add Lesson) screen par jaayega
-                        onPress={() => router.push(`/lesson/${course._id}?mode=manage`)}
+                        // Ispe click karke Ustad Add Lesson/Module Management par jaayega
+                        onPress={() => router.push(`/add-lesson?courseId=${course._id}`)}
                         className="w-full py-4 bg-blue-500/10 border border-blue-500/20 rounded-xl items-center active:bg-blue-500/20"
                       >
                         <Text className="text-blue-400 font-black tracking-widest uppercase text-[10px]">
@@ -208,9 +208,9 @@ export default function ManageCoursesScreen() {
                       </TouchableOpacity>
 
                       <View className="flex-row gap-3">
-                        {/* Edit Button */}
+                        {/* 🚀 EDIT BUTTON FIXED HERE */}
                         <TouchableOpacity 
-                          onPress={() => Alert.alert("Coming Soon", "Edit feature will be integrated shortly.")}
+                          onPress={() => router.push(`/edit-course/${course._id}` as any)}
                           className="flex-1 py-3.5 bg-white/[0.03] border border-white/[0.05] rounded-xl items-center active:bg-white/[0.1]"
                         >
                           <Text className="text-slate-300 font-bold tracking-widest uppercase text-[10px]">Edit Info</Text>
