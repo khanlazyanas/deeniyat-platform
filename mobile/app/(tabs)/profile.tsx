@@ -2,13 +2,15 @@ import { View, Text, StatusBar, TouchableOpacity, ScrollView, ActivityIndicator 
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL } from '../../constants/config'; // Make sure this path is correct
 
 export default function ProfileScreen() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [enrolledCount, setEnrolledCount] = useState<number | string>('00');
   const [loading, setLoading] = useState(true);
 
-  // Jab profile page khule, toh storage se user ka data uthao
+  // Jab profile page khule, toh storage se user ka data uthao aur API hit karo
   useEffect(() => {
     const loadUserData = async () => {
       try {
@@ -16,12 +18,31 @@ export default function ProfileScreen() {
         if (userDataString) {
           setUser(JSON.parse(userDataString));
         }
+
+        const token = await AsyncStorage.getItem('userToken');
+        if (token) {
+           // Backend se user ke kharide hue courses mangwa rahe hain
+           const response = await fetch(`${API_URL}/enrollments/my-courses`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            // Jitne courses array mein aaye, utna count set kar diya. Agar 0 hai toh '00' dikhega
+            const count = data.length || 0;
+            setEnrolledCount(count < 10 && count > 0 ? `0${count}` : count === 0 ? '00' : count);
+          }
+        }
       } catch (error) {
-        console.error("Error loading user data", error);
+        console.error("Error loading profile stats:", error);
       } finally {
         setLoading(false);
       }
     };
+    
     loadUserData();
   }, []);
 
@@ -68,7 +89,7 @@ export default function ProfileScreen() {
           {/* Stats Cards */}
           <View className="flex-row justify-between mb-8 space-x-4">
             <View className="flex-1 bg-[#030612] border border-white/[0.08] p-4 rounded-2xl items-center shadow-lg">
-              <Text className="text-2xl font-black text-white mb-1">00</Text>
+              <Text className="text-2xl font-black text-white mb-1">{enrolledCount}</Text>
               <Text className="text-slate-400 text-[10px] tracking-[1] uppercase font-bold">Enrolled</Text>
             </View>
             <View className="flex-1 bg-[#030612] border border-white/[0.08] p-4 rounded-2xl items-center shadow-lg">
