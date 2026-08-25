@@ -5,15 +5,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WebView } from 'react-native-webview';
 import { API_URL } from '../../constants/config';
 
-// YouTube Embed URL Generator
+// 🔥 FIX: Embed URL generator mein 'origin' aur 'playsinline' add kiya
 const getYouTubeEmbedUrl = (url: string) => {
   if (!url) return null;
   const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/gi;
   const match = regExp.exec(url);
   if (match && match[1].length === 11) {
-    return `https://www.youtube.com/embed/${match[1]}?autoplay=0&rel=0&modestbranding=1&showinfo=0&controls=1&enablejsapi=1`;
+    // origin pass karna zaroori hai taaki block na ho
+    return `https://www.youtube.com/embed/${match[1]}?autoplay=0&rel=0&modestbranding=1&showinfo=0&controls=1&playsinline=1&origin=https://deeniyat-platform.vercel.app`;
   }
-  return null; 
+  return url; // Agar normal link hai toh wahi return kare
 };
 
 export default function LessonScreen() {
@@ -88,7 +89,7 @@ export default function LessonScreen() {
 
   const embedUrl = getYouTubeEmbedUrl(activeLesson?.videoUrl);
 
-  // 🔥 FIX 2: YouTube Error 153 Bypass karne ke liye HTML Wrapper
+  // 🔥 FIX 2: baseUrl ko 'youtube.com' se hata kar valid website 'google.com' kar diya hai 
   const htmlContent = embedUrl ? `
     <!DOCTYPE html>
     <html>
@@ -125,7 +126,7 @@ export default function LessonScreen() {
 
         {embedUrl ? (
           <WebView
-            source={{ html: htmlContent, baseUrl: 'https://www.youtube.com' }} // Origin set kiya taaki video block na ho
+            source={{ html: htmlContent, baseUrl: 'https://google.com' }} // YAHAN FIX HAI!
             style={{ flex: 1, backgroundColor: '#030612' }}
             allowsFullscreenVideo={true}
             javaScriptEnabled={true}
@@ -179,7 +180,6 @@ export default function LessonScreen() {
                           : 'bg-[#030612] border-white/[0.08]'
                       }`}
                     >
-                      {/* 🔥 FIX 1: Text string "{index + 1}" ko Text component me wrap kiya */}
                       <View className={`w-10 h-10 rounded-xl flex items-center justify-center mr-4 ${
                         isPlaying 
                           ? "bg-emerald-400" 
@@ -216,7 +216,6 @@ export default function LessonScreen() {
             <View className="pb-24">
               {activeLesson?.content && (
                 <View className="bg-[#030612]/60 border border-white/[0.06] rounded-[2rem] p-6 mb-8">
-                   {/* 🔥 FIX 1b: HTML <h3> hata kar <Text> lagaya */}
                    <Text className="text-white font-bold mb-4 text-lg">
                      📝 Study Material
                    </Text>
