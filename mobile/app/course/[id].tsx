@@ -1,69 +1,98 @@
-import { View, Text, StatusBar, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StatusBar, TouchableOpacity, ScrollView, ActivityIndicator, Image, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { WebView } from 'react-native-webview';
 import { API_URL } from '../../constants/config';
 
-export default function CourseDetailScreen() {
-  const { id } = useLocalSearchParams(); 
+// Helper to get full image URL
+const getFullImageUrl = (url: string) => {
+  if (!url) return 'https://via.placeholder.com/400x200?text=Course+Image';
+  if (url.startsWith("http") || url.startsWith("file://")) return url;
+  return `${API_URL.replace('/api', '')}${url}`;
+};
+
+// YouTube Embed URL Generator
+const getYouTubeEmbedUrl = (url: string) => {
+  if (!url) return null;
+  const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/gi;
+  const match = regExp.exec(url);
+  if (match && match[1].length === 11) {
+    return `https://www.youtube.com/embed/${match[1]}?autoplay=0&rel=0&modestbranding=1&showinfo=0&controls=1&playsinline=1&origin=https://deeniyat-platform.vercel.app`;
+  }
+  return url;
+};
+
+export default function CourseDetailsScreen() {
+  const { id } = useLocalSearchParams();
   const router = useRouter();
-  
+
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
-  
-  // 🔥 Nayi State: Check karne ke liye ki user enrolled hai ya nahi
-  const [isEnrolled, setIsEnrolled] = useState(false); 
+  const [isEnrolled, setIsEnrolled] = useState(false);
 
   useEffect(() => {
-    const fetchCourseAndCheckEnrollment = async () => {
-      try {
-        // 1. Course ki details lao
-        const response = await fetch(`${API_URL}/courses/${id}`);
-        const data = await response.json();
-        setCourse(data.course || data.data || data);
-
-        // 2. Check karo ki user isme enrolled hai ya nahi
-        const token = await AsyncStorage.getItem('userToken');
-        if (token) {
-          const enrollRes = await fetch(`${API_URL}/courses/my-courses`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (enrollRes.ok) {
-            const myCourses = await enrollRes.json();
-            // Agar ye course ID myCourses list mein hai, matlab user enrolled hai
-            const alreadyBought = myCourses.some((c: any) => c._id === id);
-            setIsEnrolled(alreadyBought);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching course details:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) {
-      fetchCourseAndCheckEnrollment();
-    }
+    fetchCourseDetails();
   }, [id]);
 
-  const handleEnroll = async () => {
-    setEnrolling(true);
+  const fetchCourseDetails = async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
-      
-      if (!token) {
-        Alert.alert("Login Required", "Bhai, pehle login karna padega enroll karne ke liye!");
-        router.push('/login');
-        return;
-      }
+      const response = await fetch(`${API_URL}/courses/${id}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      const data = await response.json();
 
-      const response = await fetch(`${API_URL}/enrollments`, {
+      if (response.ok) {
+        setCourse(data);
+        
+        // Agar user login hai, check karo ki wo enrolled hai ya nahi
+        if (token) {
+          const userDataString = await AsyncStorage.getItem('userData');
+          if (userDataString) {
+            const user = JSON.parse(userDataString);
+            if (user?.enrolledCourses?.includes(id)) {
+              setIsEnrolled(true);
+            }
+          }
+        }
+      } else {
+        Alert.alert("Error", data.message || "Failed to load course details.");
+      }
+    } catch (error) {
+      console.error("Error fetching course details:", error);
+      Alert.alert("Error", "Network connection failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEnroll = async () => {
+    const token = await AsyncStorage.getItem('userToken');
+    if (!token) {
+      Alert.alert(
+        "Login Required",
+        "You must be logged in to enroll in this course.",
+        [{ text: "Login", onPress: () => router.push('/login') }, { text: "Cancel", style: "cancel" }]
+      );
+      return;
+    }
+
+    if (isEnrolled) {
+      // Agar pehle se enrolled hai, toh direct padhai shuru karo (Lesson Player par bhejo)
+      router.push(`/lesson/${id}`);
+      return;
+    }
+
+    setEnrolling(true);
+    try {
+      // 🚀 Seedha Enroll API hit kar rahe hain mobile se
+      const response = await fetch(`${API_URL}/courses/enroll`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ courseId: id })
       });
@@ -71,142 +100,166 @@ export default function CourseDetailScreen() {
       const data = await response.json();
 
       if (response.ok) {
-        Alert.alert("Success! 🎉", "Mubarak ho! Tum is course mein enroll ho gaye ho.");
-        // 🔥 Jaise hi enroll ho, is button ko "Start Learning" mein badal do
-        setIsEnrolled(true); 
+        Alert.alert("🎉 Enrolled Successfully!", "Welcome to the course. Let's begin learning.");
+        setIsEnrolled(true);
+        
+        // AsyncStorage mein user ke enrolled courses update karo
+        const userDataString = await AsyncStorage.getItem('userData');
+        if (userDataString) {
+          const user = JSON.parse(userDataString);
+          if (!user.enrolledCourses) user.enrolledCourses = [];
+          user.enrolledCourses.push(id);
+          await AsyncStorage.setItem('userData', JSON.stringify(user));
+        }
+
+        // Direct Lesson Player par bhej do
+        router.replace(`/lesson/${id}`);
       } else {
-        Alert.alert("Enrollment Failed", data.message || "Pehle se enroll ho ya galti hui.");
+        Alert.alert("Enrollment Failed", data.message || "Something went wrong.");
       }
     } catch (error) {
-      console.error("Enroll Error:", error);
-      Alert.alert("Network Error", "Server se connect nahi ho paya.");
+      console.error("Enrollment error:", error);
+      Alert.alert("Error", "Could not complete enrollment.");
     } finally {
       setEnrolling(false);
     }
   };
 
+  if (loading) {
+    return (
+      <View className="flex-1 bg-[#010206] justify-center items-center">
+        <ActivityIndicator size="large" color="#34d399" />
+        <Text className="text-emerald-400 mt-4 font-bold tracking-[2] uppercase text-xs">
+          Decrypting Knowledge...
+        </Text>
+      </View>
+    );
+  }
+
+  if (!course) {
+    return (
+      <View className="flex-1 bg-[#010206] justify-center items-center px-6">
+        <Text className="text-4xl mb-4">⚠️</Text>
+        <Text className="text-white font-bold text-lg mb-2">Course Not Found</Text>
+        <TouchableOpacity onPress={() => router.back()} className="mt-4 bg-white/10 px-6 py-3 rounded-full">
+          <Text className="text-white font-bold">Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const embedUrl = getYouTubeEmbedUrl(course.promoVideo);
+  const htmlContent = embedUrl ? `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <style>
+          body { margin: 0; padding: 0; background-color: #030612; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+          iframe { width: 100vw; height: 100vh; border: none; }
+        </style>
+      </head>
+      <body>
+        <iframe src="${embedUrl}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      </body>
+    </html>
+  ` : '';
+
   return (
-    <View className="flex-1 bg-[#010206] pt-12">
+    <View className="flex-1 bg-[#010206]">
       <StatusBar barStyle="light-content" />
 
-      {/* Top Navigation Bar */}
-      <View className="flex-row items-center px-6 mb-6">
+      {/* Header with Back Button & Promo Media */}
+      <View className="w-full bg-[#030612] aspect-video relative mt-8 border-b border-white/[0.05]">
+        
+        {/* Back Button Overlay */}
         <TouchableOpacity 
-          onPress={() => router.back()} 
-          className="w-10 h-10 bg-white/[0.05] border border-white/[0.1] rounded-xl items-center justify-center active:bg-white/[0.1]"
+          onPress={() => router.back()}
+          className="absolute top-4 left-4 w-10 h-10 bg-black/50 rounded-full items-center justify-center z-20"
         >
           <Text className="text-white text-lg font-bold">←</Text>
         </TouchableOpacity>
-        <Text className="text-white font-bold tracking-[2] uppercase ml-4 text-sm">
-          Course Details
-        </Text>
+
+        {embedUrl ? (
+          <WebView
+            source={{ html: htmlContent, baseUrl: 'https://google.com' }}
+            style={{ flex: 1, backgroundColor: '#030612' }}
+            allowsFullscreenVideo={true}
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
+            mediaPlaybackRequiresUserAction={false}
+          />
+        ) : (
+          <Image 
+            source={{ uri: getFullImageUrl(course.thumbnail) }}
+            className="w-full h-full opacity-80"
+            resizeMode="cover"
+          />
+        )}
       </View>
 
-      {loading ? (
-        <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#34d399" />
-          <Text className="text-emerald-400 mt-4 font-bold tracking-[2] uppercase text-xs">
-            Loading Details...
+      <ScrollView showsVerticalScrollIndicator={false} className="flex-1 px-6 pt-6 pb-24">
+        
+        {/* Course Meta Info */}
+        <View className="flex-row items-center justify-between mb-4">
+          <View className="bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full">
+            <Text className="text-[10px] font-black text-emerald-400 tracking-[2] uppercase">
+              {course.level || 'Beginner'}
+            </Text>
+          </View>
+          <Text className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+            {course.duration || 'Self-Paced'}
           </Text>
         </View>
-      ) : course ? (
-        <>
-          <ScrollView showsVerticalScrollIndicator={false} className="px-6">
-            <View className="mb-8">
-              <View className="flex-row items-center mb-4">
-                <Text className="text-[10px] font-bold text-emerald-400 tracking-[2] uppercase bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                  {course.level || course.category || 'Beginner'}
-                </Text>
-              </View>
-              <Text className="text-3xl font-extrabold text-white tracking-wide mb-4">
-                {course.title || course.name}
-              </Text>
-              <Text className="text-slate-400 text-sm leading-relaxed mb-6">
-                {course.description || course.desc}
-              </Text>
-              
-              <View className="flex-row justify-between bg-[#030612] p-4 rounded-2xl border border-white/[0.05] mb-6">
-                <View>
-                  <Text className="text-slate-500 text-[10px] uppercase font-bold tracking-widest mb-1">Duration</Text>
-                  <Text className="text-white font-bold">{course.duration || '4 Weeks'}</Text>
-                </View>
-                <View>
-                  <Text className="text-slate-500 text-[10px] uppercase font-bold tracking-widest mb-1">Status</Text>
-                  <Text className="text-emerald-400 font-bold">Active</Text>
-                </View>
-              </View>
-            </View>
 
-            <View className="mb-24">
-              <Text className="text-white font-black uppercase tracking-[2] mb-4 text-sm">
-                Curriculum Overview
-              </Text>
-              
-              {course.modules && course.modules.length > 0 ? (
-                course.modules.map((module: any, index: number) => (
-                  <TouchableOpacity 
-                    key={module._id || index} 
-                    className="bg-white/[0.02] border border-white/[0.05] p-4 rounded-2xl mb-3 flex-row items-center active:bg-white/[0.05]"
-                    onPress={() => {
-                      // 👇 FIX: Yahan ab user seedha Lesson page par jayega
-                      if (isEnrolled) {
-                        router.push(`/lesson/${id}`);
-                      } else {
-                        Alert.alert("Locked", "Pehle course mein enroll karein.");
-                      }
-                    }}
-                  >
-                    <View className={`w-8 h-8 rounded-full items-center justify-center mr-4 border ${isEnrolled ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-slate-500/10 border-slate-500/20'}`}>
-                      <Text className={`${isEnrolled ? 'text-emerald-400' : 'text-slate-400'} font-bold text-xs`}>{index + 1}</Text>
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-white font-bold text-sm mb-1">{module.title || `Module ${index + 1}`}</Text>
-                      {module.duration && <Text className="text-slate-400 text-[10px]">{module.duration}</Text>}
-                    </View>
-                    {/* Lock/Unlock Icon based on enrollment */}
-                    <Text className="text-lg">{isEnrolled ? '▶' : '🔒'}</Text>
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <Text className="text-slate-500 italic text-sm">Modules abhi add nahi hue hain backend par.</Text>
-              )}
-            </View>
-          </ScrollView>
+        {/* Title */}
+        <Text className="text-3xl font-extrabold text-white tracking-wide mb-6 leading-tight">
+          {course.title}
+        </Text>
 
-          {/* Sticky Bottom Button (Dynamic) */}
-          <View className="absolute bottom-0 left-0 right-0 bg-[#010206] px-6 py-6 border-t border-white/[0.05]">
-            {isEnrolled ? (
-              <TouchableOpacity 
-                // 👇 FIX: Start Learning par dabaate hi Lesson page khulega
-                onPress={() => router.push(`/lesson/${id}`)}
-                className="w-full py-4 rounded-full items-center shadow-[0_0_20px_rgba(52,211,153,0.3)] bg-emerald-400 active:bg-emerald-500"
-              >
-                <Text className="text-[#010206] font-black tracking-[2] uppercase text-sm">
-                  Start Learning
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity 
-                onPress={handleEnroll}
-                disabled={enrolling}
-                className={`w-full py-4 rounded-full items-center shadow-[0_0_20px_rgba(52,211,153,0.3)] ${enrolling ? 'bg-emerald-400/50' : 'bg-emerald-400 active:bg-emerald-500'}`}
-              >
-                {enrolling ? (
-                   <ActivityIndicator color="#010206" />
-                ) : (
-                  <Text className="text-[#010206] font-black tracking-[2] uppercase text-sm">
-                    Enroll Now
-                  </Text>
-                )}
-              </TouchableOpacity>
-            )}
+        {/* Teacher Info */}
+        {course.teacherId && (
+          <View className="flex-row items-center gap-4 p-4 bg-[#030612] rounded-[1.5rem] border border-white/[0.05] mb-8 shadow-sm">
+            <View className="w-12 h-12 rounded-[1rem] bg-[#020510] border border-white/[0.08] flex items-center justify-center">
+              <Text className="text-xl font-black text-emerald-400">{course.teacherId.name.charAt(0)}</Text>
+            </View>
+            <View>
+              <Text className="text-[9px] text-slate-500 font-black uppercase tracking-widest mb-1">Taught By</Text>
+              <Text className="text-white font-bold text-base tracking-wide">Ustad {course.teacherId.name}</Text>
+            </View>
           </View>
-        </>
-      ) : (
-        <View className="flex-1 justify-center items-center">
-          <Text className="text-red-400 font-bold">Course Not Found!</Text>
+        )}
+
+        {/* Description */}
+        <View className="mb-10">
+          <Text className="text-white font-bold text-lg mb-3">About Curriculum</Text>
+          <Text className="text-slate-400 text-sm leading-relaxed">
+            {course.description}
+          </Text>
         </View>
-      )}
+
+        {/* 🔥 ENROLL BUTTON */}
+        <TouchableOpacity 
+          onPress={handleEnroll}
+          disabled={enrolling}
+          className={`w-full py-5 rounded-[1.5rem] items-center justify-center flex-row shadow-[0_10px_30px_rgba(52,211,153,0.3)] mb-12 ${
+            enrolling 
+              ? 'bg-emerald-900 border border-emerald-800' 
+              : isEnrolled 
+                ? 'bg-[#030612] border border-emerald-500/50' 
+                : 'bg-emerald-400 active:bg-emerald-500'
+          }`}
+        >
+          {enrolling ? (
+            <ActivityIndicator color="#34d399" />
+          ) : (
+            <Text className={`font-black tracking-[2] uppercase text-sm ${isEnrolled ? 'text-emerald-400' : 'text-[#010206]'}`}>
+              {isEnrolled ? "Go to Course Dashboard" : "Enroll Now - Free"}
+            </Text>
+          )}
+        </TouchableOpacity>
+
+      </ScrollView>
     </View>
   );
 }
