@@ -205,6 +205,63 @@ export default function ProfileScreen() {
           <Text className="text-slate-400 text-xs leading-relaxed">Manage your digital identity and secure your account credentials.</Text>
         </View>
 
+        {/* 🎓 ACADEMICS & RECORDS SECTION (NEWLY ADDED) */}
+        <View className="bg-[#030612] border border-white/[0.05] rounded-[2rem] p-6 mb-8 shadow-lg">
+          <View className="flex-row items-center mb-6 border-b border-white/[0.05] pb-6">
+            <View className="w-10 h-10 bg-blue-500/10 border border-blue-500/20 rounded-xl items-center justify-center mr-4">
+              <Text className="text-blue-400 text-lg">🎓</Text>
+            </View>
+            <Text className="text-xl font-bold text-white tracking-wide">Academics & History</Text>
+          </View>
+
+          <View className="space-y-4">
+            {/* My Grades Link */}
+            <TouchableOpacity 
+              onPress={() => router.push('/my-grades')} 
+              className="flex-row justify-between items-center bg-[#010206] border border-white/[0.05] p-4 rounded-2xl active:bg-white/5 active:scale-[0.98] transition-all"
+            >
+              <View className="flex-row items-center">
+                <Text className="text-xl mr-4">🏆</Text>
+                <View>
+                  <Text className="text-white font-bold text-sm">My Grades</Text>
+                  <Text className="text-slate-500 text-[10px] font-bold tracking-widest uppercase mt-0.5">View assignment scores</Text>
+                </View>
+              </View>
+              <Text className="text-slate-500 font-bold">➔</Text>
+            </TouchableOpacity>
+            
+            {/* Attendance Link */}
+            <TouchableOpacity 
+              onPress={() => router.push('/attendance')} 
+              className="flex-row justify-between items-center bg-[#010206] border border-white/[0.05] p-4 rounded-2xl active:bg-white/5 active:scale-[0.98] transition-all"
+            >
+              <View className="flex-row items-center">
+                <Text className="text-xl mr-4">📅</Text>
+                <View>
+                  <Text className="text-white font-bold text-sm">Attendance</Text>
+                  <Text className="text-slate-500 text-[10px] font-bold tracking-widest uppercase mt-0.5">Track your presence</Text>
+                </View>
+              </View>
+              <Text className="text-slate-500 font-bold">➔</Text>
+            </TouchableOpacity>
+
+            {/* Transactions Link */}
+            <TouchableOpacity 
+              onPress={() => router.push('/transactions')} 
+              className="flex-row justify-between items-center bg-[#010206] border border-white/[0.05] p-4 rounded-2xl active:bg-white/5 active:scale-[0.98] transition-all"
+            >
+              <View className="flex-row items-center">
+                <Text className="text-xl mr-4">💳</Text>
+                <View>
+                  <Text className="text-white font-bold text-sm">Transactions</Text>
+                  <Text className="text-slate-500 text-[10px] font-bold tracking-widest uppercase mt-0.5">Billing & Payments</Text>
+                </View>
+              </View>
+              <Text className="text-slate-500 font-bold">➔</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* --- PROFILE UPDATE SECTION --- */}
         <View className="bg-[#030612] border border-white/[0.05] rounded-[2rem] p-6 mb-8 shadow-lg">
           <View className="flex-row items-center mb-8 border-b border-white/[0.05] pb-6">
