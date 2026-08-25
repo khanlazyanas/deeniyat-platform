@@ -1,20 +1,20 @@
-import { View, Text, StatusBar, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StatusBar, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput, Image, KeyboardAvoidingView, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WebView } from 'react-native-webview';
+import * as ImagePicker from 'expo-image-picker';
 import { API_URL } from '../../constants/config';
 
-// 🔥 FIX: Embed URL generator mein 'origin' aur 'playsinline' add kiya
+// Embed URL generator with 'origin' and 'playsinline'
 const getYouTubeEmbedUrl = (url: string) => {
   if (!url) return null;
   const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/gi;
   const match = regExp.exec(url);
   if (match && match[1].length === 11) {
-    // origin pass karna zaroori hai taaki block na ho
     return `https://www.youtube.com/embed/${match[1]}?autoplay=0&rel=0&modestbranding=1&showinfo=0&controls=1&playsinline=1&origin=https://deeniyat-platform.vercel.app`;
   }
-  return url; // Agar normal link hai toh wahi return kare
+  return url; 
 };
 
 export default function LessonScreen() {
@@ -27,6 +27,12 @@ export default function LessonScreen() {
   
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Lessons');
+
+  // --- ASSIGNMENT SUBMISSION STATES ---
+  const [assignmentText, setAssignmentText] = useState("");
+  const [selectedFileUri, setSelectedFileUri] = useState<string | null>(null);
+  const [submittingTask, setSubmittingTask] = useState(false);
+  const [existingSubmission, setExistingSubmission] = useState<any>(null);
 
   useEffect(() => {
     const fetchCourseAndLessons = async () => {
@@ -76,6 +82,109 @@ export default function LessonScreen() {
     }
   }, [id]);
 
+  // --- CHECK EXISTING SUBMISSION WHENEVER ACTIVE LESSON CHANGES ---
+  useEffect(() => {
+    const checkSubmission = async () => {
+      if (!activeLesson || activeLesson._id === 'promo_1') return;
+      try {
+        const token = await AsyncStorage.getItem('userToken');
+        const res = await fetch(`${API_URL}/submissions/my-submissions`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const submissionsArray = Array.isArray(data) ? data : (data.data || []);
+          const found = submissionsArray.find((sub: any) => {
+            const subLessonId = sub.lessonId?._id ? String(sub.lessonId._id) : String(sub.lessonId);
+            return subLessonId === String(activeLesson._id);
+          });
+          setExistingSubmission(found || null);
+        }
+      } catch (error) {
+        console.error("Failed to check submission", error);
+      }
+    };
+    checkSubmission();
+  }, [activeLesson]);
+
+  // --- FILE PICKER FOR ASSIGNMENT ---
+  const pickAssignmentFile = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permissionResult.granted === false) {
+      Alert.alert("Permission Required", "Gallery access is needed to upload homework.");
+      return;
+    }
+
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, // PDF ke liye 'expo-document-picker' chahiye, abhi image support kiya hai
+      allowsEditing: false,
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      setSelectedFileUri(result.assets[0].uri);
+    }
+  };
+
+  // --- SUBMIT ASSIGNMENT TO BACKEND ---
+  const handleAssignmentSubmit = async () => {
+    if (!assignmentText.trim() && !selectedFileUri) {
+      Alert.alert("Empty Submission", "Please write an answer or attach a file.");
+      return;
+    }
+
+    setSubmittingTask(true);
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      const formData = new FormData();
+      formData.append("courseId", id as string);
+      
+      if (activeLesson?._id && activeLesson._id !== 'promo_1') {
+        formData.append("lessonId", activeLesson._id);
+      }
+
+      if (assignmentText.trim()) {
+        formData.append("content", assignmentText);
+      }
+
+      if (selectedFileUri) {
+        const filename = selectedFileUri.split('/').pop() || 'assignment.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : `image/jpeg`;
+        
+        formData.append('document', {
+          uri: selectedFileUri,
+          name: filename,
+          type,
+        } as any);
+      }
+
+      const response = await fetch(`${API_URL}/submissions`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        Alert.alert("Success! 🎉", "Assignment submitted to Ustad for review.");
+        setExistingSubmission(data.submission || data || { status: 'Pending', content: assignmentText });
+        setAssignmentText("");
+        setSelectedFileUri(null);
+      } else {
+        throw new Error(data.message || "Failed to submit assignment");
+      }
+    } catch (error: any) {
+      console.error("Submission Error:", error);
+      Alert.alert("Error", error.message || "Network Error");
+    } finally {
+      setSubmittingTask(false);
+    }
+  };
+
   if (loading) {
     return (
       <View className="flex-1 bg-[#010206] justify-center items-center">
@@ -89,7 +198,6 @@ export default function LessonScreen() {
 
   const embedUrl = getYouTubeEmbedUrl(activeLesson?.videoUrl);
 
-  // 🔥 FIX 2: baseUrl ko 'youtube.com' se hata kar valid website 'google.com' kar diya hai 
   const htmlContent = embedUrl ? `
     <!DOCTYPE html>
     <html>
@@ -111,12 +219,11 @@ export default function LessonScreen() {
   ` : '';
 
   return (
-    <View className="flex-1 bg-[#010206]">
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1 bg-[#010206]">
       <StatusBar barStyle="light-content" hidden={false} />
 
       {/* Video Player Area */}
       <View className="w-full bg-[#030612] aspect-video relative mt-8 border-b border-white/[0.05]">
-        
         <TouchableOpacity 
           onPress={() => router.back()}
           className="absolute top-4 left-4 w-10 h-10 bg-black/50 rounded-full items-center justify-center z-20"
@@ -126,7 +233,7 @@ export default function LessonScreen() {
 
         {embedUrl ? (
           <WebView
-            source={{ html: htmlContent, baseUrl: 'https://google.com' }} // YAHAN FIX HAI!
+            source={{ html: htmlContent, baseUrl: 'https://google.com' }}
             style={{ flex: 1, backgroundColor: '#030612' }}
             allowsFullscreenVideo={true}
             javaScriptEnabled={true}
@@ -231,18 +338,83 @@ export default function LessonScreen() {
             </View>
           )}
 
-          {/* ASSIGNMENTS TAB */}
+          {/* ASSIGNMENTS TAB - FULLY FUNCTIONAL FOR MOBILE */}
           {activeTab === 'Assignments' && (
-            <View className="items-center justify-center py-10 pb-24 bg-[#030612] border border-white/[0.05] rounded-[2rem] p-6 text-center">
-              <Text className="text-4xl mb-4">🎤</Text>
-              <Text className="text-white font-bold mb-2">Task Submission</Text>
-              <Text className="text-slate-500 font-bold tracking-widest uppercase text-[10px] text-center leading-5">
-                For submitting audio recitations or assignments, please use the Deeniyat Web Portal for the full studio experience.
-              </Text>
+            <View className="pb-24">
+              {existingSubmission ? (
+                // SUCCESS STATE
+                <View className="bg-emerald-500/10 border border-emerald-500/30 rounded-[2rem] p-6 text-center items-center shadow-lg">
+                  <View className="w-16 h-16 bg-emerald-400 rounded-full items-center justify-center mb-4">
+                    <Text className="text-3xl">✓</Text>
+                  </View>
+                  <Text className="text-white font-bold text-lg mb-1">Task Submitted Successfully</Text>
+                  <Text className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-6">Status: {existingSubmission.status || 'Pending Review'}</Text>
+                  
+                  <View className="w-full bg-[#010206] p-4 rounded-2xl border border-white/[0.05]">
+                    <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2] mb-2">Your Answer:</Text>
+                    <Text className="text-slate-300 text-sm italic">{existingSubmission.content || "Image attached."}</Text>
+                  </View>
+                </View>
+              ) : (
+                // SUBMISSION FORM STATE
+                <View className="bg-[#030612] border border-white/[0.05] rounded-[2rem] p-6 shadow-lg">
+                  <View className="flex-row items-center mb-6 border-b border-white/[0.05] pb-4">
+                    <View className="w-10 h-10 bg-teal-500/10 border border-teal-500/20 rounded-xl items-center justify-center mr-4">
+                      <Text className="text-teal-400 text-lg">📝</Text>
+                    </View>
+                    <Text className="text-xl font-bold text-white tracking-wide">Workspace</Text>
+                  </View>
+
+                  <Text className="text-slate-400 text-xs mb-4">Write your answer or upload a photo of your handwritten assignment.</Text>
+
+                  {/* Text Input */}
+                  <TextInput 
+                    value={assignmentText}
+                    onChangeText={setAssignmentText}
+                    placeholder="Type your answer here..."
+                    placeholderTextColor="#475569"
+                    multiline
+                    numberOfLines={4}
+                    className="w-full bg-[#010206] border border-white/[0.05] rounded-2xl px-5 py-4 text-white font-medium mb-4 text-base min-h-[100px]"
+                    textAlignVertical="top"
+                  />
+
+                  {/* Image Picker Button */}
+                  <TouchableOpacity onPress={pickAssignmentFile} className="w-full bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 flex-row items-center justify-center mb-6">
+                    <Text className="text-blue-400 text-lg mr-2">📷</Text>
+                    <Text className="text-blue-400 font-bold text-xs uppercase tracking-widest">
+                      {selectedFileUri ? "Change Photo" : "Upload Photo"}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Image Preview */}
+                  {selectedFileUri && (
+                    <View className="w-full h-40 bg-[#010206] rounded-2xl border border-white/[0.05] overflow-hidden mb-6 relative">
+                      <Image source={{ uri: selectedFileUri }} className="w-full h-full" resizeMode="cover" />
+                      <TouchableOpacity onPress={() => setSelectedFileUri(null)} className="absolute top-2 right-2 bg-black/50 p-2 rounded-full">
+                        <Text className="text-white text-xs font-bold">X</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                  {/* Submit Button */}
+                  <TouchableOpacity 
+                    onPress={handleAssignmentSubmit}
+                    disabled={submittingTask || (!assignmentText && !selectedFileUri)}
+                    className={`w-full py-4 rounded-full items-center shadow-lg ${submittingTask || (!assignmentText && !selectedFileUri) ? 'bg-teal-500/50' : 'bg-teal-500 active:bg-teal-600'}`}
+                  >
+                    {submittingTask ? (
+                      <ActivityIndicator color="#010206" />
+                    ) : (
+                      <Text className="text-[#010206] font-black tracking-[2] uppercase text-xs">Submit Assignment</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           )}
         </ScrollView>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
