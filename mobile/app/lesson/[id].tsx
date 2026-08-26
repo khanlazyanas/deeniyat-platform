@@ -1,9 +1,11 @@
-import { View, Text, StatusBar, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput, Image, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StatusBar, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput, Image, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WebView } from 'react-native-webview';
 import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { API_URL } from '../../constants/config';
 
 // Embed URL generator with 'origin' and 'playsinline'
@@ -40,23 +42,28 @@ export default function LessonScreen() {
         const token = await AsyncStorage.getItem('userToken');
         if (!token) throw new Error("Authentication required");
 
+        // Fetch Course Detail
         const courseRes = await fetch(`${API_URL}/courses/${id}`);
         const courseData = await courseRes.json();
         const parsedCourse = courseData.course || courseData.data || courseData;
         setCourse(parsedCourse);
 
+        // Fetch Lessons
         const lessonsRes = await fetch(`${API_URL}/lessons/course/${id}`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
-        const lessonsData = await lessonsRes.json();
-
+        
         if (lessonsRes.ok) {
+          const lessonsData = await lessonsRes.json();
           const fetchedLessons = Array.isArray(lessonsData) ? lessonsData : (lessonsData.data || []);
+          
           setLessons(fetchedLessons);
           
+          // Set Active Lesson
           if (fetchedLessons.length > 0) {
             setActiveLesson(fetchedLessons[0]); 
-          } else if (parsedCourse.promoVideo) {
+          } else if (parsedCourse?.promoVideo) {
+            // Only fallback to promo if 0 lessons exist
              setLessons([{
                 _id: 'promo_1',
                 title: 'Introduction',
@@ -68,10 +75,12 @@ export default function LessonScreen() {
                 videoUrl: parsedCourse.promoVideo,
              });
           }
+        } else {
+           console.log("Failed to fetch lessons. Status:", lessonsRes.status);
         }
       } catch (error) {
         console.error("Error fetching lesson data:", error);
-        Alert.alert("Error", "Course data load nahi ho paya.");
+        Alert.alert("Error", "Could not load course modules.");
       } finally {
         setLoading(false);
       }
@@ -116,7 +125,7 @@ export default function LessonScreen() {
     }
 
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images, // PDF ke liye 'expo-document-picker' chahiye, abhi image support kiya hai
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, 
       allowsEditing: false,
       quality: 0.7,
     });
@@ -170,11 +179,13 @@ export default function LessonScreen() {
       const data = await response.json();
 
       if (response.ok) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert("Success! 🎉", "Assignment submitted to Ustad for review.");
         setExistingSubmission(data.submission || data || { status: 'Pending', content: assignmentText });
         setAssignmentText("");
         setSelectedFileUri(null);
       } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         throw new Error(data.message || "Failed to submit assignment");
       }
     } catch (error: any) {
@@ -189,8 +200,8 @@ export default function LessonScreen() {
     return (
       <View className="flex-1 bg-[#010206] justify-center items-center">
         <ActivityIndicator size="large" color="#34d399" />
-        <Text className="text-emerald-400 mt-4 font-bold tracking-[2] uppercase text-xs">
-          Loading Studio...
+        <Text className="text-emerald-400 mt-5 font-black tracking-[4] uppercase text-[10px]">
+          Initializing Studio...
         </Text>
       </View>
     );
@@ -223,10 +234,10 @@ export default function LessonScreen() {
       <StatusBar barStyle="light-content" hidden={false} />
 
       {/* Video Player Area */}
-      <View className="w-full bg-[#030612] aspect-video relative mt-8 border-b border-white/[0.05]">
+      <View className="w-full bg-[#030612] aspect-video relative mt-8 border-b border-white/[0.05] shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-20">
         <TouchableOpacity 
           onPress={() => router.back()}
-          className="absolute top-4 left-4 w-10 h-10 bg-black/50 rounded-full items-center justify-center z-20"
+          className="absolute top-4 left-4 w-10 h-10 bg-black/50 rounded-full items-center justify-center z-30 backdrop-blur-md border border-white/[0.1]"
         >
           <Text className="text-white text-lg font-bold">←</Text>
         </TouchableOpacity>
@@ -242,27 +253,31 @@ export default function LessonScreen() {
           />
         ) : (
           <View className="flex-1 justify-center items-center bg-[#020510]">
+             <Text className="text-5xl opacity-30 mb-2">🎥</Text>
              <Text className="text-slate-500 font-bold uppercase tracking-widest text-xs">No Video Found for this Lesson</Text>
           </View>
         )}
       </View>
 
-      <View className="flex-1 px-6 pt-6">
-        <Text className="text-2xl font-extrabold text-white tracking-wide mb-2">
+      <View className="flex-1 px-6 pt-6 z-10 relative">
+        <Text className="text-[26px] font-black text-white tracking-tighter mb-3 leading-[1.1] drop-shadow-md">
           {course?.title || "Course Title"}
         </Text>
-        <Text className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-6 bg-emerald-500/10 self-start px-3 py-1 rounded-full border border-emerald-500/20">
+        <Text className="text-emerald-400 text-[10px] font-black uppercase tracking-[3] mb-6 bg-emerald-500/10 self-start px-3 py-1.5 rounded-full border border-emerald-500/30 shadow-[0_0_10px_rgba(52,211,153,0.1)]">
           {activeLesson ? activeLesson.title : 'Overview'}
         </Text>
 
-        <View className="flex-row border-b border-white/[0.1] mb-6">
+        <View className="flex-row border-b border-white/[0.08] mb-6">
           {['Lessons', 'Overview', 'Assignments'].map((tab) => (
             <TouchableOpacity 
               key={tab}
-              onPress={() => setActiveTab(tab)}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setActiveTab(tab);
+              }}
               className={`mr-6 pb-3 ${activeTab === tab ? 'border-b-2 border-emerald-400' : ''}`}
             >
-              <Text className={`text-sm font-bold tracking-[1] uppercase ${activeTab === tab ? 'text-emerald-400' : 'text-slate-500'}`}>
+              <Text className={`text-[11px] font-black tracking-[2] uppercase ${activeTab === tab ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-400 transition-colors'}`}>
                 {tab}
               </Text>
             </TouchableOpacity>
@@ -280,29 +295,33 @@ export default function LessonScreen() {
                   return (
                     <TouchableOpacity 
                       key={lesson._id}
-                      onPress={() => setActiveLesson(lesson)} 
-                      className={`flex-row items-start p-5 mb-3 border rounded-[1.25rem] transition-all ${
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setActiveLesson(lesson);
+                      }} 
+                      activeOpacity={0.8}
+                      className={`flex-row items-center p-5 mb-4 border rounded-[1.5rem] transition-all shadow-md ${
                         isPlaying 
                           ? 'bg-emerald-500/10 border-emerald-500/30' 
-                          : 'bg-[#030612] border-white/[0.08]'
+                          : 'bg-[#030612] border-white/[0.05]'
                       }`}
                     >
-                      <View className={`w-10 h-10 rounded-xl flex items-center justify-center mr-4 ${
+                      <View className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 shadow-inner ${
                         isPlaying 
-                          ? "bg-emerald-400" 
-                          : "bg-[#020510] border border-white/[0.1]"
+                          ? "bg-gradient-to-br from-emerald-400 to-teal-500" 
+                          : "bg-[#020510] border border-white/[0.08]"
                       }`}>
-                         <Text className={`font-black text-sm ${isPlaying ? "text-[#010206]" : "text-slate-400"}`}>
-                           {index + 1}
+                         <Text className={`font-black text-[15px] ${isPlaying ? "text-[#010206]" : "text-slate-400"}`}>
+                           {isPlaying ? "▶" : index + 1}
                          </Text>
                       </View>
                       
                       <View className="flex-1 pt-1">
-                        <Text className={`font-bold text-[15px] tracking-tight mb-1 ${isPlaying ? "text-emerald-400" : "text-slate-200"}`}>
+                        <Text className={`font-black text-[16px] tracking-tight mb-1 ${isPlaying ? "text-emerald-400" : "text-slate-200"}`}>
                           {lesson.title}
                         </Text>
                         {isPlaying && (
-                          <Text className="text-emerald-400/70 text-[10px] uppercase font-bold tracking-widest">
+                          <Text className="text-emerald-400/80 text-[9px] uppercase font-black tracking-[2]">
                             Currently Playing
                           </Text>
                         )}
@@ -311,8 +330,9 @@ export default function LessonScreen() {
                   );
                 })
               ) : (
-                <View className="items-center py-10">
-                  <Text className="text-slate-500 italic text-sm">Curriculum is being prepared.</Text>
+                <View className="items-center py-10 bg-[#030612] border border-white/[0.05] rounded-[2rem] shadow-inner p-6">
+                  <Text className="text-4xl mb-4 opacity-50">📂</Text>
+                  <Text className="text-slate-400 text-sm font-bold">Curriculum is being prepared.</Text>
                 </View>
               )}
             </View>
@@ -322,19 +342,22 @@ export default function LessonScreen() {
           {activeTab === 'Overview' && (
             <View className="pb-24">
               {activeLesson?.content && (
-                <View className="bg-[#030612]/60 border border-white/[0.06] rounded-[2rem] p-6 mb-8">
-                   <Text className="text-white font-bold mb-4 text-lg">
-                     📝 Study Material
+                <View className="bg-[#030612]/80 border border-white/[0.08] rounded-[2.5rem] p-8 mb-8 shadow-lg">
+                   <Text className="text-white font-black mb-6 text-xl tracking-tight flex items-center gap-2">
+                     <Text className="text-emerald-400 text-2xl mr-2">📝</Text> Study Material
                    </Text>
-                   <Text className="text-slate-300 leading-relaxed text-sm">
+                   <Text className="text-slate-300 leading-relaxed text-[15px] font-medium opacity-90">
                      {activeLesson.content}
                    </Text>
                 </View>
               )}
               
-              <Text className="text-slate-400 text-sm leading-relaxed mb-4">
-                {course?.description || "Course overview not available."}
-              </Text>
+              <View className="bg-gradient-to-b from-[#030612] to-[#010206] p-8 rounded-[2.5rem] border border-white/[0.05] shadow-inner">
+                <Text className="text-slate-500 text-[10px] tracking-[3] uppercase font-black mb-3">Course Description</Text>
+                <Text className="text-slate-400 text-sm leading-relaxed font-medium">
+                  {course?.description || "Course overview not available."}
+                </Text>
+              </View>
             </View>
           )}
 
@@ -343,29 +366,32 @@ export default function LessonScreen() {
             <View className="pb-24">
               {existingSubmission ? (
                 // SUCCESS STATE
-                <View className="bg-emerald-500/10 border border-emerald-500/30 rounded-[2rem] p-6 text-center items-center shadow-lg">
-                  <View className="w-16 h-16 bg-emerald-400 rounded-full items-center justify-center mb-4">
-                    <Text className="text-3xl">✓</Text>
+                <View className="bg-gradient-to-br from-emerald-900/20 to-[#010206] border border-emerald-500/30 rounded-[2.5rem] p-8 text-center items-center shadow-[0_20px_40px_rgba(0,0,0,0.5)]">
+                  <View className="w-16 h-16 bg-emerald-400 rounded-full items-center justify-center mb-5 shadow-[0_0_20px_rgba(52,211,153,0.4)]">
+                    <Text className="text-[#010206] font-black text-3xl">✓</Text>
                   </View>
-                  <Text className="text-white font-bold text-lg mb-1">Task Submitted Successfully</Text>
-                  <Text className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-6">Status: {existingSubmission.status || 'Pending Review'}</Text>
+                  <Text className="text-white font-black text-[22px] tracking-tight mb-2">Task Submitted</Text>
+                  <Text className="text-emerald-400 text-[10px] font-black uppercase tracking-[3] mb-8 bg-emerald-500/10 px-4 py-1.5 rounded-full border border-emerald-500/20">Status: {existingSubmission.status || 'Pending Review'}</Text>
                   
-                  <View className="w-full bg-[#010206] p-4 rounded-2xl border border-white/[0.05]">
-                    <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2] mb-2">Your Answer:</Text>
-                    <Text className="text-slate-300 text-sm italic">{existingSubmission.content || "Image attached."}</Text>
+                  <View className="w-full bg-[#020510] p-6 rounded-[1.5rem] border border-white/[0.08] shadow-inner text-left">
+                    <Text className="text-slate-500 text-[9px] font-black uppercase tracking-[3] mb-3 border-b border-white/[0.05] pb-2">Your Answer</Text>
+                    <Text className="text-slate-300 text-[15px] italic leading-relaxed font-medium">{existingSubmission.content || "Image Document attached."}</Text>
                   </View>
                 </View>
               ) : (
                 // SUBMISSION FORM STATE
-                <View className="bg-[#030612] border border-white/[0.05] rounded-[2rem] p-6 shadow-lg">
-                  <View className="flex-row items-center mb-6 border-b border-white/[0.05] pb-4">
-                    <View className="w-10 h-10 bg-teal-500/10 border border-teal-500/20 rounded-xl items-center justify-center mr-4">
-                      <Text className="text-teal-400 text-lg">📝</Text>
+                <View className="bg-gradient-to-b from-[#030612] to-[#020510] border border-white/[0.08] rounded-[2.5rem] p-8 shadow-[0_20px_40px_rgba(0,0,0,0.6)]">
+                  <View className="flex-row items-center mb-8 border-b border-white/[0.05] pb-5">
+                    <View className="w-12 h-12 bg-teal-500/10 border border-teal-500/30 rounded-[1rem] items-center justify-center mr-4 shadow-[0_0_15px_rgba(20,184,166,0.2)]">
+                      <Text className="text-teal-400 text-xl">📝</Text>
                     </View>
-                    <Text className="text-xl font-bold text-white tracking-wide">Workspace</Text>
+                    <View>
+                      <Text className="text-[22px] font-black text-white tracking-tight leading-none">Workspace</Text>
+                      <Text className="text-slate-500 text-[10px] font-bold uppercase tracking-[2] mt-1">Submit Assignment</Text>
+                    </View>
                   </View>
 
-                  <Text className="text-slate-400 text-xs mb-4">Write your answer or upload a photo of your handwritten assignment.</Text>
+                  <Text className="text-slate-400 text-[13px] font-medium mb-5 leading-relaxed">Type your written answer or securely upload a photo of your handwritten assignment.</Text>
 
                   {/* Text Input */}
                   <TextInput 
@@ -374,39 +400,41 @@ export default function LessonScreen() {
                     placeholder="Type your answer here..."
                     placeholderTextColor="#475569"
                     multiline
-                    numberOfLines={4}
-                    className="w-full bg-[#010206] border border-white/[0.05] rounded-2xl px-5 py-4 text-white font-medium mb-4 text-base min-h-[100px]"
+                    numberOfLines={5}
+                    className="w-full bg-[#010206] border border-white/[0.08] rounded-[1.5rem] px-6 py-5 text-white font-medium mb-6 text-[15px] min-h-[120px] shadow-inner"
                     textAlignVertical="top"
                   />
 
                   {/* Image Picker Button */}
-                  <TouchableOpacity onPress={pickAssignmentFile} className="w-full bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 flex-row items-center justify-center mb-6">
-                    <Text className="text-blue-400 text-lg mr-2">📷</Text>
-                    <Text className="text-blue-400 font-bold text-xs uppercase tracking-widest">
+                  <TouchableOpacity onPress={pickAssignmentFile} activeOpacity={0.8} className="w-full bg-blue-500/10 border border-blue-500/30 rounded-[1.5rem] p-5 flex-row items-center justify-center mb-8 shadow-sm">
+                    <Text className="text-blue-400 text-xl mr-3">📷</Text>
+                    <Text className="text-blue-400 font-black text-[11px] uppercase tracking-[3]">
                       {selectedFileUri ? "Change Photo" : "Upload Photo"}
                     </Text>
                   </TouchableOpacity>
 
                   {/* Image Preview */}
                   {selectedFileUri && (
-                    <View className="w-full h-40 bg-[#010206] rounded-2xl border border-white/[0.05] overflow-hidden mb-6 relative">
-                      <Image source={{ uri: selectedFileUri }} className="w-full h-full" resizeMode="cover" />
-                      <TouchableOpacity onPress={() => setSelectedFileUri(null)} className="absolute top-2 right-2 bg-black/50 p-2 rounded-full">
-                        <Text className="text-white text-xs font-bold">X</Text>
+                    <View className="w-full h-48 bg-[#010206] rounded-[1.5rem] border border-white/[0.08] overflow-hidden mb-8 relative shadow-lg">
+                      <Image source={{ uri: selectedFileUri }} className="w-full h-full opacity-80" resizeMode="cover" />
+                      <LinearGradient colors={['rgba(0,0,0,0.6)', 'transparent']} style={StyleSheet.absoluteFillObject} />
+                      <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setSelectedFileUri(null); }} className="absolute top-3 right-3 bg-red-500/80 p-2.5 rounded-full backdrop-blur-md border border-red-400/50">
+                        <Text className="text-white text-[10px] font-black px-1">X</Text>
                       </TouchableOpacity>
                     </View>
                   )}
 
                   {/* Submit Button */}
                   <TouchableOpacity 
-                    onPress={handleAssignmentSubmit}
+                    onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); handleAssignmentSubmit(); }}
                     disabled={submittingTask || (!assignmentText && !selectedFileUri)}
-                    className={`w-full py-4 rounded-full items-center shadow-lg ${submittingTask || (!assignmentText && !selectedFileUri) ? 'bg-teal-500/50' : 'bg-teal-500 active:bg-teal-600'}`}
+                    activeOpacity={0.9}
+                    className={`w-full py-5 rounded-full items-center shadow-[0_10px_30px_rgba(20,184,166,0.4)] ${submittingTask || (!assignmentText && !selectedFileUri) ? 'bg-[#020510] border border-teal-900' : 'bg-teal-400 border border-teal-300'}`}
                   >
                     {submittingTask ? (
                       <ActivityIndicator color="#010206" />
                     ) : (
-                      <Text className="text-[#010206] font-black tracking-[2] uppercase text-xs">Submit Assignment</Text>
+                      <Text className={`font-black tracking-[3] uppercase text-[11px] ${submittingTask || (!assignmentText && !selectedFileUri) ? 'text-slate-500' : 'text-[#010206]'}`}>Submit Assignment</Text>
                     )}
                   </TouchableOpacity>
                 </View>
