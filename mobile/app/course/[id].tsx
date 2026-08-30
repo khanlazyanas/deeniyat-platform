@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WebView } from 'react-native-webview';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import RazorpayCheckout from 'react-native-razorpay';
 import { API_URL } from '../../constants/config';
 
 const { width, height } = Dimensions.get('window');
@@ -45,6 +46,7 @@ export default function CourseDetailsScreen() {
   const router = useRouter();
 
   const [course, setCourse] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [isEnrolled, setIsEnrolled] = useState(false);
@@ -52,6 +54,12 @@ export default function CourseDetailsScreen() {
   // ✨ Cinematic Entrance Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
+
+  // 💰 Dynamic Pricing Calculation
+  const safePrice = course?.price || 0;
+  const safeGst = course?.gstPercentage || 0;
+  const calculatedTax = Math.round((safePrice * safeGst) / 100);
+  const totalAmount = safePrice + calculatedTax;
 
   const triggerEntranceAnimation = () => {
     Animated.parallel([
@@ -89,8 +97,9 @@ export default function CourseDetailsScreen() {
         if (token) {
           const userDataString = await AsyncStorage.getItem('userData');
           if (userDataString) {
-            const user = JSON.parse(userDataString);
-            if (user?.enrolledCourses?.includes(id)) {
+            const parsedUser = JSON.parse(userDataString);
+            setUser(parsedUser);
+            if (parsedUser?.enrolledCourses?.includes(id)) {
               setIsEnrolled(true);
             }
           }
@@ -113,52 +122,139 @@ export default function CourseDetailsScreen() {
     action();
   };
 
-  const handleEnroll = async () => {
+  const handleEnrollAndPayment = async () => {
     handlePress(() => {}, Haptics.ImpactFeedbackStyle.Medium);
     const token = await AsyncStorage.getItem('userToken');
 
     if (!token) {
       Alert.alert(
         "Login Required",
-        "You must be logged in to enroll in this course.",
+        "You must be logged in to enroll.",
         [{ text: "Login", onPress: () => router.push('/login') }, { text: "Cancel", style: "cancel" }]
       );
       return;
     }
 
     if (isEnrolled) {
-      // Agar pehle se enrolled hai, toh direct lesson/player page par
       router.push(`/lesson/${id}` as any);
       return;
     }
 
     setEnrolling(true);
-    try {
-      // 🚀 FIXED: Backend API 404 bypass. Local enrollment for direct access.
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert("🎉 Access Granted!", "Welcome to the course. Let's begin learning.");
-      setIsEnrolled(true);
 
-      // AsyncStorage locally update 
-      const userDataString = await AsyncStorage.getItem('userData');
-      if (userDataString) {
-        const user = JSON.parse(userDataString);
-        if (!user.enrolledCourses) user.enrolledCourses = [];
-        if (!user.enrolledCourses.includes(id)) {
-           user.enrolledCourses.push(id);
-           await AsyncStorage.setItem('userData', JSON.stringify(user));
-        }
+    // 🚀 SCENARIO 1: FREE COURSE (Bypass Payment)
+    if (totalAmount === 0) {
+      try {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert("🎉 Access Granted!", "Welcome to the free course. Let's begin learning.");
+        await finalizeLocalEnrollment();
+        return;
+      } catch (e) {
+        Alert.alert("Error", "Could not complete free enrollment.");
+        setEnrolling(false);
+        return;
+      }
+    }
+
+    // 🚀 SCENARIO 2: PAID COURSE (Razorpay Flow)
+    try {
+      // 1. Create Order Backend Call
+      const orderResponse = await fetch(`${API_URL}/payments/create-order`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ amount: totalAmount, courseId: id })
+      });
+
+      const orderData = await orderResponse.json();
+
+      if (!orderResponse.ok || !orderData.success) {
+        Alert.alert("Gateway Error", orderData.error || 'Payment Initialization failed.');
+        setEnrolling(false);
+        return;
       }
 
-      // Direct Lesson Player par bhej do!
-      router.replace(`/lesson/${id}` as any);
-      
+      // 2. Open Razorpay Modal
+      const options = {
+        description: `Enrollment for ${course?.title}`,
+        image: 'https://i.imgur.com/3g7nmJC.png',
+        currency: orderData.order.currency || "INR",
+        key: 'rzp_test_8YGiWeZrGctMwH', // TEST KEY
+        amount: orderData.order.amount,
+        name: 'Deeniyat Platform',
+        order_id: orderData.order.id,
+        prefill: {
+          email: user?.email || '',
+          contact: '9999999999',
+          name: user?.name || ''
+        },
+        theme: { color: '#10b981' }
+      };
+
+      RazorpayCheckout.open(options).then(async (data: any) => {
+        // 3. Verify Payment
+        const verifyRes = await fetch(`${API_URL}/payments/verify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          body: JSON.stringify({
+            razorpay_order_id: data.razorpay_order_id,
+            razorpay_payment_id: data.razorpay_payment_id,
+            razorpay_signature: data.razorpay_signature,
+            courseId: id,
+            amount: totalAmount
+          })
+        });
+
+        const verifyData = await verifyRes.json();
+
+        if (verifyRes.ok && verifyData.success) {
+          // 4. Save Transaction Record
+          const txnResponse = await fetch(`${API_URL}/transactions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify({
+              amount: totalAmount,
+              type: "Course_Fee",
+              courseId: id,
+              status: "Completed",
+              paymentId: data.razorpay_payment_id
+            })
+          });
+
+          if (txnResponse.ok) {
+             Alert.alert("🎉 Payment Successful!", "Your enrollment is confirmed.");
+             await finalizeLocalEnrollment();
+          } else {
+             Alert.alert("Notice", "Payment verified but transaction record failed.");
+             setEnrolling(false);
+          }
+        } else {
+          Alert.alert("Error", "Payment Verification Failed!");
+          setEnrolling(false);
+        }
+      }).catch((error: any) => {
+        // User cancelled payment
+        setEnrolling(false);
+      });
+
     } catch (error) {
-      console.error("Enrollment error:", error);
-      Alert.alert("Error", "Could not complete enrollment.");
-    } finally {
+      console.error(error);
+      Alert.alert("Error", "Something went wrong with the payment gateway.");
       setEnrolling(false);
     }
+  };
+
+  const finalizeLocalEnrollment = async () => {
+    setIsEnrolled(true);
+    const userDataString = await AsyncStorage.getItem('userData');
+    if (userDataString) {
+      const storedUser = JSON.parse(userDataString);
+      if (!storedUser.enrolledCourses) storedUser.enrolledCourses = [];
+      if (!storedUser.enrolledCourses.includes(id)) {
+         storedUser.enrolledCourses.push(id);
+         await AsyncStorage.setItem('userData', JSON.stringify(storedUser));
+      }
+    }
+    router.replace(`/lesson/${id}` as any);
   };
 
   if (loading) {
@@ -277,9 +373,30 @@ export default function CourseDetailsScreen() {
           </View>
 
           {/* Title */}
-          <Text className="text-[32px] font-black text-white tracking-tighter mb-8 leading-[1.1] drop-shadow-xl">
+          <Text className="text-[32px] font-black text-white tracking-tighter mb-6 leading-[1.1] drop-shadow-xl">
             {course.title}
           </Text>
+
+          {/* Pricing Details Box */}
+          {!isEnrolled && totalAmount > 0 && (
+            <View className="bg-[#020510] border border-emerald-500/20 rounded-[1.5rem] p-5 mb-8 shadow-lg">
+              <Text className="text-slate-500 text-[9px] uppercase tracking-widest font-black mb-3">Order Summary</Text>
+              <View className="flex-row justify-between mb-2">
+                <Text className="text-slate-400 text-sm">Course Fee</Text>
+                <Text className="text-slate-300 text-sm">₹{safePrice}</Text>
+              </View>
+              {safeGst > 0 && (
+                <View className="flex-row justify-between mb-4 border-b border-white/[0.05] pb-4">
+                  <Text className="text-slate-400 text-sm">Taxes ({safeGst}% GST)</Text>
+                  <Text className="text-slate-300 text-sm">₹{calculatedTax}</Text>
+                </View>
+              )}
+              <View className="flex-row justify-between items-center mt-2">
+                <Text className="text-white font-bold">Total Amount</Text>
+                <Text className="text-emerald-400 text-2xl font-black">₹{totalAmount}</Text>
+              </View>
+            </View>
+          )}
 
           {/* Teacher Info Card */}
           {course.teacherId && (
@@ -305,9 +422,9 @@ export default function CourseDetailsScreen() {
             </Text>
           </View>
 
-          {/* 🔥 ULTRA-PREMIUM ENROLL BUTTON */}
+          {/* 🔥 DYNAMIC ENROLL / PAYMENT BUTTON */}
           <TouchableOpacity 
-            onPress={handleEnroll}
+            onPress={handleEnrollAndPayment}
             disabled={enrolling}
             activeOpacity={0.85}
             className={`w-full py-5 rounded-full items-center justify-center flex-row shadow-[0_10px_40px_rgba(52,211,153,0.4)] mb-8 ${
@@ -315,14 +432,14 @@ export default function CourseDetailsScreen() {
                 ? 'bg-[#020510] border border-emerald-900' 
                 : isEnrolled 
                   ? 'bg-[#030612] border border-emerald-500/50 shadow-[0_0_20px_rgba(52,211,153,0.2)]' 
-                  : 'bg-emerald-400'
+                  : 'bg-gradient-to-r from-emerald-400 to-teal-500'
             }`}
           >
             {enrolling ? (
-              <ActivityIndicator color="#34d399" />
+              <ActivityIndicator color="#010206" />
             ) : (
-              <Text className={`font-black tracking-[3] uppercase text-[11px] ${isEnrolled ? 'text-emerald-400' : 'text-[#010206]'}`}>
-                {isEnrolled ? "Access Dashboard ➔" : "Enroll Now - Free"}
+              <Text className={`font-black tracking-[2] uppercase text-[12px] ${isEnrolled ? 'text-emerald-400' : 'text-[#010206]'}`}>
+                {isEnrolled ? "Access Dashboard ➔" : (totalAmount > 0 ? `Pay ₹${totalAmount} to Enroll` : "Enroll Now - Free")}
               </Text>
             )}
           </TouchableOpacity>
