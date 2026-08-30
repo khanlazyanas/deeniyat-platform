@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 import '../../utils/constants.dart';
+import 'course_details_screen.dart'; // Naya import add kiya gaya hai
 
 class CoursesScreen extends StatefulWidget {
   const CoursesScreen({super.key});
@@ -86,7 +87,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                 itemCount: courses.length,
                 itemBuilder: (context, index) {
                   final course = courses[index];
-                  // Backend fields map karna: title, description, level, price, teacherId
+                  // Backend fields map karna
                   final teacherName = course['teacherId'] != null
                       ? course['teacherId']['name']
                       : 'Unknown Ustad';
@@ -95,137 +96,147 @@ class _CoursesScreenState extends State<CoursesScreen> {
                       : 'Free';
                   final level = course['level'] ?? 'Beginner';
 
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 20),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    elevation: 3,
-                    shadowColor: Colors.black12,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Thumbnail ya Default color box
-                        Container(
-                          height: 150,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.teal.shade100,
-                            borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(15),
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              CourseDetailsScreen(courseId: course['_id']),
+                        ),
+                      );
+                    },
+                    child: Card(
+                      margin: const EdgeInsets.only(bottom: 20),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      elevation: 3,
+                      shadowColor: Colors.black12,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Thumbnail ya Default color box
+                          Container(
+                            height: 150,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.teal.shade100,
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(15),
+                              ),
+                              image: course['thumbnail'] != null
+                                  ? DecorationImage(
+                                      image: NetworkImage(course['thumbnail']),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
                             ),
-                            image: course['thumbnail'] != null
-                                ? DecorationImage(
-                                    image: NetworkImage(course['thumbnail']),
-                                    fit: BoxFit.cover,
+                            child: course['thumbnail'] == null
+                                ? const Center(
+                                    child: Icon(
+                                      Icons.menu_book,
+                                      size: 50,
+                                      color: Colors.teal,
+                                    ),
                                   )
                                 : null,
                           ),
-                          child: course['thumbnail'] == null
-                              ? const Center(
-                                  child: Icon(
-                                    Icons.menu_book,
-                                    size: 50,
-                                    color: Colors.teal,
-                                  ),
-                                )
-                              : null,
-                        ),
 
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Title aur Price
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      course['title'] ?? 'Course Title',
-                                      style: const TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  Text(
-                                    price,
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: price == 'Free'
-                                          ? Colors.green
-                                          : Colors.teal,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-
-                              // Description
-                              Text(
-                                course['description'] ??
-                                    'No description available for this course.',
-                                style: const TextStyle(
-                                  color: Colors.grey,
-                                  height: 1.4,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Ustad Name aur Level
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.person,
-                                        size: 16,
-                                        color: Colors.grey,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        teacherName,
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Title aur Price
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        course['title'] ?? 'Course Title',
                                         style: const TextStyle(
-                                          color: Colors.black87,
-                                          fontWeight: FontWeight.w500,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    Text(
+                                      price,
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: price == 'Free'
+                                            ? Colors.green
+                                            : Colors.teal,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+
+                                // Description
+                                Text(
+                                  course['description'] ?? 'No description available for this course.',
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    height: 1.4,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 16),
+
+                                // Ustad Name aur Level
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.person,
+                                          size: 16,
+                                          color: Colors.grey,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          teacherName,
+                                          style: const TextStyle(
+                                            color: Colors.black87,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.orange.shade100,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Text(
+                                        level,
+                                        style: TextStyle(
+                                          color: Colors.orange.shade800,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
                                     ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.orange.shade100,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Text(
-                                      level,
-                                      style: TextStyle(
-                                        color: Colors.orange.shade800,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   );
                 },
