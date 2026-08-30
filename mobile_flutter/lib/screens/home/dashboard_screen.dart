@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
 import 'dart:convert';
-
 import '../../utils/constants.dart';
-
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../auth/login_screen.dart';
-import '../courses/courses_screen.dart'; // 🚀 Courses screen ka import
+import '../courses/courses_screen.dart'; 
+import '../courses/my-courses_screen.dart'; 
+import '../submissions/my_submissions_screen.dart'; 
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -122,7 +121,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 🚀 NEW: Premium Explore Courses Button
+                    // 🚀 Premium Explore Courses Button
                     Container(
                       width: double.infinity,
                       margin: const EdgeInsets.only(bottom: 25),
@@ -204,7 +203,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Stats Grid
+                    // Stats Grid with Navigation
                     GridView.count(
                       crossAxisCount: 2,
                       crossAxisSpacing: 15,
@@ -217,12 +216,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           enrolledCourses.toString(),
                           Icons.book,
                           Colors.blue,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MyCoursesScreen(),
+                              ),
+                            );
+                          },
                         ),
                         _buildStatCard(
                           'Pending',
                           pendingAssignments.toString(),
                           Icons.assignment_late,
                           Colors.orange,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MySubmissionsScreen(),
+                              ),
+                            );
+                          },
                         ),
                         _buildStatCard(
                           'Attendance',
@@ -266,7 +281,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                elevation: 1, // Thoda elevation badhaya hai premium feel ke liye
+                                elevation: 1, 
                                 child: ListTile(
                                   leading: const CircleAvatar(
                                     backgroundColor: Color(0xFFE0F2F1),
@@ -300,45 +315,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Helper function UI cards banane ke liye
+  // 🚀 UPDATED: Premium Helper function UI cards banane ke liye (with InkWell & Shadows)
   Widget _buildStatCard(
     String title,
     String value,
     IconData icon,
-    Color color,
-  ) {
+    Color color, {
+    VoidCallback? onTap, // Navigation click ke liye naya parameter
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: color.withOpacity(0.15), // Har card ka shadow uske icon ke color jaisa hoga!
             blurRadius: 10,
             spreadRadius: 2,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 40, color: color),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.grey,
-              fontWeight: FontWeight.w500,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(15),
+          onTap: onTap,
+          splashColor: color.withOpacity(0.1),
+          highlightColor: color.withOpacity(0.05),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 40, color: color),
+                const SizedBox(height: 10),
+                Text(
+                  value,
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
