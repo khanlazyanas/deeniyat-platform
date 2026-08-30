@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../utils/constants.dart';
+import 'lesson_details_screen.dart'; // 🚀 Naya import add kiya gaya hai
 
 class CourseLessonsScreen extends StatefulWidget {
   final String courseId;
@@ -105,7 +106,15 @@ class _CourseLessonsScreenState extends State<CourseLessonsScreen> {
                         child: InkWell(
                           borderRadius: BorderRadius.circular(15),
                           onTap: () {
-                            // TODO: Navigate to Lesson Content/Player Screen
+                            // 🚀 Yehan Navigation add kar diya gaya hai
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => LessonDetailsScreen(
+                                  lessonId: lesson['_id'],
+                                ),
+                              ),
+                            );
                           },
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
