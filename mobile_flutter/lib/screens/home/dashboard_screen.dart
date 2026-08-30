@@ -7,7 +7,8 @@ import '../../utils/constants.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../auth/login_screen.dart'; // Logout hone par wapas yahan aayenge
+import '../auth/login_screen.dart';
+import '../courses/courses_screen.dart'; // 🚀 Courses screen ka import
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -44,7 +45,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Uri.parse('${ApiConstants.baseUrl}/dashboard/stats'),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token', // JWT token bhejna zaroori hai
+          'Authorization': 'Bearer $token',
         },
       );
 
@@ -80,12 +81,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> logout() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token'); // Token delete karein
+    await prefs.remove('token');
     if (mounted) {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const LoginScreen()),
-        (route) => false, // Pichli saari screens hata dega
+        (route) => false,
       );
     }
   }
@@ -97,7 +98,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: const Text(
           'Dashboard',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1),
         ),
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
@@ -121,6 +122,78 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // 🚀 NEW: Premium Explore Courses Button
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 25),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.teal.shade400, Colors.teal.shade800],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(15),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.teal.withOpacity(0.4),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(15),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const CoursesScreen(),
+                              ),
+                            );
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                              vertical: 20.0,
+                              horizontal: 16.0,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Explore New Courses',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    SizedBox(height: 5),
+                                    Text(
+                                      'Find the best classes for you',
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Icon(
+                                  Icons.arrow_forward_ios,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
                     const Text(
                       'Overview',
                       style: TextStyle(
@@ -193,7 +266,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                elevation: 0.5,
+                                elevation: 1, // Thoda elevation badhaya hai premium feel ke liye
                                 child: ListTile(
                                   leading: const CircleAvatar(
                                     backgroundColor: Color(0xFFE0F2F1),
