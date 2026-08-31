@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../utils/constants.dart';
+import '../submissions/submit_assignment_screen.dart'; // 🚀 Submit Assignment ka import add kiya
 
 class LessonDetailsScreen extends StatefulWidget {
   final String lessonId;
@@ -96,8 +97,24 @@ class _LessonDetailsScreenState extends State<LessonDetailsScreen> {
           boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -5))],
         ),
         child: ElevatedButton.icon(
+          // 🚀 Yahan navigation logic update kar diya gaya hai
           onPressed: () {
-            // TODO: Navigate to Submit Assignment Screen
+            // Check kijiye ki lessonData aur courseId available hain
+            if (lessonData != null && lessonData!['courseId'] != null) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SubmitAssignmentScreen(
+                    lessonId: widget.lessonId,
+                    courseId: lessonData!['courseId'],
+                  ),
+                ),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Course data not loaded properly.')),
+              );
+            }
           },
           icon: const Icon(Icons.upload_file),
           label: const Text('Submit Assignment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),

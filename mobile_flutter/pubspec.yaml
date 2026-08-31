@@ -37,6 +37,7 @@ dependencies:
   http: ^1.6.0
   razorpay_flutter: ^1.4.5
   shared_preferences: ^2.5.5
+  file_picker: ^8.1.6
 
 dev_dependencies:
   flutter_test:
@@ -90,3 +91,6 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+dependency_overrides:
+  flutter_plugin_android_lifecycle: 2.0.23
