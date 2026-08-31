@@ -2,10 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/constants.dart'; // 👇 Fix 1: Constant file import ki gayi hai
 
 class AuthService {
-  // Apna local IP address dalein (localhost 10.0.2.2 hota hai emulator ke liye, physical device ke liye PC ka IP)
-  static const String baseUrl = 'http://10.21.53.43:8000/api/v1/auth';
+  // 👇 Fix 2: 'const' hata kar 'getter' use kiya taaki initialization error na aaye
+  static String get baseUrl => '${ApiConstants.baseUrl}/auth';
 
   // Helper function: Get Token
   Future<String?> getToken() async {
