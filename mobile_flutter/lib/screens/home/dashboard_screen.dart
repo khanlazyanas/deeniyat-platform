@@ -33,6 +33,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     fetchDashboardStats();
   }
 
+  // Helper to fix Image URL in Dashboard
+  String getFullImageUrl(String url) {
+    if (url.isEmpty) return "";
+    String cleanUrl = url.replaceAll('\\', '/');
+    if (cleanUrl.startsWith("http")) return cleanUrl;
+    final baseUrl = ApiConstants.baseUrl.replaceAll('/api/v1/auth', '').replaceAll('/api/v1', '');
+    String finalUrl = "$baseUrl/$cleanUrl";
+    return finalUrl.replaceAll(RegExp(r'(?<!:)/+'), '/');
+  }
+
   Future<void> _loadLocalUserData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -72,7 +82,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         showError('Failed to fetch dashboard data');
       }
     } catch (e) {
-      showError('Network error. Check connection.');
+      // API error silent fallback
     } finally {
       setState(() => isLoading = false);
     }
@@ -84,9 +94,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.info_outline, color: Colors.white, size: 20),
+              const Icon(Icons.error_outline, color: Colors.white, size: 20),
               const SizedBox(width: 10),
-              Expanded(child: Text(message)),
+              Expanded(child: Text(message, style: const TextStyle(fontWeight: FontWeight.w500))),
             ],
           ),
           backgroundColor: const Color(0xFFE11D48),
@@ -114,38 +124,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-        slivers: [
-          _buildSliverHeader(),
-          SliverToBoxAdapter(
-            child: isLoading
-                ? const Padding(
-                    padding: EdgeInsets.only(top: 80.0),
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF0F766E),
-                        strokeWidth: 3,
-                      ),
-                    ),
-                  )
-                : RefreshIndicator(
-                    color: const Color(0xFF0F766E),
-                    onRefresh: () async {
-                      await _loadLocalUserData();
-                      await fetchDashboardStats();
-                    },
+      body: isLoading 
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFF0F766E),
+                strokeWidth: 3.0, 
+              ),
+            )
+          : RefreshIndicator(
+              color: const Color(0xFF0F766E),
+              backgroundColor: Colors.white,
+              strokeWidth: 3.0,
+              onRefresh: () async {
+                await _loadLocalUserData();
+                await fetchDashboardStats();
+              },
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  _buildSliverHeader(),
+                  SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildExploreBanner(),
-                          const SizedBox(height: 28),
+                          const SizedBox(height: 32),
                           _buildSectionTitle('Overview & Metrics'),
                           const SizedBox(height: 16),
                           _buildStatsGrid(),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 36),
                           _buildSectionTitle('Recent Activities'),
                           const SizedBox(height: 16),
                           _buildActivitiesList(),
@@ -153,88 +162,122 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                   ),
-          ),
-        ],
-      ),
+                ],
+              ),
+            ),
     );
   }
 
   Widget _buildSliverHeader() {
     return SliverAppBar(
-      expandedHeight: 130,
+      expandedHeight: 140,
       pinned: true,
       elevation: 0,
       backgroundColor: const Color(0xFF0F766E),
       flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF134E4A), Color(0xFF0F766E), Color(0xFF14B8A6)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        background: Stack(
+          children: [
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF0D9488), Color(0xFF0F766E), Color(0xFF115E59)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
             ),
-          ),
-          padding: const EdgeInsets.fromLTRB(24, 52, 24, 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
+            Positioned(
+              top: -50,
+              right: -30,
+              child: Container(
+                width: 150,
+                height: 150,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.05),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: -80,
+              left: -40,
+              child: Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.05),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 56, 24, 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    'Assalamu Alaikum 👋',
-                    style: TextStyle(
-                      color: Colors.teal.shade100,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 0.5,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Assalamu Alaikum 👋',
+                        style: TextStyle(
+                          color: Colors.teal.shade50,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        userName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    userName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -0.5,
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                      ).then((_) => _loadLocalUserData());
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: CircleAvatar(
+                        radius: 24,
+                        backgroundColor: const Color(0xFF134E4A),
+                        backgroundImage: userAvatar.isNotEmpty ? NetworkImage(getFullImageUrl(userAvatar)) : null,
+                        child: userAvatar.isEmpty
+                            ? Text(
+                                userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
+                              )
+                            : null,
+                      ),
                     ),
                   ),
                 ],
               ),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ProfileScreen()),
-                  ).then((_) => _loadLocalUserData());
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: CircleAvatar(
-                    radius: 22,
-                    backgroundColor: Colors.teal.shade800,
-                    backgroundImage: userAvatar.isNotEmpty ? NetworkImage(userAvatar) : null,
-                    child: userAvatar.isEmpty
-                        ? const Icon(Icons.person, color: Colors.white, size: 24)
-                        : null,
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -244,91 +287,117 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(24),
         gradient: const LinearGradient(
-          colors: [Color(0xFF0F766E), Color(0xFF115E59)],
+          colors: [Color(0xFF0F766E), Color(0xFF0F172A)], 
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F766E).withOpacity(0.35),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: const Color(0xFF0F766E).withOpacity(0.25),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(24),
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const CoursesScreen()),
             );
           },
-          child: Padding(
-            padding: const EdgeInsets.all(22.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Text(
-                          'FEATURED',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        'Explore New Courses',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Discover comprehensive Islamic curricula tailored for you.',
-                        style: TextStyle(
-                          color: Colors.teal.shade100,
-                          fontSize: 13,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -20,
+                top: -20,
+                child: Container(
+                  width: 100,
+                  height: 100,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
                     shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.arrow_forward_rounded,
-                    color: Colors.white,
-                    size: 24,
+                    color: Colors.white.withOpacity(0.05),
                   ),
                 ),
-              ],
-            ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.white.withOpacity(0.05)),
+                            ),
+                            child: const Text(
+                              'FEATURED',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Explore New Courses',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Discover comprehensive Islamic curricula tailored for you.',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.7),
+                              fontSize: 14,
+                              height: 1.4,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white.withOpacity(0.1)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          )
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.arrow_forward,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -347,44 +416,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
           title: 'Courses',
           value: enrolledCourses.toString(),
           subtitle: 'Active Enrollments',
-          icon: Icons.menu_book_rounded,
-          accentColor: const Color(0xFF2563EB),
+          icon: Icons.book, 
+          accentColor: const Color(0xFF3B82F6),
           bgColor: const Color(0xFFEFF6FF),
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const MyCoursesScreen()),
-            );
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const MyCoursesScreen()));
           },
         ),
         _buildStatCard(
           title: 'Pending',
           value: pendingAssignments.toString(),
           subtitle: 'Assignments Due',
-          icon: Icons.pending_actions_rounded,
-          accentColor: const Color(0xFFD97706),
+          icon: Icons.assignment_late,
+          accentColor: const Color(0xFFF59E0B), 
           bgColor: const Color(0xFFFFFBEB),
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const MySubmissionsScreen()),
-            );
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const MySubmissionsScreen()));
           },
         ),
         _buildStatCard(
           title: 'Attendance',
           value: '$attendanceRate%',
           subtitle: 'Overall Presence',
-          icon: Icons.verified_user_rounded,
-          accentColor: const Color(0xFF059669),
+          icon: Icons.verified_user,
+          accentColor: const Color(0xFF10B981), 
           bgColor: const Color(0xFFECFDF5),
         ),
         _buildStatCard(
-          title: 'Performance',
+          title: 'Status',
           value: 'Active',
-          subtitle: 'Student Status',
-          icon: Icons.auto_awesome_rounded,
-          accentColor: const Color(0xFF7C3AED),
+          subtitle: 'Student Performance',
+          icon: Icons.star,
+          accentColor: const Color(0xFF8B5CF6), 
           bgColor: const Color(0xFFF5F3FF),
         ),
       ],
@@ -403,23 +466,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: accentColor.withOpacity(0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+            color: const Color(0xFF0F172A).withOpacity(0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           onTap: onTap,
+          highlightColor: bgColor.withOpacity(0.5),
+          splashColor: bgColor,
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -428,15 +493,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: bgColor,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Icon(icon, size: 22, color: accentColor),
+                      child: Icon(icon, size: 24, color: accentColor),
                     ),
                     if (onTap != null)
-                      const Icon(Icons.north_east_rounded, size: 16, color: Color(0xFF94A3B8)),
+                      Icon(Icons.open_in_new, size: 18, color: const Color(0xFF94A3B8).withOpacity(0.7)),
                   ],
                 ),
                 Column(
@@ -445,27 +510,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Text(
                       value,
                       style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
                         color: Color(0xFF0F172A),
-                        letterSpacing: -0.5,
+                        letterSpacing: -1,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF334155),
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF334155),
-                      ),
-                    ),
-                    Text(
                       subtitle,
                       style: const TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         color: Color(0xFF94A3B8),
-                        fontWeight: FontWeight.w400,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -482,35 +548,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (recentActivities.isEmpty) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF0F172A).withOpacity(0.02),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            )
+          ],
         ),
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               decoration: const BoxDecoration(
-                color: Color(0xFFF1F5F9),
+                color: Color(0xFFF8FAFC),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.notifications_none_rounded, color: Color(0xFF64748B), size: 28),
+              child: const Icon(Icons.notifications_off, color: Color(0xFF94A3B8), size: 32),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             const Text(
               'No Recent Activity',
               style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1E293B),
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF0F172A),
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             const Text(
-              'Your learning progress and updates will appear here.',
-              style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+              'Your learning timeline will automatically update here.',
+              style: TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
               textAlign: TextAlign.center,
             ),
           ],
@@ -528,45 +601,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF0F172A).withOpacity(0.02),
-                blurRadius: 10,
+                blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
             ],
           ),
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             leading: Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFCCFBF1),
-                borderRadius: BorderRadius.circular(12),
+                color: const Color(0xFFF0FDFA), 
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: const Icon(Icons.bolt_rounded, color: Color(0xFF0F766E), size: 22),
+              child: const Icon(Icons.flash_on, color: Color(0xFF0D9488), size: 24),
             ),
             title: Text(
-              activity['title'] ?? 'Activity',
+              activity['title'] ?? 'Activity Update',
               style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
                 color: Color(0xFF0F172A),
+                letterSpacing: -0.3,
               ),
             ),
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 4.0),
               child: Text(
-                activity['description'] ?? 'No details available',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                activity['description'] ?? 'No details provided',
+                style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
               ),
             ),
-            trailing: const Icon(
-              Icons.chevron_right_rounded,
-              size: 20,
-              color: Color(0xFF94A3B8),
+            trailing: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF8FAFC),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.chevron_right,
+                size: 20,
+                color: Color(0xFF64748B),
+              ),
             ),
           ),
         );
@@ -578,10 +659,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Text(
       title,
       style: const TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.w700,
-        color: Color(0xFF0F172A),
-        letterSpacing: -0.3,
+        fontSize: 19,
+        fontWeight: FontWeight.w800,
+        color: Color(0xFF0F172A), 
+        letterSpacing: -0.5,
       ),
     );
   }
