@@ -34,8 +34,14 @@ class _LoginScreenState extends State<LoginScreen> {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
+        // 👇 MAIN FIX: Ab token ke sath-sath baaki saari details bhi save hongi
         SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('token', data['token']);
+        await prefs.setString('token', data['token'] ?? '');
+        await prefs.setString('userId', data['_id'] ?? '');
+        await prefs.setString('userName', data['name'] ?? 'User');
+        await prefs.setString('userEmail', data['email'] ?? '');
+        await prefs.setString('userRole', data['role'] ?? 'Student');
+        await prefs.setString('userAvatar', data['avatar'] ?? '');
 
         if (mounted) {
           // Success SnackBar
@@ -53,7 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           );
 
-          // 🚀 Dashboard par bhejne ka logic yahan add kiya hai
+          // 🚀 Dashboard par bhejne ka logic
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const DashboardScreen()),
