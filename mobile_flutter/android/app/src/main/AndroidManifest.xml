@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- 👇 NAYA CODE YAHAN ADD KIYA HAI (Razorpay aur API calls ke liye zaroori hai) 👇 -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:label="mobile_flutter"
         android:name="${applicationName}"

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../services/course_service.dart';
 import '../../services/lesson_service.dart';
+import '../../services/enrollment_service.dart';
+import '../../services/payment_service.dart';
 import '../../utils/constants.dart';
 
 class CourseDetailsScreen extends StatefulWidget {
   final String courseId;
-
   const CourseDetailsScreen({super.key, required this.courseId});
 
   @override
@@ -16,15 +18,36 @@ class CourseDetailsScreen extends StatefulWidget {
 class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
   final CourseService _courseService = CourseService();
   final LessonService _lessonService = LessonService();
+  final EnrollmentService _enrollmentService = EnrollmentService();
+  final PaymentService _paymentService = PaymentService();
+  
+  late Razorpay _razorpay;
 
   bool isLoading = true;
+  bool isProcessingPayment = false;
+  bool isEnrolled = false; 
+
   Map<String, dynamic>? courseData;
   List<dynamic> lessons = [];
 
   @override
   void initState() {
     super.initState();
+    _initializeRazorpay();
     _fetchCourseAndLessons();
+  }
+
+  @override
+  void dispose() {
+    _razorpay.clear(); // 👈 Razorpay memory clear
+    super.dispose();
+  }
+
+  void _initializeRazorpay() {
+    _razorpay = Razorpay();
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
   }
 
   String getFullImageUrl(String url) {
@@ -39,7 +62,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
   Future<void> _fetchCourseAndLessons() async {
     setState(() => isLoading = true);
     try {
-      // Fetch Course Details
+      // 1. Fetch Course
       final courseRes = await _courseService.getCourseById(widget.courseId);
       if (courseRes['success']) {
         courseData = courseRes['data'];
@@ -48,10 +71,23 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
         return;
       }
 
-      // Fetch Curriculum (Lessons)
+      // 2. Fetch Lessons
       final lessonRes = await _lessonService.getLessonsByCourse(widget.courseId);
       if (lessonRes['success']) {
         lessons = lessonRes['data'];
+      }
+
+      // 3. Check Enrollment Status 👈 MAGIC LOGIC
+      final enrollRes = await _enrollmentService.getMyEnrollments();
+      if (enrollRes['success']) {
+        List enrollments = enrollRes['data'];
+        for (var enrollment in enrollments) {
+          // Compare course IDs
+          if (enrollment['courseId']['_id'] == widget.courseId || enrollment['courseId'] == widget.courseId) {
+            isEnrolled = true;
+            break;
+          }
+        }
       }
     } catch (e) {
       _showError('Network error. Check connection.');
@@ -60,24 +96,139 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
     }
   }
 
-  void _showError(String message) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
-              const SizedBox(width: 10),
-              Expanded(child: Text(message, style: const TextStyle(fontWeight: FontWeight.w500))),
-            ],
-          ),
-          backgroundColor: const Color(0xFFE11D48),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
+  // ================= ENROLLMENT & PAYMENT LOGIC =================
+
+  Future<void> _startEnrollmentFlow() async {
+    final price = courseData!['price'] ?? 0;
+
+    setState(() => isProcessingPayment = true);
+
+    // Flow 1: FREE COURSE (Direct Enrollment)
+    if (price == 0) {
+      final result = await _enrollmentService.enrollStudent(widget.courseId);
+      if (result['success']) {
+        _showSuccess('Enrolled successfully! You can now access all lessons.');
+        setState(() => isEnrolled = true);
+      } else {
+        _showError(result['message']);
+      }
+      setState(() => isProcessingPayment = false);
+      return;
     }
+
+    // Flow 2: PAID COURSE (Razorpay Engine)
+    try {
+      final orderRes = await _paymentService.createOrder(double.parse(price.toString()));
+      if (!orderRes['success']) {
+        _showError(orderRes['message']);
+        setState(() => isProcessingPayment = false);
+        return;
+      }
+
+      final orderId = orderRes['data']['order']['id'];
+      
+      // Open Razorpay Checkout
+      var options = {
+        'key': 'rzp_test_8YGiWeZrGctMwH', // TODO: Yahan apni public key dalein
+        'amount': (price * 100).toInt(),
+        'name': 'Deeniyat Platform',
+        'description': courseData!['title'],
+        'order_id': orderId,
+        'prefill': {
+          'contact': '9999999999',
+          'email': 'user@example.com'
+        },
+        'theme': {'color': '#0F766E'}
+      };
+
+      _razorpay.open(options);
+    } catch (e) {
+      _showError('Error initializing payment.');
+      setState(() => isProcessingPayment = false);
+    }
+  }
+
+  // Razorpay Callbacks
+  void _handlePaymentSuccess(PaymentSuccessResponse response) async {
+    try {
+      // 1. Verify Signature
+      final verifyRes = await _paymentService.verifyPayment({
+        'razorpay_order_id': response.orderId,
+        'razorpay_payment_id': response.paymentId,
+        'razorpay_signature': response.signature,
+      });
+
+      if (verifyRes['success']) {
+        // 2. Create Transaction (Backend unlock karega)
+        await _paymentService.createTransaction({
+          'amount': courseData!['price'],
+          'type': 'Course Fee',
+          'courseId': widget.courseId,
+          'status': 'Completed',
+          'paymentId': response.paymentId,
+        });
+
+        _showSuccess('Payment Successful! Course Unlocked. 🎉');
+        setState(() {
+          isEnrolled = true;
+          isProcessingPayment = false;
+        });
+      } else {
+        _showError('Payment Verification Failed!');
+        setState(() => isProcessingPayment = false);
+      }
+    } catch (e) {
+      _showError('Server update failed after payment.');
+      setState(() => isProcessingPayment = false);
+    }
+  }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    _showError("Payment Failed: ${response.message}");
+    setState(() => isProcessingPayment = false);
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    _showError("External wallets are not supported yet.");
+    setState(() => isProcessingPayment = false);
+  }
+
+  // ================= UI HELPERS =================
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: Text(message, style: const TextStyle(fontWeight: FontWeight.w500))),
+          ],
+        ),
+        backgroundColor: const Color(0xFFE11D48),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  void _showSuccess(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: Text(message, style: const TextStyle(fontWeight: FontWeight.w500))),
+          ],
+        ),
+        backgroundColor: const Color(0xFF10B981), // Emerald Success
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 
   @override
@@ -90,10 +241,9 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
     }
 
     if (courseData == null) {
-      return Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, foregroundColor: const Color(0xFF0F172A)),
-        body: const Center(child: Text('Course not found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+      return const Scaffold(
+        backgroundColor: Color(0xFFF8FAFC),
+        body: Center(child: Text('Course not found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
       );
     }
 
@@ -110,9 +260,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           border: const Border(top: BorderSide(color: Color(0xFFF1F5F9), width: 1.5)),
-          boxShadow: [
-            BoxShadow(color: const Color(0xFF0F172A).withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -10)),
-          ],
+          boxShadow: [BoxShadow(color: const Color(0xFF0F172A).withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -10))],
         ),
         child: SafeArea(
           child: Row(
@@ -143,16 +291,22 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                 child: SizedBox(
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: () {
-                      // TODO: Payment Gateway / Enrollment Logic
-                    },
+                    // 👇 Button logic changes dynamically based on Enrollment Status
+                    onPressed: isProcessingPayment 
+                        ? null 
+                        : (isEnrolled ? () {/* TODO: Navigate to active player */} : _startEnrollmentFlow),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0F766E),
+                      backgroundColor: isEnrolled ? const Color(0xFF3B82F6) : const Color(0xFF0F766E), // Blue if enrolled, Teal if not
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
-                    child: const Text('Enroll Now', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                    child: isProcessingPayment
+                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                        : Text(
+                            isEnrolled ? 'Continue Learning' : 'Enroll Now', 
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.5)
+                          ),
                   ),
                 ),
               ),
@@ -163,7 +317,6 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          // 🖼️ Premium Image Header
           SliverAppBar(
             expandedHeight: 280.0,
             floating: false,
@@ -194,7 +347,6 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                   thumbnailUrl.isNotEmpty
                       ? Image.network(getFullImageUrl(thumbnailUrl), fit: BoxFit.cover)
                       : Container(color: const Color(0xFFCBD5E1), child: const Icon(Icons.menu_book_rounded, size: 80, color: Colors.white)),
-                  // Gradient Overlay for readability
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -209,15 +361,12 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
               ),
             ),
           ),
-
-          // 📝 Course Details Body
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(24, 10, 24, 40),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Badges
                   Row(
                     children: [
                       Container(
@@ -234,15 +383,11 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-
-                  // Title
                   Text(
                     courseData!['title'] ?? 'Course Title',
                     style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), height: 1.2, letterSpacing: -0.5),
                   ),
                   const SizedBox(height: 24),
-
-                  // Teacher Card
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -272,8 +417,6 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
-
-                  // About Section
                   const Text('About this Course', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), letterSpacing: -0.5)),
                   const SizedBox(height: 12),
                   Text(
@@ -281,8 +424,6 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                     style: const TextStyle(fontSize: 15, color: Color(0xFF475569), height: 1.6, fontWeight: FontWeight.w500),
                   ),
                   const SizedBox(height: 40),
-
-                  // Curriculum Section
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -291,7 +432,6 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-
                   lessons.isEmpty
                       ? Container(
                           width: double.infinity,
@@ -313,47 +453,63 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                           separatorBuilder: (context, index) => const SizedBox(height: 12),
                           itemBuilder: (context, index) {
                             final lesson = lessons[index];
-                            return Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
-                              ),
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                leading: Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(color: const Color(0xFFF0FDFA), borderRadius: BorderRadius.circular(12)),
-                                  child: Center(
-                                    child: Text(
-                                      '${index + 1}',
-                                      style: const TextStyle(color: Color(0xFF0D9488), fontWeight: FontWeight.w800, fontSize: 14),
+                            return GestureDetector(
+                              onTap: isEnrolled 
+                                  ? () {/* TODO: Navigate to Lesson Video Player */} 
+                                  : () => _showError('Please enroll to view this lesson.'),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: isEnrolled ? const Color(0xFFE2E8F0) : const Color(0xFFF1F5F9), width: 1.5),
+                                ),
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  leading: Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: isEnrolled ? const Color(0xFFF0FDFA) : const Color(0xFFF1F5F9), 
+                                      borderRadius: BorderRadius.circular(12)
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        '${index + 1}',
+                                        style: TextStyle(
+                                          color: isEnrolled ? const Color(0xFF0D9488) : const Color(0xFF94A3B8), 
+                                          fontWeight: FontWeight.w800, fontSize: 14
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
-                                title: Text(
-                                  lesson['title'] ?? 'Lesson ${index + 1}',
-                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF0F172A)),
-                                ),
-                                subtitle: Padding(
-                                  padding: const EdgeInsets.only(top: 4.0),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        lesson['videoUrl'] != null ? Icons.play_circle_fill_rounded : Icons.article_rounded,
-                                        size: 14,
-                                        color: const Color(0xFF94A3B8),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        lesson['videoUrl'] != null ? 'Video Lesson' : 'Reading Material',
-                                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
-                                      ),
-                                    ],
+                                  title: Text(
+                                    lesson['title'] ?? 'Lesson ${index + 1}',
+                                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: isEnrolled ? const Color(0xFF0F172A) : const Color(0xFF64748B)),
+                                  ),
+                                  subtitle: Padding(
+                                    padding: const EdgeInsets.only(top: 4.0),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          lesson['videoUrl'] != null ? Icons.play_circle_fill_rounded : Icons.article_rounded,
+                                          size: 14,
+                                          color: const Color(0xFF94A3B8),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          lesson['videoUrl'] != null ? 'Video Lesson' : 'Reading Material',
+                                          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  // 👇 ICON MAGIC: Enrolled hai toh Play Icon, nahi toh Lock 🔒
+                                  trailing: Icon(
+                                    isEnrolled ? Icons.play_arrow_rounded : Icons.lock_outline_rounded, 
+                                    size: 22, 
+                                    color: isEnrolled ? const Color(0xFF0F766E) : const Color(0xFFCBD5E1)
                                   ),
                                 ),
-                                trailing: const Icon(Icons.lock_outline_rounded, size: 20, color: Color(0xFFCBD5E1)),
                               ),
                             );
                           },

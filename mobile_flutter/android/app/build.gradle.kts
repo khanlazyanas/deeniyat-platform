@@ -9,6 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.mobile_flutter"
+        // 👇 YAHAN CHANGE KIYA HAI: Razorpay ke liye minimum SDK 21 zaroori hai
         minSdk = flutter.minSdkVersion
         targetSdk = 36
         versionCode = flutter.versionCode
