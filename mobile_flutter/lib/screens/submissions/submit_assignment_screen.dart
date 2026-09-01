@@ -137,10 +137,10 @@ class _SubmitAssignmentScreenState extends State<SubmitAssignmentScreen> with Si
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('token');
 
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('${ApiConstants.baseUrl}/submissions'),
-      );
+      final url = '${ApiConstants.baseUrl}/submissions';
+      print("🚀 HITTING SUBMISSION API: $url"); // Log URL
+
+      var request = http.MultipartRequest('POST', Uri.parse(url));
 
       request.headers.addAll({'Authorization': 'Bearer $token'});
       request.fields['lessonId'] = widget.lessonId;
@@ -160,16 +160,27 @@ class _SubmitAssignmentScreenState extends State<SubmitAssignmentScreen> with Si
         request.files.add(await http.MultipartFile.fromPath('audio', _audioFile!.path));
       }
 
+      // Logs check karne ke liye ki kya data ja raha hai
+      print("📦 SENDING FIELDS: ${request.fields}");
+      print("📁 SENDING FILES: ${request.files.map((f) => f.field).toList()}");
+
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
+
+      // 👇 EXACT ERROR PRINT KAREGA
+      print("🟢 API STATUS CODE: ${response.statusCode}");
+      print("📦 API RESPONSE BODY: ${response.body}");
 
       if (response.statusCode == 201) {
         _showPremiumSnackBar('Assignment submitted successfully! 🎉', isError: false);
         Future.delayed(const Duration(seconds: 1), () => Navigator.pop(context));
       } else {
-        _showPremiumSnackBar('Failed to submit assignment.', isError: true);
+        // UI mein hi exact error dikha dega
+        final errorMsg = response.body.isNotEmpty ? response.body : 'Status: ${response.statusCode}';
+        _showPremiumSnackBar('Failed: $errorMsg', isError: true);
       }
     } catch (e) {
+      print("❌ EXCEPTION: $e");
       _showPremiumSnackBar('Network error. Check connection.', isError: true);
     } finally {
       setState(() => isSubmitting = false);
