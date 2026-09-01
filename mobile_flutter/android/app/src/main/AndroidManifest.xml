@@ -2,6 +2,8 @@
     
     <!-- 👇 NAYA CODE YAHAN ADD KIYA HAI (Razorpay aur API calls ke liye zaroori hai) 👇 -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
         android:label="mobile_flutter"
