@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -159,10 +160,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Icon(isError ? Icons.error_outline : Icons.check_circle_outline, color: Colors.white, size: 20),
             const SizedBox(width: 10),
-            Expanded(child: Text(message, style: const TextStyle(fontWeight: FontWeight.w500))),
+            Expanded(child: Text(message, style: const TextStyle(fontWeight: FontWeight.w600))),
           ],
         ),
-        backgroundColor: isError ? const Color(0xFFE11D48) : const Color(0xFF0F766E),
+        backgroundColor: isError ? const Color(0xFFE11D48) : const Color(0xFF064E3B),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
@@ -186,26 +187,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     if (isLoadingData) {
       return const Scaffold(
-        backgroundColor: Color(0xFFF8FAFC),
-        body: Center(child: CircularProgressIndicator(color: Color(0xFF0F766E), strokeWidth: 3.0)),
+        backgroundColor: Color(0xFFF1F5F9),
+        body: Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37), strokeWidth: 3.0)),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: const Color(0xFFF1F5F9),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text(
           'Profile & Security', 
-          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.5)
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: -0.5)
         ),
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        foregroundColor: const Color(0xFFFDE047),
         elevation: 0,
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout_rounded),
             onPressed: _logout,
             tooltip: 'Logout',
           ),
@@ -215,45 +216,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
         physics: const BouncingScrollPhysics(),
         child: Column(
           children: [
+            // 🌟 ULTRA PREMIUM HEADER
             Stack(
               clipBehavior: Clip.none,
               alignment: Alignment.bottomCenter,
               children: [
                 Container(
-                  height: 220,
+                  height: 240,
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFF0D9488), Color(0xFF0F766E), Color(0xFF115E59)],
+                      colors: [Color(0xFF064E3B), Color(0xFF022C22), Color(0xFF0F172A)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                   ),
                   child: Stack(
+                    fit: StackFit.expand,
                     children: [
+                      // Sublte Islamic Pattern Overlay
+                      Opacity(
+                        opacity: 0.05,
+                        child: Image.network(
+                          'https://www.transparenttextures.com/patterns/arabesque.png',
+                          fit: BoxFit.cover,
+                          repeat: ImageRepeat.repeat,
+                        ),
+                      ),
+                      // Glowing Gold Orbs
                       Positioned(
-                        top: -50,
-                        right: -30,
+                        top: -50, right: -30,
                         child: Container(
-                          width: 150,
-                          height: 150,
-                          decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.05)),
+                          width: 150, height: 150,
+                          decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFFD4AF37).withOpacity(0.15)),
+                          child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50), child: Container(color: Colors.transparent)),
                         ),
                       ),
                       Positioned(
-                        bottom: -80,
-                        left: -40,
+                        bottom: -80, left: -40,
                         child: Container(
-                          width: 200,
-                          height: 200,
-                          decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.05)),
+                          width: 200, height: 200,
+                          decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF10B981).withOpacity(0.15)),
+                          child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50), child: Container(color: Colors.transparent)),
                         ),
                       ),
                     ],
                   ),
                 ),
                 Positioned(
-                  bottom: -50,
+                  bottom: -60,
                   child: GestureDetector(
                     onTap: _pickImage,
                     child: Stack(
@@ -262,36 +273,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Container(
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFFF8FAFC), width: 6),
+                            border: Border.all(color: const Color(0xFFD4AF37), width: 4), // Luxury Gold Border
                             boxShadow: [
-                              BoxShadow(color: const Color(0xFF0F172A).withOpacity(0.15), blurRadius: 20, offset: const Offset(0, 10))
+                              BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.3), blurRadius: 25, offset: const Offset(0, 10))
                             ],
                           ),
                           child: CircleAvatar(
-                            radius: 56,
-                            backgroundColor: const Color(0xFF134E4A),
+                            radius: 64,
+                            backgroundColor: const Color(0xFF022C22),
                             backgroundImage: avatarFile != null 
                                 ? FileImage(avatarFile!) as ImageProvider
                                 : (avatarUrl.isNotEmpty ? NetworkImage(getFullImageUrl(avatarUrl)) : null),
                             child: (avatarFile == null && avatarUrl.isEmpty)
                                 ? Text(
                                     _nameController.text.isNotEmpty ? _nameController.text[0].toUpperCase() : 'U',
-                                    style: const TextStyle(fontSize: 44, fontWeight: FontWeight.w900, color: Colors.white),
+                                    style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w900, color: Color(0xFFD4AF37)),
                                   )
                                 : null,
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.all(10),
+                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF10B981),
+                            gradient: const LinearGradient(colors: [Color(0xFFD4AF37), Color(0xFFB48608)]),
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white, width: 3),
-                            boxShadow: [
-                              BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 3))
-                            ],
+                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5))],
                           ),
-                          child: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
+                          child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 20),
                         ),
                       ],
                     ),
@@ -299,7 +308,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 70),
+            const SizedBox(height: 80), // Spacing for avatar
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -316,7 +325,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _buildTextField(
                           label: 'Legal Name',
                           controller: _nameController,
-                          icon: Icons.person_outline,
+                          icon: Icons.person_outline_rounded,
                         ),
                         const SizedBox(height: 20),
                         _buildTextField(
@@ -325,23 +334,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           icon: Icons.email_outlined,
                           isReadOnly: true,
                         ),
-                        const SizedBox(height: 28),
+                        const SizedBox(height: 32),
                         SizedBox(
                           width: double.infinity,
                           height: 56,
                           child: ElevatedButton(
                             onPressed: isUpdatingProfile ? null : _updateProfile,
-                            style: _primaryButtonStyle(),
-                            child: isUpdatingProfile
-                                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                                : const Text('UPDATE PROFILE', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.2, fontSize: 15)),
+                            style: ElevatedButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                            child: Ink(
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(colors: [Color(0xFFD4AF37), Color(0xFFB48608)]),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.4), blurRadius: 15, offset: const Offset(0, 8))],
+                              ),
+                              child: Container(
+                                alignment: Alignment.center,
+                                child: isUpdatingProfile
+                                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                                    : const Text('UPDATE PROFILE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: 15)),
+                              ),
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
                   
-                  const SizedBox(height: 36),
+                  const SizedBox(height: 40),
 
                   _buildSectionTitle('Security & Authentication'),
                   const SizedBox(height: 16),
@@ -353,26 +376,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _buildTextField(
                           label: 'Current Password',
                           controller: _currentPasswordController,
-                          icon: Icons.lock_outline,
+                          icon: Icons.lock_outline_rounded,
                           isObscure: true,
                         ),
                         const SizedBox(height: 20),
                         _buildTextField(
                           label: 'New Password',
                           controller: _newPasswordController,
-                          icon: Icons.lock_reset,
+                          icon: Icons.lock_reset_rounded,
                           isObscure: true,
                         ),
-                        const SizedBox(height: 28),
+                        const SizedBox(height: 32),
                         SizedBox(
                           width: double.infinity,
                           height: 56,
                           child: ElevatedButton(
                             onPressed: isUpdatingPassword ? null : _updatePassword,
-                            style: _dangerButtonStyle(),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFBE123C), // Premium deep red
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              elevation: 0,
+                              shadowColor: Colors.transparent,
+                            ),
                             child: isUpdatingPassword
                                 ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                                : const Text('CHANGE PASSWORD', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.2, fontSize: 15)),
+                                : const Text('CHANGE PASSWORD', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: 15)),
                           ),
                         ),
                       ],
@@ -391,17 +420,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), letterSpacing: -0.5),
+      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.5),
     );
   }
 
   BoxDecoration _cardDecoration() {
     return BoxDecoration(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(24),
-      border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
+      borderRadius: BorderRadius.circular(28),
+      border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3), width: 1.5),
       boxShadow: [
-        BoxShadow(color: const Color(0xFF0F172A).withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10)),
+        BoxShadow(color: const Color(0xFF064E3B).withOpacity(0.08), blurRadius: 24, offset: const Offset(0, 12)),
       ],
     );
   }
@@ -417,37 +446,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       controller: controller,
       readOnly: isReadOnly,
       obscureText: isObscure,
-      style: TextStyle(color: isReadOnly ? const Color(0xFF64748B) : const Color(0xFF0F172A), fontWeight: FontWeight.w600, fontSize: 15),
+      style: TextStyle(color: isReadOnly ? const Color(0xFF64748B) : const Color(0xFF0F172A), fontWeight: FontWeight.w700, fontSize: 15),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: const Color(0xFF94A3B8), fontSize: 14, fontWeight: FontWeight.w500),
-        prefixIcon: Icon(icon, color: isReadOnly ? const Color(0xFFCBD5E1) : const Color(0xFF0F766E), size: 22),
+        labelStyle: TextStyle(color: const Color(0xFF94A3B8), fontSize: 14, fontWeight: FontWeight.w600),
+        prefixIcon: Icon(icon, color: isReadOnly ? const Color(0xFFCBD5E1) : const Color(0xFFD4AF37), size: 22),
         filled: true,
         fillColor: isReadOnly ? const Color(0xFFF8FAFC) : Colors.white,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE2E8F0).withOpacity(0.8))),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE2E8F0).withOpacity(0.8))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFF0F766E), width: 1.5)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFD4AF37), width: 2)),
       ),
-    );
-  }
-
-  ButtonStyle _primaryButtonStyle() {
-    return ElevatedButton.styleFrom(
-      backgroundColor: const Color(0xFF0F766E),
-      foregroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 0,
-      shadowColor: Colors.transparent,
-    );
-  }
-
-  ButtonStyle _dangerButtonStyle() {
-    return ElevatedButton.styleFrom(
-      backgroundColor: const Color(0xFFE11D48),
-      foregroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 0,
-      shadowColor: Colors.transparent,
     );
   }
 }
