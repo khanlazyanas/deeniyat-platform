@@ -6,7 +6,7 @@ import '../../services/lesson_service.dart';
 import '../../services/enrollment_service.dart';
 import '../../services/payment_service.dart';
 import '../../utils/constants.dart';
-import 'lesson_details_screen.dart'; // ✅ Corrected Import
+import 'lesson_details_screen.dart';
 
 class CourseDetailsScreen extends StatefulWidget {
   final String courseId;
@@ -78,9 +78,12 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
 
       final enrollRes = await _enrollmentService.getMyEnrollments();
       if (enrollRes['success']) {
-        List enrollments = enrollRes['data'];
+        List enrollments = enrollRes['data'] ?? [];
         for (var enrollment in enrollments) {
-          if (enrollment['courseId']['_id'] == widget.courseId || enrollment['courseId'] == widget.courseId) {
+          final mappedCourseId = enrollment['courseId'] != null 
+              ? (enrollment['courseId']['_id'] ?? enrollment['courseId']) 
+              : enrollment['course'];
+          if (mappedCourseId == widget.courseId) {
             isEnrolled = true;
             break;
           }
@@ -100,7 +103,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
     if (price == 0) {
       final result = await _enrollmentService.enrollStudent(widget.courseId);
       if (result['success']) {
-        _showSuccess('Enrolled successfully! You can now access all lessons.');
+        _showSuccess('Enrolled successfully! ✨ You can now access all lessons.');
         setState(() => isEnrolled = true);
       } else {
         _showError(result['message']);
@@ -125,7 +128,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
         'description': courseData!['title'],
         'order_id': orderId,
         'prefill': {'contact': '9999999999', 'email': 'user@example.com'},
-        'theme': {'color': '#0F766E'}
+        'theme': {'color': '#D4AF37'} // Luxury Gold Color for Razorpay
       };
 
       _razorpay.open(options);
@@ -186,7 +189,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
   void _showError(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Row(children: [const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20), const SizedBox(width: 10), Expanded(child: Text(message, style: const TextStyle(fontWeight: FontWeight.w500)))]),
+      content: Row(children: [const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20), const SizedBox(width: 10), Expanded(child: Text(message, style: const TextStyle(fontWeight: FontWeight.w600)))]),
       backgroundColor: const Color(0xFFE11D48),
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -196,8 +199,8 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
   void _showSuccess(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Row(children: [const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 20), const SizedBox(width: 10), Expanded(child: Text(message, style: const TextStyle(fontWeight: FontWeight.w500)))]),
-      backgroundColor: const Color(0xFF10B981),
+      content: Row(children: [const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 20), const SizedBox(width: 10), Expanded(child: Text(message, style: const TextStyle(fontWeight: FontWeight.w600)))]),
+      backgroundColor: const Color(0xFF064E3B), // Premium Green
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ));
@@ -205,23 +208,23 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) return const Scaffold(backgroundColor: Color(0xFFF8FAFC), body: Center(child: CircularProgressIndicator(color: Color(0xFF0F766E), strokeWidth: 3.0)));
-    if (courseData == null) return const Scaffold(backgroundColor: Color(0xFFF8FAFC), body: Center(child: Text('Course not found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))));
+    if (isLoading) return const Scaffold(backgroundColor: Color(0xFFF1F5F9), body: Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37), strokeWidth: 3.0)));
+    if (courseData == null) return const Scaffold(backgroundColor: Color(0xFFF1F5F9), body: Center(child: Text('Course not found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))));
 
-    final teacherName = courseData!['teacherId'] != null ? courseData!['teacherId']['name'] : 'Unknown Ustad';
+    final teacherName = courseData!['teacherId'] != null ? courseData!['teacherId']['name'] : 'Eminent Scholar';
     final teacherAvatar = courseData!['teacherId'] != null ? (courseData!['teacherId']['profileImage'] ?? '') : '';
     final price = courseData!['price'] != null && courseData!['price'] > 0 ? '₹${courseData!['price']}' : 'Free';
     final level = courseData!['level'] ?? 'Beginner';
     final thumbnailUrl = courseData!['thumbnail'] ?? '';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: const Color(0xFFF1F5F9),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         decoration: BoxDecoration(
           color: Colors.white,
           border: const Border(top: BorderSide(color: Color(0xFFF1F5F9), width: 1.5)),
-          boxShadow: [BoxShadow(color: const Color(0xFF0F172A).withOpacity(0.05), blurRadius: 24, offset: const Offset(0, -10))],
+          boxShadow: [BoxShadow(color: const Color(0xFF064E3B).withOpacity(0.08), blurRadius: 30, offset: const Offset(0, -10))],
         ),
         child: SafeArea(
           child: Row(
@@ -232,7 +235,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Total Price', style: TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w600)),
+                    const Text('Total Investment', style: TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 4),
                     Text(price, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: price == 'Free' ? const Color(0xFF10B981) : const Color(0xFF0F172A), letterSpacing: -0.5)),
                   ],
@@ -246,17 +249,25 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                   child: ElevatedButton(
                     onPressed: isProcessingPayment 
                         ? null 
-                        : (isEnrolled ? () => _showSuccess('Select a lecture from the curriculum below to start!') : _startEnrollmentFlow),
+                        : (isEnrolled ? () => _showSuccess('Select a lecture from the curriculum below to start! 📖') : _startEnrollmentFlow),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isEnrolled ? const Color(0xFF3B82F6) : const Color(0xFF0F766E),
-                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.zero,
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      shadowColor: isEnrolled ? const Color(0xFF3B82F6).withOpacity(0.5) : const Color(0xFF0F766E).withOpacity(0.5),
                     ),
-                    child: isProcessingPayment
-                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                        : Text(isEnrolled ? 'Continue Learning' : 'Enroll Now', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                    child: Ink(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: isEnrolled ? [const Color(0xFF0F172A), const Color(0xFF1E293B)] : [const Color(0xFFD4AF37), const Color(0xFFB48608)]),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [BoxShadow(color: isEnrolled ? const Color(0xFF0F172A).withOpacity(0.2) : const Color(0xFFD4AF37).withOpacity(0.4), blurRadius: 15, offset: const Offset(0, 8))],
+                      ),
+                      child: Container(
+                        alignment: Alignment.center,
+                        child: isProcessingPayment
+                            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                            : Text(isEnrolled ? 'Continue Learning' : 'Enroll Now', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -268,10 +279,10 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
         physics: const BouncingScrollPhysics(),
         slivers: [
           SliverAppBar(
-            expandedHeight: 300.0,
+            expandedHeight: 320.0,
             floating: false,
             pinned: true,
-            backgroundColor: const Color(0xFFF8FAFC),
+            backgroundColor: const Color(0xFF064E3B),
             elevation: 0,
             leading: Padding(
               padding: const EdgeInsets.all(8.0),
@@ -280,8 +291,8 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                   child: Container(
-                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.8), borderRadius: BorderRadius.circular(12)),
-                    child: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: Color(0xFF0F172A)), onPressed: () => Navigator.pop(context)),
+                    decoration: BoxDecoration(color: Colors.black.withOpacity(0.4), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withOpacity(0.2))),
+                    child: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: Colors.white), onPressed: () => Navigator.pop(context)),
                   ),
                 ),
               ),
@@ -290,10 +301,19 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  thumbnailUrl.isNotEmpty ? Image.network(getFullImageUrl(thumbnailUrl), fit: BoxFit.cover) : Container(color: const Color(0xFFCBD5E1), child: const Icon(Icons.menu_book_rounded, size: 80, color: Colors.white)),
+                  thumbnailUrl.isNotEmpty 
+                      ? Image.network(getFullImageUrl(thumbnailUrl), fit: BoxFit.cover) 
+                      : Container(
+                          decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF064E3B), Color(0xFF022C22)])),
+                          child: const Icon(Icons.mosque_rounded, size: 100, color: Color(0xFFD4AF37)),
+                        ),
                   Container(
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black.withOpacity(0.4), Colors.transparent, const Color(0xFFF8FAFC)], stops: const [0.0, 0.5, 1.0]),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter, end: Alignment.bottomCenter, 
+                        colors: [Colors.black.withOpacity(0.5), Colors.transparent, const Color(0xFFF1F5F9)], 
+                        stops: const [0.0, 0.4, 1.0]
+                      ),
                     ),
                   ),
                 ],
@@ -302,31 +322,32 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 10, 24, 40),
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), decoration: BoxDecoration(color: const Color(0xFFFFFBEB), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFFEF3C7))), child: Text(level.toUpperCase(), style: const TextStyle(color: Color(0xFFD97706), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1))),
+                      Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), decoration: BoxDecoration(color: const Color(0xFFD4AF37).withOpacity(0.15), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.4))), child: Text(level.toUpperCase(), style: const TextStyle(color: Color(0xFFB48608), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5))),
                       const SizedBox(width: 10),
-                      Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFDBEAFE))), child: Text('${lessons.length} LESSONS', style: const TextStyle(color: Color(0xFF2563EB), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1))),
+                      Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), decoration: BoxDecoration(color: const Color(0xFF064E3B).withOpacity(0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF064E3B).withOpacity(0.2))), child: Text('${lessons.length} MODULES', style: const TextStyle(color: Color(0xFF064E3B), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5))),
                     ],
                   ),
                   const SizedBox(height: 20),
-                  Text(courseData!['title'] ?? 'Course Title', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), height: 1.2, letterSpacing: -0.5)),
-                  const SizedBox(height: 28),
+                  Text(courseData!['title'] ?? 'Course Title', style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), height: 1.2, letterSpacing: -1)),
+                  const SizedBox(height: 32),
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.white, width: 2),
-                      boxShadow: [BoxShadow(color: const Color(0xFF0F172A).withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10))],
+                      color: Colors.white, borderRadius: BorderRadius.circular(28), border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3), width: 1.5),
+                      boxShadow: [BoxShadow(color: const Color(0xFF064E3B).withOpacity(0.06), blurRadius: 30, offset: const Offset(0, 15))],
                     ),
                     child: Row(
                       children: [
                         Container(
-                          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFF0F766E).withOpacity(0.2), width: 2)),
-                          child: CircleAvatar(radius: 26, backgroundColor: const Color(0xFFF1F5F9), backgroundImage: teacherAvatar.isNotEmpty ? NetworkImage(getFullImageUrl(teacherAvatar)) : null, child: teacherAvatar.isEmpty ? const Icon(Icons.person_rounded, color: Color(0xFF94A3B8)) : null),
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFFD4AF37), width: 2)),
+                          child: CircleAvatar(radius: 28, backgroundColor: const Color(0xFF022C22), backgroundImage: teacherAvatar.isNotEmpty ? NetworkImage(getFullImageUrl(teacherAvatar)) : null, child: teacherAvatar.isEmpty ? const Icon(Icons.person_rounded, color: Color(0xFFD4AF37), size: 28) : null),
                         ),
                         const SizedBox(width: 16),
                         Column(
@@ -334,29 +355,29 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                           children: [
                             const Text('Course Instructor', style: TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w600)),
                             const SizedBox(height: 4),
-                            Text(teacherName, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17, color: Color(0xFF0F172A))),
+                            Text(teacherName, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF0F172A))),
                           ],
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 40),
-                  const Text('About this Course', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.5)),
+                  const SizedBox(height: 48),
+                  const Text('About this Course', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.5)),
                   const SizedBox(height: 16),
-                  Text(courseData!['description'] ?? 'No detailed description available.', style: const TextStyle(fontSize: 16, color: Color(0xFF475569), height: 1.6, fontWeight: FontWeight.w500)),
+                  Text(courseData!['description'] ?? 'No detailed description available.', style: const TextStyle(fontSize: 16, color: Color(0xFF475569), height: 1.7, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 48),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Curriculum', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.5)),
-                      Text('${lessons.length} items', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF0F766E))),
+                      const Text('Curriculum', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.5)),
+                      Text('${lessons.length} Items', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFFB48608))),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                   lessons.isEmpty
                       ? Container(
                           width: double.infinity, padding: const EdgeInsets.all(40),
-                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: const Color(0xFFF1F5F9))),
+                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(28), border: Border.all(color: const Color(0xFFF1F5F9))),
                           child: const Column(children: [Icon(Icons.hourglass_empty_rounded, size: 48, color: Color(0xFFCBD5E1)), SizedBox(height: 16), Text('Lessons coming soon', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600, fontSize: 16))]),
                         )
                       : ListView.separated(
@@ -380,33 +401,33 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                                         ),
                                       );
                                     } 
-                                  : () => _showError('Please enroll to view this lesson.'),
+                                  : () => _showError('Please enroll in the course to unlock this module. 🔒'),
                               child: Container(
                                 decoration: BoxDecoration(
                                   color: Colors.white,
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: isEnrolled ? const Color(0xFFE2E8F0) : const Color(0xFFF1F5F9), width: 1.5),
-                                  boxShadow: isEnrolled ? [BoxShadow(color: const Color(0xFF0F172A).withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))] : [],
+                                  borderRadius: BorderRadius.circular(24),
+                                  border: Border.all(color: isEnrolled ? const Color(0xFFD4AF37).withOpacity(0.3) : const Color(0xFFF1F5F9), width: 1.5),
+                                  boxShadow: [BoxShadow(color: const Color(0xFF0F172A).withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 8))],
                                 ),
                                 child: ListTile(
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                                   leading: Container(
-                                    width: 48, height: 48,
-                                    decoration: BoxDecoration(color: isEnrolled ? const Color(0xFFF0FDFA) : const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(16), border: Border.all(color: isEnrolled ? const Color(0xFFCCFBF1) : const Color(0xFFF1F5F9))),
-                                    child: Center(child: Text('${index + 1}', style: TextStyle(color: isEnrolled ? const Color(0xFF0D9488) : const Color(0xFF94A3B8), fontWeight: FontWeight.w900, fontSize: 16))),
+                                    width: 50, height: 50,
+                                    decoration: BoxDecoration(color: isEnrolled ? const Color(0xFFD4AF37).withOpacity(0.1) : const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(16), border: Border.all(color: isEnrolled ? const Color(0xFFD4AF37).withOpacity(0.3) : const Color(0xFFF1F5F9))),
+                                    child: Center(child: Text('${index + 1}', style: TextStyle(color: isEnrolled ? const Color(0xFFB48608) : const Color(0xFF94A3B8), fontWeight: FontWeight.w900, fontSize: 18))),
                                   ),
-                                  title: Text(lesson['title'] ?? 'Lesson ${index + 1}', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: isEnrolled ? const Color(0xFF0F172A) : const Color(0xFF64748B))),
+                                  title: Text(lesson['title'] ?? 'Module ${index + 1}', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: isEnrolled ? const Color(0xFF0F172A) : const Color(0xFF64748B))),
                                   subtitle: Padding(
-                                    padding: const EdgeInsets.only(top: 6.0),
+                                    padding: const EdgeInsets.only(top: 8.0),
                                     child: Row(
                                       children: [
-                                        Icon(lesson['videoUrl'] != null ? Icons.play_circle_fill_rounded : Icons.article_rounded, size: 16, color: const Color(0xFF94A3B8)),
+                                        Icon(lesson['videoUrl'] != null ? Icons.play_circle_fill_rounded : Icons.menu_book_rounded, size: 16, color: const Color(0xFF94A3B8)),
                                         const SizedBox(width: 8),
-                                        Text(lesson['videoUrl'] != null ? 'Video Lesson' : 'Reading Material', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+                                        Text(lesson['videoUrl'] != null ? 'Video Masterclass' : 'Reading Material', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
                                       ],
                                     ),
                                   ),
-                                  trailing: Icon(isEnrolled ? Icons.play_circle_outline_rounded : Icons.lock_outline_rounded, size: 28, color: isEnrolled ? const Color(0xFF0F766E) : const Color(0xFFCBD5E1)),
+                                  trailing: Icon(isEnrolled ? Icons.arrow_forward_ios_rounded : Icons.lock_rounded, size: 20, color: isEnrolled ? const Color(0xFFD4AF37) : const Color(0xFFCBD5E1)),
                                 ),
                               ),
                             );
