@@ -17,6 +17,8 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final TextEditingController forgotEmailController = TextEditingController(); // 🚀 NEW: For Forgot Password
+  
   bool isLoading = false;
   bool isPasswordHidden = true;
 
@@ -24,7 +26,6 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => isLoading = true);
     try {
       final String apiUrl = '${ApiConstants.baseUrl}/auth/login';
-      print("🚀 HITTING API: $apiUrl");
 
       final response = await http.post(
         Uri.parse(apiUrl),
@@ -35,12 +36,8 @@ class _LoginScreenState extends State<LoginScreen> {
         }),
       );
 
-      print("🟢 STATUS CODE: ${response.statusCode}");
-      print("📦 RAW RESPONSE: '${response.body}'");
-
-      // 👇 CRASH PREVENTERS (For Render sleep mode or API errors)
       if (response.body.trim().isEmpty) {
-        throw Exception("Server is waking up or returned empty response. (Status: ${response.statusCode}). Try again in 30 seconds.");
+        throw Exception("Server is waking up or returned empty response. Try again in 30 seconds.");
       }
       if (response.body.trim().startsWith('<')) {
         throw Exception("Server returned HTML page instead of API data. Please check API URL.");
@@ -58,28 +55,121 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('userAvatar', data['avatar'] ?? '');
 
         if (mounted) {
-          _showPremiumSnackBar(
-            'Welcome back, ${data['name']}! 👋',
-            isError: false,
-          );
+          _showPremiumSnackBar('Welcome back, ${data['name']}! 👋', isError: false);
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const DashboardScreen()),
           );
         }
       } else {
-        if (mounted) {
-          _showPremiumSnackBar(data['message'] ?? 'Authentication failed', isError: true);
-        }
+        if (mounted) _showPremiumSnackBar(data['message'] ?? 'Authentication failed', isError: true);
       }
     } catch (e) {
-      print("❌ LOGIN ERROR: $e");
-      if (mounted) {
-        _showPremiumSnackBar('Error: ${e.toString().replaceAll("Exception:", "").trim()}', isError: true);
-      }
+      if (mounted) _showPremiumSnackBar('Error: ${e.toString().replaceAll("Exception:", "").trim()}', isError: true);
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
+  }
+
+  // 🚀 NEW: Forgot Password API Call
+  Future<void> sendForgotPasswordLink(StateSetter setModalState) async {
+    final email = forgotEmailController.text.trim();
+    if (email.isEmpty) {
+      _showPremiumSnackBar("Please enter your email address", isError: true);
+      return;
+    }
+
+    setModalState(() => isLoading = true); // Modal ke andar loader ghumane ke liye
+    
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConstants.baseUrl}/auth/forgot-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        Navigator.pop(context); // Modal band karo
+        forgotEmailController.clear();
+        _showPremiumSnackBar('Reset link sent to your email! Check your inbox. 📧', isError: false);
+      } else {
+        _showPremiumSnackBar(data['message'] ?? 'Failed to send reset link', isError: true);
+      }
+    } catch (e) {
+      _showPremiumSnackBar('Network error. Please try again.', isError: true);
+    } finally {
+      setModalState(() => isLoading = false);
+    }
+  }
+
+  // 🚀 NEW: Premium Bottom Sheet for Forgot Password
+  void _showForgotPasswordModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, // Keyboard aane par upar khiske
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom, // Keyboard padding
+            ),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
+              boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 20, spreadRadius: 5)],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(28, 12, 28, 40),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Little drag handle
+                  Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: const Color(0xFFE2E8F0), borderRadius: BorderRadius.circular(2)))),
+                  const SizedBox(height: 32),
+                  
+                  // Content
+                  const Text('Reset Password', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.5)),
+                  const SizedBox(height: 8),
+                  const Text('Enter your registered email address and we will send you a link to reset your password.', style: TextStyle(fontSize: 14, color: Color(0xFF64748B), height: 1.5, fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 32),
+
+                  // Input Field
+                  _buildTextField(
+                    label: 'Email Address',
+                    controller: forgotEmailController,
+                    icon: Icons.mark_email_unread_rounded,
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Submit Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: isLoading ? null : () => sendForgotPasswordLink(setModalState),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0F766E),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      child: isLoading
+                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                          : const Text('Send Reset Link', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+      ),
+    );
   }
 
   void _showPremiumSnackBar(String message, {bool isError = false}) {
@@ -104,7 +194,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC), // Premium SaaS Background
+      backgroundColor: const Color(0xFFF8FAFC), 
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -114,40 +204,18 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Logo Icon
                 Container(
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0F766E).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+                  decoration: BoxDecoration(color: const Color(0xFF0F766E).withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
                   child: const Icon(Icons.school_rounded, size: 40, color: Color(0xFF0F766E)),
                 ),
                 const SizedBox(height: 32),
                 
-                // Welcoming Header
-                const Text(
-                  'Welcome Back',
-                  style: TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF0F172A), // Slate 900
-                    letterSpacing: -1,
-                  ),
-                ),
+                const Text('Welcome Back', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -1)),
                 const SizedBox(height: 8),
-                const Text(
-                  'Sign in to Deeniyat Platform to continue your learning journey.',
-                  style: TextStyle(
-                    fontSize: 15, 
-                    color: Color(0xFF64748B), // Slate 500
-                    fontWeight: FontWeight.w500,
-                    height: 1.4,
-                  ),
-                ),
+                const Text('Sign in to Deeniyat Platform to continue your learning journey.', style: TextStyle(fontSize: 15, color: Color(0xFF64748B), fontWeight: FontWeight.w500, height: 1.4)),
                 const SizedBox(height: 48),
 
-                // Email Field
                 _buildTextField(
                   label: 'Email Address',
                   controller: emailController,
@@ -156,7 +224,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Password Field
                 _buildTextField(
                   label: 'Password',
                   controller: passwordController,
@@ -165,24 +232,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // Forgot Password Link
+                // 🚀 UPDATED: Forgot Password Link now triggers the Modal
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {},
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF0F766E),
-                      splashFactory: NoSplash.splashFactory,
-                    ),
-                    child: const Text(
-                      'Forgot Password?',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                    ),
+                    onPressed: _showForgotPasswordModal, // 🔥 Triggers Bottom Sheet
+                    style: TextButton.styleFrom(foregroundColor: const Color(0xFF0F766E), splashFactory: NoSplash.splashFactory),
+                    child: const Text('Forgot Password?', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
                   ),
                 ),
                 const SizedBox(height: 32),
 
-                // Login Button
                 SizedBox(
                   width: double.infinity,
                   height: 56,
@@ -196,44 +256,23 @@ class _LoginScreenState extends State<LoginScreen> {
                       disabledBackgroundColor: const Color(0xFF0F766E).withOpacity(0.5),
                     ),
                     child: isLoading
-                        ? const SizedBox(
-                            width: 24, 
-                            height: 24, 
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5)
-                          )
-                        : const Text(
-                            'Sign In',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.5),
-                          ),
+                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                        : const Text('Sign In', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
                   ),
                 ),
 
                 const SizedBox(height: 40),
 
-                // Sign Up Link 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      'Don\'t have an account?',
-                      style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500, fontSize: 14),
-                    ),
+                    const Text('Don\'t have an account?', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500, fontSize: 14)),
                     TextButton(
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const SignupScreen()),
-                        );
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const SignupScreen()));
                       },
                       style: TextButton.styleFrom(splashFactory: NoSplash.splashFactory),
-                      child: const Text(
-                        'Create one',
-                        style: TextStyle(
-                          color: Color(0xFF0F766E),
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
-                        ),
-                      ),
+                      child: const Text('Create one', style: TextStyle(color: Color(0xFF0F766E), fontWeight: FontWeight.w900, fontSize: 14)),
                     ),
                   ],
                 ),
