@@ -101,6 +101,15 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
     setState(() => isProcessingPayment = true);
 
     if (price == 0) {
+      // 🚀 NAYA MAGIC FIX: Free course ka bhi transaction backend ko bhejo
+      await _paymentService.createTransaction({
+        'amount': 0,
+        'type': 'Course Fee',
+        'courseId': widget.courseId,
+        'status': 'Completed',
+        'paymentId': 'FREE-${DateTime.now().millisecondsSinceEpoch}',
+      });
+
       final result = await _enrollmentService.enrollStudent(widget.courseId);
       if (result['success']) {
         _showSuccess('Enrolled successfully! ✨ You can now access all lessons.');
@@ -122,13 +131,13 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
 
       final orderId = orderRes['data']['order']['id'];
       var options = {
-        'key': 'rzp_test_8YGiWeZrGctMwH',
+        'key': 'rzp_test_8YGiWeZrGctMwH', // Replace with your key
         'amount': (price * 100).toInt(),
         'name': 'Deeniyat Platform',
         'description': courseData!['title'],
         'order_id': orderId,
         'prefill': {'contact': '9999999999', 'email': 'user@example.com'},
-        'theme': {'color': '#D4AF37'} // Luxury Gold Color for Razorpay
+        'theme': {'color': '#D4AF37'} 
       };
 
       _razorpay.open(options);
@@ -200,7 +209,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Row(children: [const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 20), const SizedBox(width: 10), Expanded(child: Text(message, style: const TextStyle(fontWeight: FontWeight.w600)))]),
-      backgroundColor: const Color(0xFF064E3B), // Premium Green
+      backgroundColor: const Color(0xFF064E3B), 
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ));
