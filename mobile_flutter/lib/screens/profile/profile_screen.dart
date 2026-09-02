@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../auth/login_screen.dart';
 import '../../services/auth_service.dart';
 import '../../utils/constants.dart';
+import '../payments/transaction_history_screen.dart'; // 🚀 NAYA IMPORT
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -234,7 +235,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // Sublte Islamic Pattern Overlay
                       Opacity(
                         opacity: 0.05,
                         child: Image.network(
@@ -243,7 +243,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           repeat: ImageRepeat.repeat,
                         ),
                       ),
-                      // Glowing Gold Orbs
                       Positioned(
                         top: -50, right: -30,
                         child: Container(
@@ -273,7 +272,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Container(
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFFD4AF37), width: 4), // Luxury Gold Border
+                            border: Border.all(color: const Color(0xFFD4AF37), width: 4), 
                             boxShadow: [
                               BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.3), blurRadius: 25, offset: const Offset(0, 10))
                             ],
@@ -286,7 +285,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 : (avatarUrl.isNotEmpty ? NetworkImage(getFullImageUrl(avatarUrl)) : null),
                             child: (avatarFile == null && avatarUrl.isEmpty)
                                 ? Text(
-                                    _nameController.text.isNotEmpty ? _nameController.text[0].toUpperCase() : 'U',
+                                    _nameController.text.isNotEmpty ? _nameController.text[0].toUpperCase() : 'A', // 🚀 NAYA FIX: 'U' ko 'A' se replace kiya, for Anas
                                     style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w900, color: Color(0xFFD4AF37)),
                                   )
                                 : null,
@@ -308,7 +307,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 80), // Spacing for avatar
+            const SizedBox(height: 80),
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -366,6 +365,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   
                   const SizedBox(height: 40),
 
+                  // 🚀 NAYA SECTION: BILLING & PAYMENTS
+                  _buildSectionTitle('Billing & Payments'),
+                  const SizedBox(height: 16),
+                  Container(
+                    decoration: _cardDecoration(),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(28),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const TransactionHistoryScreen()),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFD4AF37).withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.4)),
+                                ),
+                                child: const Icon(Icons.receipt_long_rounded, color: Color(0xFFB48608), size: 28),
+                              ),
+                              const SizedBox(width: 16),
+                              const Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Transaction History', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF0F172A))),
+                                    SizedBox(height: 4),
+                                    Text('View your past payments and receipts', style: TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFFCBD5E1), size: 18),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 40),
+
                   _buildSectionTitle('Security & Authentication'),
                   const SizedBox(height: 16),
                   Container(
@@ -393,7 +441,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           child: ElevatedButton(
                             onPressed: isUpdatingPassword ? null : _updatePassword,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFBE123C), // Premium deep red
+                              backgroundColor: const Color(0xFFBE123C), 
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                               elevation: 0,
