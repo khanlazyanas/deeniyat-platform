@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'dart:ui';
 import '../../utils/constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-// 👇 FIX: Asli count laane ke liye EnrollmentService import kiya hai
 import '../../services/enrollment_service.dart'; 
 
 import '../auth/login_screen.dart';
@@ -21,12 +20,12 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final EnrollmentService _enrollmentService = EnrollmentService(); // 🚀 Enrollment Fetcher
+  final EnrollmentService _enrollmentService = EnrollmentService(); 
 
   bool isLoading = true;
   String userName = "Anas Khan";
   String userAvatar = "";
-  int enrolledCourses = 0; // 🚀 Ab ye real data se fill hoga
+  int enrolledCourses = 0; 
   int pendingAssignments = 0;
   int attendanceRate = 0;
   List<dynamic> recentActivities = [];
@@ -62,7 +61,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
-  // 🚀 FIX: Combined function to fetch accurate stats + direct enrollments
+  // 🚀 BULLETPROOF FETCH LOGIC
   Future<void> _fetchAllData() async {
     setState(() => isLoading = true);
     try {
@@ -74,11 +73,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return;
       }
 
-      // 1. Fetch Real Enrollments (Yehi 0 dikha raha tha pehle)
-      final enrollRes = await _enrollmentService.getMyEnrollments();
-      if (enrollRes['success']) {
-        List enrollments = enrollRes['data'];
-        enrolledCourses = enrollments.length; // ✅ Exact count update
+      // 1. Enrollment count logic fix
+      try {
+        final enrollRes = await _enrollmentService.getMyEnrollments();
+        if (enrollRes is List) {
+          enrolledCourses = enrollRes.length;
+        } else if (enrollRes is Map) {
+          if (enrollRes.containsKey('data') && enrollRes['data'] is List) {
+            enrolledCourses = (enrollRes['data'] as List).length;
+          } else if (enrollRes.containsKey('enrollments') && enrollRes['enrollments'] is List) {
+            enrolledCourses = (enrollRes['enrollments'] as List).length;
+          } else if (enrollRes.containsKey('length')) {
+            enrolledCourses = enrollRes['length'];
+          }
+        }
+      } catch (e) {
+        debugPrint("Enrollment fetch error: $e");
       }
 
       // 2. Fetch Other Stats
@@ -93,16 +103,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
-          // enrolledCourses = data['enrolledCourses'] ?? 0; // (Pehla API galat data de raha tha)
+          if (enrolledCourses == 0 && data['enrolledCourses'] != null) {
+            enrolledCourses = int.tryParse(data['enrolledCourses'].toString()) ?? 0;
+          }
           pendingAssignments = data['pendingAssignments'] ?? 0;
           attendanceRate = data['attendanceRate'] ?? 0;
           recentActivities = data['recentActivities'] ?? [];
         });
       }
     } catch (e) {
-      // Silent fail
+      debugPrint("Stats API error: $e");
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -125,7 +137,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator(color: Color(0xFF0F766E), strokeWidth: 3.0))
           : RefreshIndicator(
-              color: const Color(0xFFD4AF37), // Luxury Gold loader
+              color: const Color(0xFFD4AF37), 
               backgroundColor: const Color(0xFF022C22),
               onRefresh: () async {
                 await _loadLocalUserData();
@@ -165,12 +177,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       expandedHeight: 180,
       pinned: true,
       elevation: 0,
-      backgroundColor: const Color(0xFF064E3B), // Deep Islamic Emerald
+      backgroundColor: const Color(0xFF064E3B), 
       flexibleSpace: FlexibleSpaceBar(
         background: Stack(
           fit: StackFit.expand,
           children: [
-            // Deep animated gradient background
             Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
@@ -180,7 +191,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
             ),
-            // Sublte Islamic Pattern Overlay (Opacity changed for luxury feel)
             Opacity(
               opacity: 0.05,
               child: Image.network(
@@ -189,26 +199,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 repeat: ImageRepeat.repeat,
               ),
             ),
-            // Glowing Luxury Orbs
             Positioned(
-              top: -50,
-              right: -50,
+              top: -50, right: -50,
               child: Container(
                 width: 200, height: 200,
-                decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFFD4AF37).withOpacity(0.15)), // Gold Glow
+                decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFFD4AF37).withOpacity(0.15)), 
                 child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50), child: Container(color: Colors.transparent)),
               ),
             ),
             Positioned(
-              bottom: -40,
-              left: -40,
+              bottom: -40, left: -40,
               child: Container(
                 width: 150, height: 150,
                 decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF10B981).withOpacity(0.15)),
                 child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40), child: Container(color: Colors.transparent)),
               ),
             ),
-            // User Content
             SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 28, 24, 0),
@@ -224,7 +230,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFD4AF37).withOpacity(0.15), // Gold tint
+                              color: const Color(0xFFD4AF37).withOpacity(0.15),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.4)),
                             ),
@@ -248,15 +254,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: Container(
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFFD4AF37), width: 3), // Gold Border
-                          boxShadow: [BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 8))],
+                          border: Border.all(color: const Color(0xFFD4AF37), width: 3), 
+                          boxShadow: [BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.4), blurRadius: 25, offset: const Offset(0, 10))],
                         ),
                         child: CircleAvatar(
                           radius: 30,
                           backgroundColor: const Color(0xFF022C22),
                           backgroundImage: userAvatar.isNotEmpty ? NetworkImage(getFullImageUrl(userAvatar)) : null,
                           child: userAvatar.isEmpty
-                              ? Text(userName.isNotEmpty ? userName[0].toUpperCase() : 'U', style: const TextStyle(color: const Color(0xFFD4AF37), fontWeight: FontWeight.bold, fontSize: 26))
+                              ? Text(userName.isNotEmpty ? userName[0].toUpperCase() : 'U', style: const TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, fontSize: 26))
                               : null,
                         ),
                       ),
@@ -282,9 +288,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           end: Alignment.bottomRight,
         ),
         border: Border.all(color: const Color(0xFF334155), width: 1.5),
-        boxShadow: [BoxShadow(color: const Color(0xFF0F172A).withOpacity(0.25), blurRadius: 30, offset: const Offset(0, 15))],
+        boxShadow: [
+          BoxShadow(color: const Color(0xFF0F172A).withOpacity(0.3), blurRadius: 40, offset: const Offset(0, 20)),
+          BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.1), blurRadius: 20, offset: const Offset(0, -5)),
+        ],
         image: const DecorationImage(
-          image: NetworkImage('https://www.transparenttextures.com/patterns/black-scales.png'), // Premium texture
+          image: NetworkImage('https://www.transparenttextures.com/patterns/black-scales.png'), 
           opacity: 0.3,
           fit: BoxFit.cover,
         ),
@@ -298,7 +307,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Positioned(
                 right: -20, bottom: -40,
-                child: Icon(Icons.mosque_rounded, size: 160, color: const Color(0xFFD4AF37).withOpacity(0.04)), // Subtle Islamic Icon
+                child: Icon(Icons.mosque_rounded, size: 160, color: const Color(0xFFD4AF37).withOpacity(0.05)), 
               ),
               Padding(
                 padding: const EdgeInsets.all(28.0),
@@ -310,13 +319,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                            decoration: BoxDecoration(color: const Color(0xFFD4AF37).withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD4AF37).withOpacity(0.2), 
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.5)),
+                            ),
                             child: const Text('MASTER YOUR DEEN', style: TextStyle(color: Color(0xFFFDE047), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                           ),
                           const SizedBox(height: 16),
                           const Text('Explore New Courses', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
                           const SizedBox(height: 8),
-                          Text('Dive into comprehensive Islamic studies tailored perfectly for you.', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14, height: 1.5)),
+                          Text('Dive into comprehensive Islamic studies tailored perfectly for you.', style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
                         ],
                       ),
                     ),
@@ -324,9 +337,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(colors: [Color(0xFFD4AF37), Color(0xFFB48608)]), // Gold Gradient button
+                        gradient: const LinearGradient(colors: [Color(0xFFD4AF37), Color(0xFFB48608)]), 
                         shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.4), blurRadius: 15, offset: const Offset(0, 8))],
+                        boxShadow: [
+                          BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.5), blurRadius: 20, offset: const Offset(0, 10))
+                        ],
                       ),
                       child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 28),
                     ),
@@ -346,16 +361,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       crossAxisSpacing: 16,
       mainAxisSpacing: 16,
       shrinkWrap: true,
-      childAspectRatio: 0.85,
+      childAspectRatio: 0.82,
       physics: const NeverScrollableScrollPhysics(),
       children: [
         _buildLuxuryStatCard(
           title: 'Courses',
-          value: enrolledCourses.toString(), // 🚀 NOW FETCHES CORRECT DATA
+          value: enrolledCourses.toString(),
           subtitle: 'Active enrollments',
           icon: Icons.menu_book_rounded,
           color: const Color(0xFF0EA5E9), 
-          borderColor: const Color(0xFFBAE6FD),
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MyCoursesScreen())),
         ),
         _buildLuxuryStatCard(
@@ -364,7 +378,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           subtitle: 'Assignments due',
           icon: Icons.assignment_late_rounded,
           color: const Color(0xFFF59E0B), 
-          borderColor: const Color(0xFFFDE68A),
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MySubmissionsScreen())),
         ),
         _buildLuxuryStatCard(
@@ -373,7 +386,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           subtitle: 'Overall presence',
           icon: Icons.verified_rounded,
           color: const Color(0xFF10B981), 
-          borderColor: const Color(0xFFA7F3D0),
           progress: attendanceRate / 100,
         ),
         _buildLuxuryStatCard(
@@ -382,7 +394,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           subtitle: 'Account standing',
           icon: Icons.local_fire_department_rounded,
           color: const Color(0xFF8B5CF6), 
-          borderColor: const Color(0xFFDDD6FE),
         ),
       ],
     );
@@ -394,7 +405,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required String subtitle,
     required IconData icon,
     required Color color,
-    required Color borderColor,
     double? progress,
     VoidCallback? onTap,
   }) {
@@ -402,8 +412,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: borderColor.withOpacity(0.5), width: 2), // Premium colored borders
-        boxShadow: [BoxShadow(color: color.withOpacity(0.08), blurRadius: 24, offset: const Offset(0, 12))],
+        border: Border.all(color: color.withOpacity(0.3), width: 1.5), 
+        boxShadow: [
+          BoxShadow(color: color.withOpacity(0.15), blurRadius: 30, offset: const Offset(0, 15)),
+          BoxShadow(color: const Color(0xFF0F172A).withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
       ),
       child: Material(
         color: Colors.transparent,
@@ -415,8 +428,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Positioned(
                 right: -20, bottom: -20,
                 child: Container(
-                  width: 100, height: 100,
-                  decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [color.withOpacity(0.12), Colors.transparent])),
+                  width: 110, height: 110,
+                  decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [color.withOpacity(0.15), Colors.transparent])),
                 ),
               ),
               Padding(
@@ -430,7 +443,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       children: [
                         Container(
                           padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(colors: [color.withOpacity(0.2), color.withOpacity(0.05)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: color.withOpacity(0.2)),
+                          ),
                           child: Icon(icon, size: 26, color: color),
                         ),
                         if (onTap != null) Icon(Icons.arrow_outward_rounded, size: 20, color: const Color(0xFFCBD5E1)),
@@ -468,7 +485,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           color: Colors.white, 
           borderRadius: BorderRadius.circular(28), 
           border: Border.all(color: const Color(0xFFF1F5F9), width: 2), 
-          boxShadow: [BoxShadow(color: const Color(0xFF0F172A).withOpacity(0.04), blurRadius: 24, offset: const Offset(0, 12))]
+          boxShadow: [BoxShadow(color: const Color(0xFF0F172A).withOpacity(0.08), blurRadius: 30, offset: const Offset(0, 15))]
         ),
         child: Column(
           children: [
@@ -496,7 +513,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: const Color(0xFFD4AF37).withOpacity(0.1), shape: BoxShape.circle, border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.4), width: 2)),
+                  decoration: BoxDecoration(color: const Color(0xFFD4AF37).withOpacity(0.15), shape: BoxShape.circle, border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.5), width: 2)),
                   child: const Icon(Icons.auto_awesome_rounded, color: Color(0xFFB48608), size: 18),
                 ),
                 if (!isLast) Container(width: 2, height: 50, margin: const EdgeInsets.symmetric(vertical: 4), decoration: BoxDecoration(color: const Color(0xFFE2E8F0), borderRadius: BorderRadius.circular(2))),
@@ -511,7 +528,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   color: Colors.white, 
                   borderRadius: BorderRadius.circular(24), 
                   border: Border.all(color: const Color(0xFFF8FAFC), width: 2),
-                  boxShadow: [BoxShadow(color: const Color(0xFF0F172A).withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 8))]
+                  boxShadow: [BoxShadow(color: const Color(0xFF0F172A).withOpacity(0.06), blurRadius: 25, offset: const Offset(0, 12))]
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
