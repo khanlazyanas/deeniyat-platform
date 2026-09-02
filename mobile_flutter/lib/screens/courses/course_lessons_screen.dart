@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../utils/constants.dart';
-import 'lesson_details_screen.dart'; // 🚀 Naya import add kiya gaya hai
+import 'lesson_details_screen.dart'; 
 
 class CourseLessonsScreen extends StatefulWidget {
   final String courseId;
@@ -63,9 +63,10 @@ class _CourseLessonsScreenState extends State<CourseLessonsScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.redAccent,
+          content: Row(children: [const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20), const SizedBox(width: 10), Expanded(child: Text(message, style: const TextStyle(fontWeight: FontWeight.w500)))]),
+          backgroundColor: const Color(0xFFE11D48),
           behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     }
@@ -74,103 +75,113 @@ class _CourseLessonsScreenState extends State<CourseLessonsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: Text(widget.courseTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
+        title: Text(widget.courseTitle, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Color(0xFF0F172A))),
+        backgroundColor: Colors.transparent,
+        foregroundColor: const Color(0xFF0F172A),
         elevation: 0,
+        centerTitle: true,
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.teal))
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF0F766E), strokeWidth: 3.0))
           : lessons.isEmpty
-              ? const Center(
-                  child: Text('No lessons added to this course yet.', style: TextStyle(color: Colors.grey, fontSize: 16)),
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(padding: const EdgeInsets.all(24), decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle), child: const Icon(Icons.menu_book_rounded, size: 48, color: Color(0xFFCBD5E1))),
+                      const SizedBox(height: 16),
+                      const Text('No lessons added yet.', style: TextStyle(color: Color(0xFF64748B), fontSize: 16, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
                 )
               : RefreshIndicator(
-                  color: Colors.teal,
+                  color: const Color(0xFF0F766E),
+                  backgroundColor: Colors.white,
                   onRefresh: fetchLessons,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16.0),
+                  child: ListView.separated(
+                    padding: const EdgeInsets.all(24.0),
                     itemCount: lessons.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 16),
                     itemBuilder: (context, index) {
                       final lesson = lessons[index];
                       final bool hasVideo = lesson['videoUrl'] != null && lesson['videoUrl'].toString().isNotEmpty;
                       final bool hasPdf = lesson['pdfUrl'] != null && lesson['pdfUrl'].toString().isNotEmpty;
                       final bool hasAudio = lesson['audioUrl'] != null && lesson['audioUrl'].toString().isNotEmpty;
 
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 16),
-                        elevation: 1,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(15),
-                          onTap: () {
-                            // 🚀 Yehan Navigation add kar diya gaya hai
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => LessonDetailsScreen(
-                                  lessonId: lesson['_id'],
-                                ),
-                              ),
-                            );
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Row(
-                              children: [
-                                // Chapter Number / Icon
-                                Container(
-                                  height: 50,
-                                  width: 50,
-                                  decoration: BoxDecoration(
-                                    color: Colors.teal.shade50,
-                                    borderRadius: BorderRadius.circular(12),
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
+                          boxShadow: [BoxShadow(color: const Color(0xFF0F172A).withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 5))],
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () {
+                              // 👇 FIX: CourseId passed successfully to avoid required argument error
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => LessonDetailsScreen(
+                                    lessonId: lesson['_id'],
+                                    courseId: widget.courseId,
                                   ),
-                                  child: Center(
-                                    child: Text(
-                                      '${lesson['order'] ?? index + 1}',
-                                      style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.teal.shade700,
+                                ),
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    height: 56,
+                                    width: 56,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF0FDFA),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(color: const Color(0xFFCCFBF1)),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        '${lesson['order'] ?? index + 1}',
+                                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0D9488)),
                                       ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 16),
-                                
-                                // Lesson Title and Tags
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        lesson['title'] ?? 'Untitled Lesson',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black87,
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          lesson['title'] ?? 'Untitled Lesson',
+                                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), letterSpacing: -0.3),
                                         ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      
-                                      // Media Tags (Icons indicating content type)
-                                      Row(
-                                        children: [
-                                          if (hasVideo) _buildTag(Icons.play_circle_fill, 'Video', Colors.red),
-                                          if (hasPdf) _buildTag(Icons.picture_as_pdf, 'PDF', Colors.orange),
-                                          if (hasAudio) _buildTag(Icons.audiotrack, 'Audio', Colors.purple),
-                                          if (!hasVideo && !hasPdf && !hasAudio) 
-                                            _buildTag(Icons.article, 'Reading', Colors.blue),
-                                        ],
-                                      )
-                                    ],
+                                        const SizedBox(height: 12),
+                                        Wrap(
+                                          spacing: 8,
+                                          runSpacing: 8,
+                                          children: [
+                                            if (hasVideo) _buildTag(Icons.play_circle_fill_rounded, 'Video', const Color(0xFFE11D48), const Color(0xFFFFF1F2)),
+                                            if (hasPdf) _buildTag(Icons.picture_as_pdf_rounded, 'PDF', const Color(0xFFD97706), const Color(0xFFFFFBEB)),
+                                            if (hasAudio) _buildTag(Icons.audiotrack_rounded, 'Audio', const Color(0xFF7C3AED), const Color(0xFFF5F3FF)),
+                                            if (!hasVideo && !hasPdf && !hasAudio) _buildTag(Icons.article_rounded, 'Reading', const Color(0xFF2563EB), const Color(0xFFEFF6FF)),
+                                          ],
+                                        )
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-                              ],
+                                  const Padding(
+                                    padding: EdgeInsets.only(top: 18.0),
+                                    child: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Color(0xFFCBD5E1)),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -181,24 +192,16 @@ class _CourseLessonsScreenState extends State<CourseLessonsScreen> {
     );
   }
 
-  Widget _buildTag(IconData icon, String label, MaterialColor color) {
+  Widget _buildTag(IconData icon, String label, Color textColor, Color bgColor) {
     return Container(
-      margin: const EdgeInsets.only(right: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.shade50,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.shade200),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(8)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: color.shade700),
+          Icon(icon, size: 12, color: textColor),
           const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color.shade700),
-          ),
+          Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: textColor, letterSpacing: 0.5)),
         ],
       ),
     );

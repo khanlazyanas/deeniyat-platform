@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:ui';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../../utils/constants.dart';
-import '../submissions/submit_assignment_screen.dart'; // 🚀 Submit Assignment ka import add kiya
+import '../submissions/submit_assignment_screen.dart'; 
 
 class LessonDetailsScreen extends StatefulWidget {
   final String lessonId;
+  final String courseId;
 
-  const LessonDetailsScreen({super.key, required this.lessonId});
+  const LessonDetailsScreen({
+    super.key, 
+    required this.lessonId,
+    required this.courseId,
+  });
 
   @override
   State<LessonDetailsScreen> createState() => _LessonDetailsScreenState();
@@ -17,6 +24,8 @@ class LessonDetailsScreen extends StatefulWidget {
 class _LessonDetailsScreenState extends State<LessonDetailsScreen> {
   bool isLoading = true;
   Map<String, dynamic>? lessonData;
+  YoutubePlayerController? _youtubeController; 
+  bool _isVideoPlaying = false; 
 
   @override
   void initState() {
@@ -24,26 +33,68 @@ class _LessonDetailsScreenState extends State<LessonDetailsScreen> {
     fetchLessonDetails();
   }
 
+  @override
+  void dispose() {
+    _youtubeController?.close(); 
+    super.dispose();
+  }
+
+  String getFullImageUrl(String url) {
+    if (url.isEmpty) return "";
+    String cleanUrl = url.replaceAll('\\', '/');
+    if (cleanUrl.startsWith("http")) return cleanUrl;
+    final baseUrl = ApiConstants.baseUrl.replaceAll('/api/v1/auth', '').replaceAll('/api/v1', '');
+    return "$baseUrl/$cleanUrl".replaceAll(RegExp(r'(?<!:)/+'), '/');
+  }
+
+  String? extractYoutubeId(String url) {
+    try {
+      if (url.contains('youtu.be/')) {
+        return url.split('youtu.be/').last.split('?').first;
+      } else if (url.contains('watch?v=')) {
+        return url.split('watch?v=').last.split('&').first;
+      } else if (url.contains('embed/')) {
+        return url.split('embed/').last.split('?').first;
+      }
+    } catch (e) {
+      return null;
+    }
+    return null;
+  }
+
   Future<void> fetchLessonDetails() async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('token');
-
       if (token == null) return;
 
       final response = await http.get(
         Uri.parse('${ApiConstants.baseUrl}/lessons/${widget.lessonId}'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
       );
 
       if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
         setState(() {
-          lessonData = jsonDecode(response.body);
+          lessonData = data;
           isLoading = false;
         });
+
+        if (data['videoUrl'] != null && data['videoUrl'].toString().isNotEmpty) {
+          final videoId = extractYoutubeId(data['videoUrl']);
+          if (videoId != null) {
+            // 🚀 v6.0.2 Initialization
+            _youtubeController = YoutubePlayerController(
+              params: const YoutubePlayerParams(
+                showControls: true,
+                showFullscreenButton: true,
+                mute: false,
+              ),
+            );
+            _youtubeController!.loadVideoById(videoId: videoId);
+            setState(() {}); 
+          }
+        }
       } else {
         showError('Failed to load lesson details');
       }
@@ -55,178 +106,223 @@ class _LessonDetailsScreenState extends State<LessonDetailsScreen> {
   void showError(String message) {
     setState(() => isLoading = false);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Row(children: [const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20), const SizedBox(width: 10), Expanded(child: Text(message, style: const TextStyle(fontWeight: FontWeight.w500)))]),
+        backgroundColor: const Color(0xFFE11D48),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF8F9FA),
-        body: Center(child: CircularProgressIndicator(color: Colors.teal)),
-      );
-    }
-
+    if (isLoading) return const Scaffold(backgroundColor: Color(0xFF0F172A), body: Center(child: CircularProgressIndicator(color: Color(0xFF2DD4BF), strokeWidth: 3.0)));
+    
     if (lessonData == null) {
       return Scaffold(
-        appBar: AppBar(backgroundColor: Colors.teal, title: const Text('Error')),
-        body: const Center(child: Text('Lesson not found')),
+        appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, leading: const BackButton(color: Colors.black)),
+        body: const Center(child: Text('Lesson not found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
       );
     }
 
-    final hasVideo = lessonData!['videoUrl'] != null && lessonData!['videoUrl'].toString().isNotEmpty;
+    final hasVideo = _youtubeController != null;
     final hasPdf = lessonData!['pdfUrl'] != null && lessonData!['pdfUrl'].toString().isNotEmpty;
+    final customThumbnail = lessonData!['thumbnail'] != null && lessonData!['thumbnail'].toString().isNotEmpty 
+        ? getFullImageUrl(lessonData!['thumbnail']) 
+        : null;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
-        title: const Text('Lesson Details', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      
-      // Bottom Button for Assignment Submission
+      backgroundColor: const Color(0xFFF8FAFC),
       bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        decoration: BoxDecoration(
           color: Colors.white,
-          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -5))],
+          border: const Border(top: BorderSide(color: Color(0xFFF1F5F9), width: 1.5)),
+          boxShadow: [BoxShadow(color: const Color(0xFF0F172A).withOpacity(0.05), blurRadius: 24, offset: const Offset(0, -10))],
         ),
-        child: ElevatedButton.icon(
-          // 🚀 Yahan navigation logic update kar diya gaya hai
-          onPressed: () {
-            // Check kijiye ki lessonData aur courseId available hain
-            if (lessonData != null && lessonData!['courseId'] != null) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SubmitAssignmentScreen(
-                    lessonId: widget.lessonId,
-                    courseId: lessonData!['courseId'],
+        child: SafeArea(
+          child: SizedBox(
+            height: 56,
+            child: ElevatedButton(
+              onPressed: () {
+                _youtubeController?.pauseVideo(); 
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SubmitAssignmentScreen(
+                      lessonId: widget.lessonId,
+                      courseId: widget.courseId,
+                    ),
                   ),
-                ),
-              );
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Course data not loaded properly.')),
-              );
-            }
-          },
-          icon: const Icon(Icons.upload_file),
-          label: const Text('Submit Assignment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.teal,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 15),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        ),
-      ),
-      
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Video Player Placeholder
-            if (hasVideo)
-              Container(
-                width: double.infinity,
-                height: 220,
-                color: Colors.black,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Image.network(
-                      'https://img.youtube.com/vi/dQw4w9WgXcQ/0.jpg', // Dummy thumbnail
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      opacity: const AlwaysStoppedAnimation(0.5),
-                      errorBuilder: (context, error, stackTrace) => Container(color: Colors.black87),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.play_circle_fill, size: 60, color: Colors.white),
-                      onPressed: () {
-                        // TODO: Implement actual video playback (url_launcher ya video_player)
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Video player will be integrated here')),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              )
-            else
-              Container(
-                width: double.infinity,
-                height: 150,
-                color: Colors.teal.shade100,
-                child: const Center(child: Icon(Icons.menu_book, size: 60, color: Colors.teal)),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0F766E),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
-
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Title and Chapter number
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: Colors.teal.shade50, borderRadius: BorderRadius.circular(8)),
-                        child: Text(
-                          'Ch ${lessonData!['order'] ?? 1}',
-                          style: TextStyle(color: Colors.teal.shade700, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          lessonData!['title'] ?? 'Untitled Lesson',
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  
-                  // PDF Download/View Button
-                  if (hasPdf)
-                    Card(
-                      elevation: 0,
-                      color: Colors.red.shade50,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: BorderSide(color: Colors.red.shade200)),
-                      child: ListTile(
-                        leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
-                        title: const Text('Study Material (PDF)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
-                        trailing: const Icon(Icons.download, color: Colors.red),
-                        onTap: () {
-                           // TODO: PDF Viewer logic
-                        },
-                      ),
-                    ),
-                  
-                  const SizedBox(height: 20),
-                  const Divider(),
-                  const SizedBox(height: 15),
-                  
-                  // Text Content
-                  const Text('Lesson Notes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                  Text(
-                    lessonData!['content'] ?? 'No text content available for this lesson.',
-                    style: const TextStyle(fontSize: 15, color: Colors.black87, height: 1.6),
-                  ),
+                  Icon(Icons.upload_file_rounded, size: 22),
+                  SizedBox(width: 10),
+                  Text('Submit Assignment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
                 ],
               ),
             ),
-          ],
+          ),
         ),
+      ),
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverAppBar(
+            expandedHeight: hasVideo ? 240.0 : 120.0,
+            floating: false,
+            pinned: true,
+            backgroundColor: const Color(0xFF0F172A),
+            elevation: 0,
+            leading: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    decoration: BoxDecoration(color: Colors.black.withOpacity(0.4), borderRadius: BorderRadius.circular(12)),
+                    child: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: Colors.white), onPressed: () => Navigator.pop(context)),
+                  ),
+                ),
+              ),
+            ),
+            flexibleSpace: FlexibleSpaceBar(
+              background: hasVideo
+                  ? SafeArea(
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          YoutubePlayer(controller: _youtubeController!),
+                          
+                          if (!_isVideoPlaying && customThumbnail != null)
+                            GestureDetector(
+                              onTap: () {
+                                setState(() => _isVideoPlaying = true);
+                                _youtubeController!.playVideo();
+                              },
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  Image.network(customThumbnail, fit: BoxFit.cover, errorBuilder: (c,e,s) => Container(color: const Color(0xFF1E293B))),
+                                  Container(color: Colors.black.withOpacity(0.4)),
+                                  Center(
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(50),
+                                      child: BackdropFilter(
+                                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle, border: Border.all(color: Colors.white.withOpacity(0.3))),
+                                          child: const Icon(Icons.play_arrow_rounded, size: 48, color: Colors.white),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    )
+                  : Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(colors: [Color(0xFF0D9488), Color(0xFF0F766E)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                      ),
+                      child: const Center(child: Icon(Icons.menu_book_rounded, size: 60, color: Colors.white24)),
+                    ),
+            ),
+          ),
+          
+          SliverToBoxAdapter(
+            child: Transform.translate(
+              offset: const Offset(0, -20),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(color: const Color(0xFFCCFBF1), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFF99F6E4))),
+                            child: Text('CHAPTER ${lessonData!['order'] ?? 1}', style: const TextStyle(color: Color(0xFF0F766E), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        lessonData!['title'] ?? 'Untitled Lesson',
+                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), height: 1.2, letterSpacing: -0.5),
+                      ),
+                      const SizedBox(height: 32),
+                      
+                      if (hasPdf) ...[
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [Color(0xFFFFF1F2), Color(0xFFFFE4E6)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: const Color(0xFFFECDD3)),
+                            boxShadow: [BoxShadow(color: const Color(0xFFE11D48).withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 8))],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                                child: const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFFE11D48), size: 28),
+                              ),
+                              const SizedBox(width: 16),
+                              const Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Study Material', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF9F1239))),
+                                    SizedBox(height: 4),
+                                    Text('Download PDF notes for this lesson', style: TextStyle(fontSize: 13, color: Color(0xFFBE123C), fontWeight: FontWeight.w500)),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                decoration: const BoxDecoration(color: Color(0xFFE11D48), shape: BoxShape.circle),
+                                child: IconButton(icon: const Icon(Icons.download_rounded, color: Colors.white, size: 20), onPressed: () {}),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 40),
+                      ],
+
+                      const Text('Lesson Notes', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.5)),
+                      const SizedBox(height: 16),
+                      Text(
+                        lessonData!['content'] ?? 'No text content available for this lesson.',
+                        style: const TextStyle(fontSize: 16, color: Color(0xFF334155), height: 1.7, fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

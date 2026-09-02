@@ -43,6 +43,9 @@ dependencies:
   
   # 👇 MAIN FIX: Isey exact version 11.3.1 par lock kar diya hai taaki SDK 37 wala error na aaye
   permission_handler: 11.3.1
+  
+  # 👇 FINAL YOUTUBE FIX: Latest version (6.0.2) jisme saare errors naturally fixed hain
+  youtube_player_iframe: ^6.0.2
 
 dev_dependencies:
   flutter_test:
