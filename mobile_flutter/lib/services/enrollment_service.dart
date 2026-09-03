@@ -43,4 +43,22 @@ class EnrollmentService {
       return {'success': false, 'message': 'Network Error: $e'};
     }
   }
+
+  // 🚀 NAYA FIX: Video Progress Backend ko bhejne ke liye
+  Future<void> updateVideoProgress(String courseId, String lessonId, int seconds) async {
+    try {
+      final token = await _getToken();
+      await http.put(
+        Uri.parse('$baseUrl/progress'),
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+        body: jsonEncode({
+          'courseId': courseId,
+          'lessonId': lessonId,
+          'watchedSeconds': seconds
+        }),
+      );
+    } catch (e) {
+      print('Failed to sync video progress: $e');
+    }
+  }
 }
