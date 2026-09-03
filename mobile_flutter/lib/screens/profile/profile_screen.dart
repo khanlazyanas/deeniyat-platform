@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../auth/login_screen.dart';
 import '../../services/auth_service.dart';
 import '../../utils/constants.dart';
-import '../payments/transaction_history_screen.dart'; // 🚀 NAYA IMPORT
+import '../payments/transaction_history_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -83,6 +83,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
         avatarFile = file;
       });
     }
+  }
+
+  // 🚀 Full Screen Image Viewer with Zoom
+  void _showFullScreenImage() {
+    if (avatarFile == null && avatarUrl.isEmpty) return; 
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            iconTheme: const IconThemeData(color: Colors.white),
+          ),
+          extendBodyBehindAppBar: true,
+          body: Center(
+            child: InteractiveViewer(
+              panEnabled: true,
+              minScale: 0.5,
+              maxScale: 4.0, 
+              child: Hero(
+                tag: 'profile_avatar_hero',
+                child: Image(
+                  image: avatarFile != null 
+                      ? FileImage(avatarFile!) as ImageProvider
+                      : NetworkImage(getFullImageUrl(avatarUrl)),
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _updateProfile() async {
@@ -217,97 +253,111 @@ class _ProfileScreenState extends State<ProfileScreen> {
         physics: const BouncingScrollPhysics(),
         child: Column(
           children: [
-            // 🌟 ULTRA PREMIUM HEADER
-            Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.bottomCenter,
-              children: [
-                Container(
-                  height: 240,
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF064E3B), Color(0xFF022C22), Color(0xFF0F172A)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+            // 🌟 ULTRA PREMIUM HEADER (FIXED HIT TESTING)
+            SizedBox(
+              height: 320, // Enough height to safely fit background + avatar without overflow
+              child: Stack(
+                alignment: Alignment.topCenter,
+                children: [
+                  // Background Gradient
+                  Container(
+                    height: 240, // Base height
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF064E3B), Color(0xFF022C22), Color(0xFF0F172A)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                     ),
-                  ),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Opacity(
-                        opacity: 0.05,
-                        child: Image.network(
-                          'https://www.transparenttextures.com/patterns/arabesque.png',
-                          fit: BoxFit.cover,
-                          repeat: ImageRepeat.repeat,
-                        ),
-                      ),
-                      Positioned(
-                        top: -50, right: -30,
-                        child: Container(
-                          width: 150, height: 150,
-                          decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFFD4AF37).withOpacity(0.15)),
-                          child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50), child: Container(color: Colors.transparent)),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: -80, left: -40,
-                        child: Container(
-                          width: 200, height: 200,
-                          decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF10B981).withOpacity(0.15)),
-                          child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50), child: Container(color: Colors.transparent)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Positioned(
-                  bottom: -60,
-                  child: GestureDetector(
-                    onTap: _pickImage,
                     child: Stack(
-                      alignment: Alignment.bottomRight,
+                      fit: StackFit.expand,
                       children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFFD4AF37), width: 4), 
-                            boxShadow: [
-                              BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.3), blurRadius: 25, offset: const Offset(0, 10))
-                            ],
-                          ),
-                          child: CircleAvatar(
-                            radius: 64,
-                            backgroundColor: const Color(0xFF022C22),
-                            backgroundImage: avatarFile != null 
-                                ? FileImage(avatarFile!) as ImageProvider
-                                : (avatarUrl.isNotEmpty ? NetworkImage(getFullImageUrl(avatarUrl)) : null),
-                            child: (avatarFile == null && avatarUrl.isEmpty)
-                                ? Text(
-                                    _nameController.text.isNotEmpty ? _nameController.text[0].toUpperCase() : 'A', // 🚀 NAYA FIX: 'U' ko 'A' se replace kiya, for Anas
-                                    style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w900, color: Color(0xFFD4AF37)),
-                                  )
-                                : null,
+                        Opacity(
+                          opacity: 0.05,
+                          child: Image.network(
+                            'https://www.transparenttextures.com/patterns/arabesque.png',
+                            fit: BoxFit.cover,
+                            repeat: ImageRepeat.repeat,
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(colors: [Color(0xFFD4AF37), Color(0xFFB48608)]),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 3),
-                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5))],
+                        Positioned(
+                          top: -50, right: -30,
+                          child: Container(
+                            width: 150, height: 150,
+                            decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFFD4AF37).withOpacity(0.15)),
+                            child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50), child: Container(color: Colors.transparent)),
                           ),
-                          child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 20),
+                        ),
+                        Positioned(
+                          bottom: -80, left: -40,
+                          child: Container(
+                            width: 200, height: 200,
+                            decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF10B981).withOpacity(0.15)),
+                            child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50), child: Container(color: Colors.transparent)),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ),
-              ],
+                  
+                  // Safe Stacked Avatar (No Overflow Bug Now)
+                  Positioned(
+                    top: 176, // 240 (BG) - 64 (Radius) = Perfect Overlap Center
+                    child: Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        GestureDetector(
+                          onTap: _showFullScreenImage,
+                          child: Hero(
+                            tag: 'profile_avatar_hero',
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: const Color(0xFFD4AF37), width: 4), 
+                                boxShadow: [
+                                  BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.3), blurRadius: 25, offset: const Offset(0, 10))
+                                ],
+                              ),
+                              child: CircleAvatar(
+                                radius: 64,
+                                backgroundColor: const Color(0xFF022C22),
+                                backgroundImage: avatarFile != null 
+                                    ? FileImage(avatarFile!) as ImageProvider
+                                    : (avatarUrl.isNotEmpty ? NetworkImage(getFullImageUrl(avatarUrl)) : null),
+                                child: (avatarFile == null && avatarUrl.isEmpty)
+                                    ? Text(
+                                        _nameController.text.isNotEmpty ? _nameController.text[0].toUpperCase() : 'A', 
+                                        style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w900, color: Color(0xFFD4AF37)),
+                                      )
+                                    : null,
+                              ),
+                            ),
+                          ),
+                        ),
+                        
+                        // Small Camera Icon (Now Fully Clickable!)
+                        GestureDetector(
+                          onTap: _pickImage,
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(colors: [Color(0xFFD4AF37), Color(0xFFB48608)]),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 3),
+                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5))],
+                            ),
+                            child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 20),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 80),
+            
+            const SizedBox(height: 10), // Reduced spacing since sizing is precise now
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -365,7 +415,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   
                   const SizedBox(height: 40),
 
-                  // 🚀 NAYA SECTION: BILLING & PAYMENTS
                   _buildSectionTitle('Billing & Payments'),
                   const SizedBox(height: 16),
                   Container(
