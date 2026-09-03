@@ -50,7 +50,7 @@ export const getMyEnrollments = catchAsync(async (req: Request, res: Response) =
 });
 
 // ==========================================
-// NAYA CODE: Sirf Ustad ke liye (Attendance ke waqt bacchon ki list lana)
+// Sirf Ustad ke liye (Attendance ke waqt bacchon ki list lana)
 // ==========================================
 
 // @desc    Get all students enrolled in a specific course
@@ -70,4 +70,40 @@ export const getEnrolledStudents = catchAsync(async (req: Request, res: Response
     .filter(student => student !== null); // Filter out any nulls
 
   res.status(200).json(students);
+});
+
+// ==========================================
+// 🚀 NAYA CODE: Video Playback Progress Tracker
+// ==========================================
+
+// @desc    Update video watch progress for a specific lesson
+// @route   PUT /api/v1/enrollments/progress
+// @access  Private
+export const updateVideoProgress = catchAsync(async (req: Request, res: Response) => {
+  const { courseId, lessonId, watchedSeconds } = req.body;
+  const studentId = req.user?._id;
+
+  let enrollment = await Enrollment.findOne({ studentId, courseId });
+
+  if (!enrollment) {
+    res.status(404);
+    throw new Error('Enrollment not found');
+  }
+
+  // Check if lesson progress already exists in array
+  const lessonIndex = enrollment.lessonProgress.findIndex(
+    (lp: any) => lp.lessonId.toString() === lessonId
+  );
+
+  if (lessonIndex > -1) {
+    // Agar pehle se hai, toh sirf seconds update karo
+    enrollment.lessonProgress[lessonIndex].watchedSeconds = watchedSeconds;
+  } else {
+    // Naya lesson dekhna shuru kiya hai toh array mein push karo
+    enrollment.lessonProgress.push({ lessonId, watchedSeconds } as any);
+  }
+
+  await enrollment.save();
+
+  res.status(200).json({ success: true, data: enrollment.lessonProgress });
 });

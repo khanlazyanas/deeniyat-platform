@@ -3,7 +3,9 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IEnrollment extends Document {
   studentId: mongoose.Types.ObjectId;
   courseId: mongoose.Types.ObjectId;
-  progress: number; // Kitne percentage course complete hua (0 to 100)
+  progress: number; 
+  // 👇 NAYA CODE: Har lesson ka time track karne ke liye
+  lessonProgress: { lessonId: mongoose.Types.ObjectId; watchedSeconds: number }[]; 
 }
 
 const enrollmentSchema = new Schema<IEnrollment>(
@@ -24,6 +26,13 @@ const enrollmentSchema = new Schema<IEnrollment>(
       min: 0,
       max: 100,
     },
+    // 👇 NAYA CODE: Database schema array
+    lessonProgress: [
+      {
+        lessonId: { type: Schema.Types.ObjectId, ref: 'Lesson' },
+        watchedSeconds: { type: Number, default: 0 },
+      },
+    ],
   },
   { timestamps: true }
 );
