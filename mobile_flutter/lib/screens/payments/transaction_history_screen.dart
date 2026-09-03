@@ -3,6 +3,9 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:ui';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import '../../../utils/constants.dart';
 
 class TransactionHistoryScreen extends StatefulWidget {
@@ -53,18 +56,148 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     }
   }
 
-  // 🚀 Premium Download Receipt Simulation
-  Future<void> downloadReceipt(String txnId) async {
+  // 🚀 Premium PDF Download Receipt
+  Future<void> downloadReceipt(Map<String, dynamic> txn) async {
+    final txnId = txn['transactionId'] ?? 'TXN-UNKNOWN';
     setState(() => downloadingTxnId = txnId);
     
-    // Simulate network/generation delay
-    await Future.delayed(const Duration(seconds: 2));
-    
-    if (mounted) {
-      setState(() => downloadingTxnId = null);
-      _showPremiumSnackBar('Receipt for $txnId downloaded successfully! 📄', isError: false);
-      // NOTE FOR ANAS: Yahan aap future mein 'pdf' ya 'printing' package ka real code add kar sakte hain.
+    try {
+      final pdf = pw.Document();
+      final title = txn['courseId'] != null ? txn['courseId']['title'] : (txn['type'] ?? 'Course Fee');
+      final amount = txn['amount']?.toString() ?? '0';
+      final date = txn['createdAt'] != null ? formatDate(txn['createdAt']) : 'Unknown Date';
+      final status = txn['status'] ?? 'Pending';
+      
+      final prefs = await SharedPreferences.getInstance();
+      final userName = prefs.getString('userName') ?? 'Valued Student';
+      final userEmail = prefs.getString('userEmail') ?? '';
+
+      // Create PDF Design
+      pdf.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          build: (pw.Context context) {
+            return pw.Container(
+              padding: const pw.EdgeInsets.all(40),
+              decoration: pw.BoxDecoration(
+                border: pw.Border.all(color: const PdfColor(0.83, 0.69, 0.22), width: 2), // Gold Border
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text('DEENIYAT PLATFORM', style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: const PdfColor(0.02, 0.31, 0.23))), // Deep Emerald
+                          pw.SizedBox(height: 5),
+                          pw.Text('Official Payment Receipt', style: pw.TextStyle(fontSize: 14, color: const PdfColor(0.5, 0.5, 0.5))),
+                        ],
+                      ),
+                      pw.Container(
+                        padding: const pw.EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                        decoration: pw.BoxDecoration(
+                          color: const PdfColor(0.83, 0.69, 0.22), // Gold
+                          borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
+                        ),
+                        child: pw.Text('RECEIPT', style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, letterSpacing: 2)),
+                      ),
+                    ],
+                  ),
+                  pw.SizedBox(height: 50),
+
+                  // Customer Details
+                  pw.Text('BILLED TO:', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: const PdfColor(0.4, 0.4, 0.4))),
+                  pw.SizedBox(height: 5),
+                  pw.Text(userName, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+                  if (userEmail.isNotEmpty) pw.Text(userEmail, style: pw.TextStyle(fontSize: 14, color: const PdfColor(0.3, 0.3, 0.3))),
+                  pw.SizedBox(height: 40),
+
+                  // Transaction Details Box
+                  pw.Container(
+                    padding: const pw.EdgeInsets.all(20),
+                    decoration: pw.BoxDecoration(
+                      color: const PdfColor(0.95, 0.96, 0.98), // Slate 100
+                      borderRadius: const pw.BorderRadius.all(pw.Radius.circular(15)),
+                    ),
+                    child: pw.Column(
+                      children: [
+                        _buildPdfRow('Transaction ID', '#$txnId'),
+                        pw.Divider(color: const PdfColor(0.8, 0.8, 0.8)),
+                        _buildPdfRow('Date of Payment', date),
+                        pw.Divider(color: const PdfColor(0.8, 0.8, 0.8)),
+                        _buildPdfRow('Payment Status', status.toUpperCase()),
+                        pw.Divider(color: const PdfColor(0.8, 0.8, 0.8)),
+                        _buildPdfRow('Course / Item', title),
+                      ],
+                    ),
+                  ),
+                  pw.SizedBox(height: 40),
+
+                  // Total Amount
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.end,
+                    children: [
+                      pw.Text('TOTAL PAID: ', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: const PdfColor(0.4, 0.4, 0.4))),
+                      pw.Text('INR $amount', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: const PdfColor(0.02, 0.31, 0.23))),
+                    ],
+                  ),
+                  pw.Spacer(),
+
+                  // Footer
+                  pw.Center(
+                    child: pw.Column(
+                      children: [
+                        pw.Divider(color: const PdfColor(0.83, 0.69, 0.22)), // Gold Divider
+                        pw.SizedBox(height: 10),
+                        pw.Text('Jazakallah Khair for your payment.', style: pw.TextStyle(fontSize: 14, fontStyle: pw.FontStyle.italic, color: const PdfColor(0.02, 0.31, 0.23))),
+                        pw.SizedBox(height: 5),
+                        pw.Text('If you have any questions, please contact our support team.', style: pw.TextStyle(fontSize: 10, color: const PdfColor(0.5, 0.5, 0.5))),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      );
+
+      // Open PDF preview/share sheet using Printing package
+      await Printing.layoutPdf(
+        onLayout: (PdfPageFormat format) async => pdf.save(),
+        name: 'Receipt_$txnId.pdf',
+      );
+
+      if (mounted) {
+        _showPremiumSnackBar('Receipt opened successfully! 📄', isError: false);
+      }
+    } catch (e) {
+      if (mounted) {
+        _showPremiumSnackBar('Failed to generate receipt.', isError: true);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => downloadingTxnId = null);
+      }
     }
+  }
+
+  // Helper for PDF Rows
+  pw.Widget _buildPdfRow(String label, String value) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 8),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(label, style: pw.TextStyle(fontSize: 14, color: const PdfColor(0.4, 0.4, 0.4))),
+          pw.Text(value, style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: const PdfColor(0.1, 0.1, 0.1))),
+        ],
+      ),
+    );
   }
 
   String formatDate(String isoDate) {
@@ -272,7 +405,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                   if (status == 'Completed' || status == 'Success') ...[
                                     const Divider(height: 1, color: Color(0xFFF1F5F9), thickness: 1.5),
                                     InkWell(
-                                      onTap: isDownloading ? null : () => downloadReceipt(txnId),
+                                      onTap: isDownloading ? null : () => downloadReceipt(txn), // 🚀 Pura transaction map paas kar rahe hain
                                       borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(24), bottomRight: Radius.circular(24)),
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(vertical: 16),

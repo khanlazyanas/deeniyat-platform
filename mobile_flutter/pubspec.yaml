@@ -46,6 +46,8 @@ dependencies:
   
   # 👇 FINAL YOUTUBE FIX: Latest version (6.0.2) jisme saare errors naturally fixed hain
   youtube_player_iframe: ^6.0.2
+  pdf: ^3.13.0
+  printing: ^5.15.0
 
 dev_dependencies:
   flutter_test:
