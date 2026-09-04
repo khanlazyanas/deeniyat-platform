@@ -37,6 +37,7 @@ class _LessonDetailsScreenState extends State<LessonDetailsScreen> {
   int _savedSeconds = 0;
 
   final TextEditingController _notesController = TextEditingController();
+  bool _isSavingNote = false; // 🚀 NAYA: Save button ka loading effect
 
   @override
   void initState() {
@@ -81,11 +82,9 @@ class _LessonDetailsScreenState extends State<LessonDetailsScreen> {
       String? token = prefs.getString('token');
       if (token == null) return;
 
-      // 🚀 STEP 1: Phone ki Local Storage se pehle hi check kar lo (0 millisecond speed)
       int localProgress = prefs.getInt('progress_${widget.lessonId}') ?? 0;
       _savedSeconds = localProgress;
 
-      // 🚀 STEP 2: Lesson data fetch karo
       final response = await http.get(
         Uri.parse('${ApiConstants.baseUrl}/lessons/${widget.lessonId}'),
         headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
@@ -94,13 +93,11 @@ class _LessonDetailsScreenState extends State<LessonDetailsScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        // 🚀 STEP 3: Pehle screen show karo taaki YoutubePlayer mount ho sake
         setState(() {
           lessonData = data;
           isLoading = false; 
         });
 
-        // 🚀 STEP 4: Backend se bhi verify kar lo agar user ne dusre phone par dekha ho
         try {
           final enrollRes = await http.get(
             Uri.parse('${ApiConstants.baseUrl}/enrollments/my-courses'),
@@ -121,9 +118,13 @@ class _LessonDetailsScreenState extends State<LessonDetailsScreen> {
                   for (var progress in enrollment['lessonProgress']) {
                     if (progress['lessonId'] == widget.lessonId) {
                       int backendSeconds = progress['watchedSeconds'] ?? 0;
-                      // Jo time zyada ho (local ya backend), use pick karo
                       if (backendSeconds > _savedSeconds) {
                         _savedSeconds = backendSeconds;
+                      }
+                      
+                      // 🚀 NAYA: Backend se purana Note fetch karke TextField me daalna
+                      if (progress['personalNote'] != null && progress['personalNote'].toString().isNotEmpty) {
+                        _notesController.text = progress['personalNote'];
                       }
                       break;
                     }
@@ -136,7 +137,6 @@ class _LessonDetailsScreenState extends State<LessonDetailsScreen> {
           print("Backend progress sync fallback to local: $e");
         }
 
-        // 🚀 STEP 5: Ab player ko mount karke startSeconds assign karo
         if (data['videoUrl'] != null && data['videoUrl'].toString().isNotEmpty) {
           final videoId = extractYoutubeId(data['videoUrl']);
           if (videoId != null) {
@@ -148,29 +148,24 @@ class _LessonDetailsScreenState extends State<LessonDetailsScreen> {
               ),
             );
             
-            // Video load karein savedSeconds ke sath
             _youtubeController!.loadVideoById(
               videoId: videoId, 
               startSeconds: _savedSeconds.toDouble()
             );
             
-            // Timer har 2 second par local storage aur backend dono sync karega
             _progressTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
               if (_youtubeController != null) {
                 final currentTimeInSeconds = await _youtubeController!.currentTime;
                 final currentSeconds = currentTimeInSeconds.toInt();
                 
                 if (currentSeconds > 0) {
-                  // Instant Local Save (Phone ke memory me)
                   prefs.setInt('progress_${widget.lessonId}', currentSeconds);
 
-                  // Auto Resume Toast/Snackbar sirf ek baar
                   if (!_isAutoResumeDone && _savedSeconds > 5) {
                     _isAutoResumeDone = true;
                     _showSnackBar('Resumed from ${_savedSeconds ~/ 60}:${(_savedSeconds % 60).toString().padLeft(2, '0')}');
                   }
 
-                  // Har 5 second par backend par sync karo
                   if ((currentSeconds - _lastSyncedTime).abs() >= 5) {
                     _lastSyncedTime = currentSeconds;
                     _enrollmentService.updateVideoProgress(widget.courseId, widget.lessonId, currentSeconds);
@@ -188,6 +183,41 @@ class _LessonDetailsScreenState extends State<LessonDetailsScreen> {
       }
     } catch (e) {
       showError('Network error. Check connection.');
+    }
+  }
+
+  // 🚀 NAYA: Save Note function jo Backend ki nayi API ko hit karega
+  Future<void> _savePersonalNote() async {
+    FocusScope.of(context).unfocus(); // Keyboard hide karein
+    setState(() => _isSavingNote = true);
+
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('token');
+      if (token == null) return;
+
+      final response = await http.put(
+        Uri.parse('${ApiConstants.baseUrl}/enrollments/save-note'),
+        headers: {
+          'Content-Type': 'application/json', 
+          'Authorization': 'Bearer $token'
+        },
+        body: jsonEncode({
+          'courseId': widget.courseId,
+          'lessonId': widget.lessonId,
+          'note': _notesController.text.trim(), // Note ka data bheja
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        _showSnackBar('Notes saved successfully!');
+      } else {
+        showError('Failed to save notes. Please try again.');
+      }
+    } catch (e) {
+      showError('Network error. Check connection.');
+    } finally {
+      setState(() => _isSavingNote = false);
     }
   }
 
@@ -348,7 +378,6 @@ class _LessonDetailsScreenState extends State<LessonDetailsScreen> {
                           children: [
                             YoutubePlayer(controller: _youtubeController!),
                             
-                            // 🚀 FIX: Thumbnail tap par play + exact resume seek
                             if (!_isVideoPlaying && customThumbnail != null)
                               GestureDetector(
                                 onTap: () {
@@ -529,12 +558,12 @@ class _LessonDetailsScreenState extends State<LessonDetailsScreen> {
                         Align(
                           alignment: Alignment.centerRight,
                           child: ElevatedButton.icon(
-                            onPressed: () {
-                              _showSnackBar('Notes saved locally! (Backend coming soon)');
-                              FocusScope.of(context).unfocus();
-                            },
-                            icon: const Icon(Icons.save_rounded, size: 20, color: Colors.white),
-                            label: const Text('Save Notes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                            // 🚀 NAYA: Save button par API call
+                            onPressed: _isSavingNote ? null : _savePersonalNote,
+                            icon: _isSavingNote 
+                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                : const Icon(Icons.save_rounded, size: 20, color: Colors.white),
+                            label: Text(_isSavingNote ? 'Saving...' : 'Save Notes', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF0F172A),
                               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
