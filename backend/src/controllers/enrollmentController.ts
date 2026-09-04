@@ -108,9 +108,7 @@ export const updateVideoProgress = catchAsync(async (req: Request, res: Response
   res.status(200).json({ success: true, data: enrollment.lessonProgress });
 });
 
-// ==========================================
-// 🚀 NAYA CODE: Save Personal Notes per Lesson
-// ==========================================
+
 
 // @desc    Save personal note for a specific lesson
 // @route   PUT /api/v1/enrollments/save-note
@@ -142,4 +140,27 @@ export const savePersonalNote = catchAsync(async (req: Request, res: Response) =
   await enrollment.save();
 
   res.status(200).json({ success: true, message: 'Note saved successfully!' });
+});
+
+
+// @desc    Get all saved personal notes for the logged-in student
+// @route   GET /api/v1/enrollments/my-notes
+// @access  Private
+export const getMyNotes = catchAsync(async (req: Request, res: Response) => {
+  const enrollments = await Enrollment.find({ studentId: req.user?._id })
+    .populate('courseId', 'title thumbnail')
+    .populate('lessonProgress.lessonId', 'title order'); 
+
+  const notesData = enrollments.map(enrollment => {
+    // Sirf wahi lessons filter karein jisme note likha gaya hai
+    const notes = enrollment.lessonProgress.filter(
+      (lp: any) => lp.personalNote && lp.personalNote.trim() !== ''
+    );
+    return {
+      course: enrollment.courseId,
+      notes: notes,
+    };
+  }).filter(item => item.notes.length > 0); // Khali courses hata dein
+
+  res.status(200).json(notesData);
 });

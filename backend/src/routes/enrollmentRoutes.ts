@@ -4,7 +4,8 @@ import {
   getMyEnrollments, 
   getEnrolledStudents,
   updateVideoProgress,
-  savePersonalNote // 🚀 Naya function import kiya
+  savePersonalNote, // 🚀 Naya function import kiya
+  getMyNotes
 } from '../controllers/enrollmentController'; 
 import { protect, authorize } from '../middlewares/authMiddleware';
 
@@ -24,5 +25,7 @@ router.put('/progress', protect, updateVideoProgress);
 
 // Personal notes save karne ke liye
 router.put('/save-note', protect, savePersonalNote);
+
+router.get('/my-notes', protect, getMyNotes);
 
 export default router;
