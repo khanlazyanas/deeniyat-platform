@@ -9,6 +9,7 @@ import '../../services/enrollment_service.dart';
 import '../auth/login_screen.dart';
 import '../courses/courses_screen.dart';
 import '../courses/my-courses_screen.dart';
+import '../courses/my_notes_screen.dart'; // 🚀 NAYA: My Notebook page import kiya
 import '../submissions/my_submissions_screen.dart';
 import '../profile/profile_screen.dart';
 
@@ -329,7 +330,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           const SizedBox(height: 16),
                           const Text('Explore New Courses', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
                           const SizedBox(height: 8),
-                          Text('Dive into comprehensive Islamic studies tailored perfectly for you.', style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
+                          const Text('Dive into comprehensive Islamic studies tailored perfectly for you.', style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
                         ],
                       ),
                     ),
@@ -373,6 +374,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MyCoursesScreen())),
         ),
         _buildLuxuryStatCard(
+          title: 'Notebook',
+          value: 'View', // 🚀 NAYA: "View" text
+          subtitle: 'Saved lesson notes', // 🚀 NAYA: Subtitle update kiya
+          icon: Icons.edit_note_rounded, // 🚀 NAYA: Notebook wala icon
+          color: const Color(0xFF8B5CF6), // 🚀 NAYA: Purple color
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MyNotesScreen())), // 🚀 NAYA: Screen link
+        ),
+        _buildLuxuryStatCard(
           title: 'Pending',
           value: pendingAssignments.toString(),
           subtitle: 'Assignments due',
@@ -387,13 +396,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           icon: Icons.verified_rounded,
           color: const Color(0xFF10B981), 
           progress: attendanceRate / 100,
-        ),
-        _buildLuxuryStatCard(
-          title: 'Status',
-          value: 'Active',
-          subtitle: 'Account standing',
-          icon: Icons.local_fire_department_rounded,
-          color: const Color(0xFF8B5CF6), 
         ),
       ],
     );
