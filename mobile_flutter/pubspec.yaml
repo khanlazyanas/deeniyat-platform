@@ -26,8 +26,6 @@ dependencies:
   printing: ^5.15.0
   
   # 👇 NAYA FIX: Picture in Picture mode ke liye
-  simple_pip_mode: ^1.1.2
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
