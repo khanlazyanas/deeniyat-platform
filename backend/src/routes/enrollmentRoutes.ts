@@ -3,7 +3,8 @@ import {
   enrollStudent, 
   getMyEnrollments, 
   getEnrolledStudents,
-  updateVideoProgress // 🚀 Import kiya naya function
+  updateVideoProgress,
+  savePersonalNote // 🚀 Naya function import kiya
 } from '../controllers/enrollmentController'; 
 import { protect, authorize } from '../middlewares/authMiddleware';
 
@@ -18,7 +19,10 @@ router.get('/my-courses', protect, getMyEnrollments);
 // STRICT ACCESS: Sirf Ustad aur Admin hi course ke students fetch kar sakte hain
 router.get('/course/:courseId/students', protect, authorize('Admin', 'Ustad'), getEnrolledStudents);
 
-// 🚀 NAYA ROUTE: Video progress save karne ke liye
+// Video progress save karne ke liye
 router.put('/progress', protect, updateVideoProgress);
+
+// Personal notes save karne ke liye
+router.put('/save-note', protect, savePersonalNote);
 
 export default router;

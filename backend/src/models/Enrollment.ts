@@ -4,8 +4,12 @@ export interface IEnrollment extends Document {
   studentId: mongoose.Types.ObjectId;
   courseId: mongoose.Types.ObjectId;
   progress: number; 
-  // 👇 NAYA CODE: Har lesson ka time track karne ke liye
-  lessonProgress: { lessonId: mongoose.Types.ObjectId; watchedSeconds: number }[]; 
+  // 🚀 Har lesson ka time aur note track karne ke liye
+  lessonProgress: { 
+    lessonId: mongoose.Types.ObjectId; 
+    watchedSeconds: number;
+    personalNote: string; 
+  }[]; 
 }
 
 const enrollmentSchema = new Schema<IEnrollment>(
@@ -26,11 +30,12 @@ const enrollmentSchema = new Schema<IEnrollment>(
       min: 0,
       max: 100,
     },
-    // 👇 NAYA CODE: Database schema array
+    // Database schema array
     lessonProgress: [
       {
         lessonId: { type: Schema.Types.ObjectId, ref: 'Lesson' },
         watchedSeconds: { type: Number, default: 0 },
+        personalNote: { type: String, default: '' }, // 🚀 NAYA: Backend mein note save karne ke liye
       },
     ],
   },

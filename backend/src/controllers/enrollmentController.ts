@@ -73,7 +73,7 @@ export const getEnrolledStudents = catchAsync(async (req: Request, res: Response
 });
 
 // ==========================================
-// 🚀 NAYA CODE: Video Playback Progress Tracker
+// Video Playback Progress Tracker
 // ==========================================
 
 // @desc    Update video watch progress for a specific lesson
@@ -106,4 +106,40 @@ export const updateVideoProgress = catchAsync(async (req: Request, res: Response
   await enrollment.save();
 
   res.status(200).json({ success: true, data: enrollment.lessonProgress });
+});
+
+// ==========================================
+// 🚀 NAYA CODE: Save Personal Notes per Lesson
+// ==========================================
+
+// @desc    Save personal note for a specific lesson
+// @route   PUT /api/v1/enrollments/save-note
+// @access  Private
+export const savePersonalNote = catchAsync(async (req: Request, res: Response) => {
+  const { courseId, lessonId, note } = req.body;
+  const studentId = req.user?._id;
+
+  let enrollment = await Enrollment.findOne({ studentId, courseId });
+
+  if (!enrollment) {
+    res.status(404);
+    throw new Error('Enrollment not found');
+  }
+
+  // Check if lesson progress already exists in array
+  const lessonIndex = enrollment.lessonProgress.findIndex(
+    (lp: any) => lp.lessonId.toString() === lessonId
+  );
+
+  if (lessonIndex > -1) {
+    // Agar pehle se object bana hua hai, toh sirf note update karo
+    enrollment.lessonProgress[lessonIndex].personalNote = note;
+  } else {
+    // Agar user ne bina video dekhe direct note likh diya (bahut rare case), tab object bana lo
+    enrollment.lessonProgress.push({ lessonId, watchedSeconds: 0, personalNote: note } as any);
+  }
+
+  await enrollment.save();
+
+  res.status(200).json({ success: true, message: 'Note saved successfully!' });
 });
