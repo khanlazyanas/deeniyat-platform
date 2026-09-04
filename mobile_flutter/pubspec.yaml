@@ -24,6 +24,7 @@ dependencies:
   youtube_player_iframe: ^6.0.2
   pdf: ^3.13.0
   printing: ^5.15.0
+  shimmer: ^4.0.0
   
   # 👇 NAYA FIX: Picture in Picture mode ke liye
 dev_dependencies:
