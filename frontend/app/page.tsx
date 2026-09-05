@@ -566,15 +566,28 @@ export default function Home() {
       </section>
 
       {/* --- TESTIMONIALS MARQUEE (LIVE REAL FEEDBACK) --- */}
-      <section className="py-12 bg-white/[0.01] border-y border-white/[0.04] relative z-20 flex overflow-hidden shadow-xl">
+      <section className="py-12 bg-white/[0.01] border-y border-white/[0.04] relative z-20 flex overflow-hidden shadow-xl group cursor-pointer">
+        {/* CSS Magic for Smooth Pause & Scroll */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes marquee-scroll {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-50%); }
+          }
+          .css-marquee {
+            animation: marquee-scroll linear infinite;
+          }
+        `}} />
+        
         <div className="absolute inset-0 z-10 pointer-events-none" style={{ background: 'linear-gradient(to right, #010206 0%, transparent 15%, transparent 85%, #010206 100%)' }}></div>
-        <motion.div 
-          animate={{ x: ["0%", "-50%"] }} 
-          transition={{ repeat: Infinity, duration: reviews.length > 0 ? Math.max(30, reviews.length * 5) : 30, ease: "linear" }} 
-          className="flex whitespace-nowrap items-center w-max will-change-transform hover:[animation-play-state:paused]"
+        
+        <div 
+          className="flex whitespace-nowrap items-center w-max css-marquee group-hover:[animation-play-state:paused]"
+          style={{ 
+            animationDuration: `${reviews.length > 0 ? Math.max(80, reviews.length * 15) : 80}s` 
+          }}
         >
           {displayReviews.map((val: any, idx: number) => (
-            <div key={idx} className="flex items-center mx-8 bg-[#030612]/80 border border-white/[0.08] rounded-full px-6 py-3 backdrop-blur-md shadow-[inset_0_1px_2px_rgba(255,255,255,0.05)] font-cinzel transition-transform hover:scale-105 cursor-pointer">
+            <div key={idx} className="flex items-center mx-8 bg-[#030612]/80 border border-white/[0.08] rounded-full px-6 py-3 backdrop-blur-md shadow-[inset_0_1px_2px_rgba(255,255,255,0.05)] font-cinzel transition-transform hover:scale-105">
               <span className="text-amber-400 mr-3 text-lg">
                 {reviews.length > 0 ? '★'.repeat(val.rating) : '★★★★★'}
               </span>
@@ -586,7 +599,7 @@ export default function Home() {
               </span>
             </div>
           ))}
-        </motion.div>
+        </div>
       </section>
 
       {/* --- FAQ SECTION --- */}
