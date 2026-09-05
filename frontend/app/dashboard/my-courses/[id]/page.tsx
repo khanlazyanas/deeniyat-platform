@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, Variants } from "framer-motion";
 
-// 👇 AUTH CONTEXT IMPORT
 import { useAuth } from "../../../../context/AuthContext";
 
 interface Lesson {
@@ -22,24 +21,17 @@ interface Course {
   teacherId?: any; 
 }
 
-// --- GLOBAL STYLES ---
 const globalAnimations = `
   .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.15); }
   
-  /* Custom Audio Player Styling */
-  audio::-webkit-media-controls-panel {
-    background-color: #040814;
-  }
+  audio::-webkit-media-controls-panel { background-color: #040814; }
   audio::-webkit-media-controls-current-time-display,
-  audio::-webkit-media-controls-time-remaining-display {
-    color: #4ade80;
-  }
+  audio::-webkit-media-controls-time-remaining-display { color: #4ade80; }
 `;
 
-// --- PRE-COMPUTED HYPER-DENSE PARTICLE ARRAY (60fps Optimized) ---
 const generateBubbles = (count: number) => {
   return Array.from({ length: count }).map((_, i) => ({
     id: i,
@@ -76,14 +68,14 @@ export default function CoursePlayerPage() {
   const [submittingTask, setSubmittingTask] = useState(false);
   const [submissionMessage, setSubmissionMessage] = useState({ type: "", text: "" });
 
-  // 👇 Audio Recording States
+  // Audio Recording States
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string>("");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
-  // 👇 NEW: File Upload States
+  // File Upload States
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -94,7 +86,11 @@ export default function CoursePlayerPage() {
   // Delete State
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Parallax logic for background
+  // 🚀 NAYA: Personal Note States
+  const [personalNote, setPersonalNote] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
+  const [noteMessage, setNoteMessage] = useState({ type: "", text: "" });
+
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
   const smoothMouseX = useSpring(mouseX, { stiffness: 50, damping: 20 });
@@ -103,10 +99,7 @@ export default function CoursePlayerPage() {
   const fgY = useTransform(smoothMouseY, (v) => v * 1.5);
   const mgX = useTransform(smoothMouseX, (v) => v * 0.8);
   const mgY = useTransform(smoothMouseY, (v) => v * 0.8);
-  const bgX = useTransform(smoothMouseX, (v) => v * 0.3);
-  const bgY = useTransform(smoothMouseY, (v) => v * 0.3);
 
-  // SECURITY LOCK ACTIVE
   const isOwnerOrAdmin = user?.role === 'Admin' || (user?.role === 'Ustad' && (course?.teacherId?._id === user?._id || course?.teacherId === user?._id));
 
   useEffect(() => {
@@ -162,42 +155,63 @@ export default function CoursePlayerPage() {
   useEffect(() => {
     if (!activeLesson || isOwnerOrAdmin) return;
 
-    const checkExistingSubmission = async () => {
+    const checkExistingSubmissionAndNotes = async () => {
       setCheckingSubmission(true);
       setExistingSubmission(null);
       
-      // Reset forms
       setAssignmentContent("");
       discardRecording();
       setSelectedFile(null);
       setSubmissionMessage({ type: "", text: "" });
+      
+      // 🚀 Reset Note state on lesson change
+      setPersonalNote("");
+      setNoteMessage({ type: "", text: "" });
 
       try {
         const token = localStorage.getItem("token");
+        
+        // Fetch Submissions
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/submissions/my-submissions`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
-        
         if (res.ok) {
           const data = await res.json();
           const submissionsArray = Array.isArray(data) ? data : (data.data || []);
-          
           const found = submissionsArray.find((sub: any) => {
             const subLessonId = sub.lessonId?._id ? String(sub.lessonId._id) : String(sub.lessonId);
             return subLessonId === String(activeLesson._id);
           });
-          
           setExistingSubmission(found || null);
         }
+
+        // 🚀 NAYA: Fetch Saved Personal Note for this lesson
+        const enrollRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/enrollments/my-courses`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (enrollRes.ok) {
+           const enrollData = await enrollRes.json();
+           const enrollmentsArray = Array.isArray(enrollData) ? enrollData : (enrollData.data || []);
+           const currentEnroll = enrollmentsArray.find((e: any) => {
+              const cId = e.courseId?._id || e.courseId;
+              return String(cId) === String(courseId);
+           });
+           if (currentEnroll && currentEnroll.lessonProgress) {
+              const progress = currentEnroll.lessonProgress.find((p: any) => String(p.lessonId) === String(activeLesson._id));
+              if (progress && progress.personalNote) {
+                 setPersonalNote(progress.personalNote);
+              }
+           }
+        }
       } catch (error) {
-        console.error("Failed to check submission status", error);
+        console.error("Failed to check status", error);
       } finally {
         setCheckingSubmission(false);
       }
     };
 
-    checkExistingSubmission();
-  }, [activeLesson, isOwnerOrAdmin]);
+    checkExistingSubmissionAndNotes();
+  }, [activeLesson, isOwnerOrAdmin, courseId]);
 
   const getEmbedUrl = (url: string) => {
     if (!url) return "";
@@ -218,9 +232,7 @@ export default function CoursePlayerPage() {
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
 
       mediaRecorder.onstop = () => {
@@ -250,18 +262,12 @@ export default function CoursePlayerPage() {
     setAudioUrl("");
   };
 
-  // File Handlers
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setSelectedFile(e.target.files[0]);
-    }
+    if (e.target.files && e.target.files.length > 0) setSelectedFile(e.target.files[0]);
   };
 
-  // 👇 UPDATED: Form Submission Handlers for Text, Audio & Document
   const handleAssignmentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Check if at least text, audio, or file is provided
     if (!assignmentContent.trim() && !audioBlob && !selectedFile) {
       setSubmissionMessage({ type: "error", text: "Please provide text, an audio recording, or upload a document." });
       return;
@@ -276,38 +282,22 @@ export default function CoursePlayerPage() {
 
       const formData = new FormData();
       formData.append("courseId", courseId);
-      if (activeLesson?._id) {
-        formData.append("lessonId", activeLesson._id);
-      }
-      
-      if (assignmentContent.trim()) {
-        formData.append("content", assignmentContent);
-      }
-      
-      if (audioBlob) {
-        formData.append("audio", audioBlob, "recording.webm");
-      }
-
-      if (selectedFile) {
-        formData.append("document", selectedFile); // Document field sent to backend
-      }
+      if (activeLesson?._id) formData.append("lessonId", activeLesson._id);
+      if (assignmentContent.trim()) formData.append("content", assignmentContent);
+      if (audioBlob) formData.append("audio", audioBlob, "recording.webm");
+      if (selectedFile) formData.append("document", selectedFile);
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/submissions`, {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`
-        },
+        headers: { "Authorization": `Bearer ${token}` },
         body: formData
       });
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to submit assignment");
-      }
+      if (!response.ok) throw new Error(data.message || "Failed to submit assignment");
 
       setSubmissionMessage({ type: "success", text: "Assignment submitted successfully! Ustad will review it soon." });
-      
       setExistingSubmission(data.submission || data || { 
         content: assignmentContent, 
         audioFileUrl: audioBlob ? "Audio Uploaded" : null, 
@@ -315,19 +305,44 @@ export default function CoursePlayerPage() {
         status: "Pending" 
       });
 
-      // Clear forms
       setAssignmentContent(""); 
       discardRecording();
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       
     } catch (err: unknown) {
-        if (err instanceof Error) {
-            setSubmissionMessage({ type: "error", text: err.message });
-        }
+        if (err instanceof Error) setSubmissionMessage({ type: "error", text: err.message });
     } finally {
       setSubmittingTask(false);
       setTimeout(() => setSubmissionMessage({ type: "", text: "" }), 5000);
+    }
+  };
+
+  // 🚀 NAYA: Handle Note Saving API Call
+  const handleSaveNote = async () => {
+    setSavingNote(true);
+    setNoteMessage({ type: "", text: "" });
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/enrollments/save-note`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          courseId,
+          lessonId: activeLesson?._id,
+          note: personalNote
+        })
+      });
+      if (!res.ok) throw new Error("Failed to save note");
+      setNoteMessage({ type: "success", text: "Notes saved securely!" });
+    } catch (err) {
+      setNoteMessage({ type: "error", text: "Error saving notes. Check connection." });
+    } finally {
+      setSavingNote(false);
+      setTimeout(() => setNoteMessage({ type: "", text: "" }), 4000);
     }
   };
 
@@ -356,7 +371,6 @@ export default function CoursePlayerPage() {
         alert(data.message || "Failed to delete lesson");
       }
     } catch (err) {
-      console.error(err);
       alert("Network error while deleting lesson");
     } finally {
       setDeletingId(null);
@@ -386,8 +400,6 @@ export default function CoursePlayerPage() {
 
   return (
     <div className="min-h-screen pt-24 bg-[#010206] flex flex-col md:flex-row overflow-hidden relative">
-      
-      {/* GLOBAL BACKGROUNDS */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none"></div>
       <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.035] mix-blend-overlay pointer-events-none z-0"></div>
 
@@ -415,9 +427,6 @@ export default function CoursePlayerPage() {
             Dashboard
           </button>
           <h2 className="text-2xl font-black text-white leading-tight drop-shadow-md tracking-tighter pr-8">{course?.title}</h2>
-          <div className="mt-5 w-full bg-[#010206] rounded-full h-2 border border-white/[0.05] overflow-hidden">
-            <motion.div initial={{ width: 0 }} animate={{ width: '15%' }} transition={{ duration: 1, delay: 0.5 }} className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full shadow-[0_0_10px_rgba(52,211,153,0.8)]" />
-          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-3">
@@ -435,9 +444,7 @@ export default function CoursePlayerPage() {
               >
                 <button 
                   onClick={() => {
-                    if(activeLesson?._id !== lesson._id) {
-                      setActiveLesson(lesson);
-                    }
+                    if(activeLesson?._id !== lesson._id) setActiveLesson(lesson);
                   }}
                   className="w-full p-5 flex items-start gap-4 cursor-pointer hover:bg-white/[0.02] text-left transition-colors"
                 >
@@ -462,7 +469,7 @@ export default function CoursePlayerPage() {
         </div>
       </motion.div>
 
-      {/* RIGHT MAIN AREA: Video, Content & Assignment */}
+      {/* RIGHT MAIN AREA */}
       <div className="flex-1 h-[calc(100vh-6rem)] overflow-y-auto relative bg-transparent custom-scrollbar">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-emerald-900/10 rounded-full blur-[140px] pointer-events-none mix-blend-screen animate-[pulse_10s_ease-in-out_infinite]"></div>
 
@@ -497,7 +504,7 @@ export default function CoursePlayerPage() {
               </div>
             )}
 
-            {/* Lesson Content / Notes Area */}
+            {/* Lesson Content Area */}
             {activeLesson.content && (
               <div className="bg-[#030612]/60 backdrop-blur-[40px] border border-white/[0.06] rounded-[2.5rem] p-10 md:p-14 shadow-[0_16px_40px_-10px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.05)] mb-12 transform-gpu">
                 <h3 className="text-2xl font-black text-white mb-8 flex items-center gap-4 tracking-tight">
@@ -512,7 +519,50 @@ export default function CoursePlayerPage() {
               </div>
             )}
 
-            {/* 👇 UPDATED: Assignment & Recitation Submission Section with Upload 👇 */}
+            {/* 🚀 NAYA: My Personal Notes Area (Visible to Students Only) */}
+            {!isOwnerOrAdmin && (
+              <div className="bg-[#030612]/60 backdrop-blur-[40px] border border-amber-500/10 rounded-[2.5rem] p-10 md:p-14 shadow-[0_16px_40px_-10px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.05)] mb-12 transform-gpu">
+                <h3 className="text-2xl font-black text-white mb-6 flex items-center gap-4 tracking-tight">
+                  <div className="w-12 h-12 rounded-[1rem] bg-[#040814] border border-white/[0.08] flex items-center justify-center text-amber-400 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  </div>
+                  My Personal Notes
+                </h3>
+                
+                <div className="relative">
+                  <textarea
+                    value={personalNote}
+                    onChange={(e) => setPersonalNote(e.target.value)}
+                    placeholder="Type your notes here while watching the lecture..."
+                    rows={5}
+                    className="w-full bg-[#010206]/80 backdrop-blur-md border border-white/[0.08] rounded-[1.5rem] px-6 py-5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all duration-300 resize-none shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] font-medium"
+                  ></textarea>
+                </div>
+                
+                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex-1">
+                     <AnimatePresence>
+                        {noteMessage.text && (
+                           <motion.span initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className={`text-sm font-bold tracking-wide flex items-center gap-2 ${noteMessage.type === 'success' ? 'text-amber-400' : 'text-red-400'}`}>
+                              {noteMessage.type === 'success' && <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>}
+                              {noteMessage.text}
+                           </motion.span>
+                        )}
+                     </AnimatePresence>
+                  </div>
+                  <button 
+                     onClick={handleSaveNote}
+                     disabled={savingNote}
+                     className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-[#010206] text-[13px] font-black uppercase tracking-widest rounded-full transition-all duration-300 shadow-[0_0_20px_-5px_rgba(245,158,11,0.6)] disabled:opacity-50 flex items-center justify-center gap-2 active:scale-95"
+                  >
+                     {savingNote ? 'Saving...' : 'Save Notes'}
+                     {!savingNote && <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Assignment & Recitation Submission Section */}
             {isOwnerOrAdmin ? (
               <div className="bg-[#030612]/60 border border-white/[0.05] rounded-[2.5rem] p-10 text-center shadow-lg">
                  <div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-700/50">
@@ -591,7 +641,6 @@ export default function CoursePlayerPage() {
                 
                 <form onSubmit={handleAssignmentSubmit} className="space-y-6">
                   
-                  {/* TEXT INPUT AREA */}
                   <div className="relative">
                       <textarea
                       value={assignmentContent}
@@ -603,7 +652,6 @@ export default function CoursePlayerPage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* AUDIO RECORDING AREA */}
                     <div className="bg-[#010206]/60 border border-white/[0.04] rounded-[2rem] p-8 text-center shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] relative overflow-hidden flex flex-col justify-between">
                       {isRecording && (
                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -637,7 +685,6 @@ export default function CoursePlayerPage() {
                       )}
                     </div>
 
-                    {/* 👇 NEW: FILE UPLOAD AREA 👇 */}
                     <div className="bg-[#010206]/60 border border-white/[0.04] rounded-[2rem] p-8 text-center shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] relative overflow-hidden flex flex-col justify-between">
                       <label className="flex items-center justify-center gap-3 text-[11px] font-black text-blue-500 uppercase tracking-[0.3em] mb-6 relative z-10">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
@@ -674,7 +721,6 @@ export default function CoursePlayerPage() {
                     </div>
                   </div>
                   
-                  {/* Status Messages */}
                   <AnimatePresence>
                       {submissionMessage.text && (
                       <motion.div 

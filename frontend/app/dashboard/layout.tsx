@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "../../context/AuthContext"; // 👇 IMPORT AUTH CONTEXT (Adjust path if needed)
+import { useAuth } from "../../context/AuthContext";
 
 // --- GLOBAL SCROLLBAR ---
 const globalStyles = `
@@ -25,7 +25,6 @@ export default function DashboardLayout({
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  // 👇 Get user data to check role
   const { user } = useAuth(); 
   const isInstructor = user?.role === 'Admin' || user?.role === 'Ustad';
   const isStudent = user?.role === 'Student';
@@ -61,7 +60,7 @@ export default function DashboardLayout({
   return (
     <div className="flex flex-col md:flex-row h-screen bg-[#010206] overflow-hidden selection:bg-emerald-500/30 selection:text-emerald-200 font-sans relative">
       
-      {/* Dynamic Ambient Background for the entire shell (Reduced blur slightly for better GPU performance) */}
+      {/* Dynamic Ambient Background */}
       <div className="absolute top-[-10%] left-[-10%] w-[50vw] sm:w-[500px] h-[50vw] sm:h-[500px] bg-emerald-900/15 rounded-full blur-[100px] pointer-events-none mix-blend-screen hidden md:block transform-gpu"></div>
       <div className="absolute bottom-[-10%] left-[20%] w-[60vw] sm:w-[600px] h-[60vw] sm:h-[600px] bg-teal-900/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen hidden md:block transform-gpu"></div>
 
@@ -107,9 +106,8 @@ export default function DashboardLayout({
         )}
       </AnimatePresence>
 
-      {/* --- DESKTOP SIDEBAR (Spatial Engine) --- */}
+      {/* --- DESKTOP SIDEBAR --- */}
       <aside className="hidden md:flex flex-col w-[320px] bg-[#02040b]/60 backdrop-blur-[40px] border-r border-white/[0.04] shrink-0 relative z-40 shadow-[20px_0_50px_rgba(0,0,0,0.6)] transform-gpu">
-        {/* Subtle Inner Glow */}
         <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none z-0"></div>
 
         {/* Logo Area */}
@@ -135,19 +133,20 @@ export default function DashboardLayout({
             <NavLink href="/dashboard/my-courses" currentPath={pathname || ""}>My Courses</NavLink>
           </div>
 
-          {/* 👇 Student Tools Section - Only visible to Students 👇 */}
+          {/* Student Tools Section */}
           {isStudent && (
             <div className="space-y-2">
               <p className="px-4 lg:px-5 text-[9px] lg:text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-700"></span>
                   Student Hub
               </p>
+              <NavLink href="/dashboard/my-notes" currentPath={pathname || ""}>My Notebook</NavLink> {/* 🚀 NAYA LINK ADD KIYA */}
               <NavLink href="/dashboard/submit-assignment" currentPath={pathname || ""}>Submit Assignment</NavLink>
               <NavLink href="/dashboard/my-grades" currentPath={pathname || ""}>My Grades</NavLink>
             </div>
           )}
 
-          {/* 👇 Teacher Tools Section - Only visible to Ustad/Admin 👇 */}
+          {/* Teacher Tools Section */}
           {isInstructor && (
             <div className="space-y-2">
               <p className="px-4 lg:px-5 text-[9px] lg:text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
@@ -161,7 +160,6 @@ export default function DashboardLayout({
             </div>
           )}
 
-          {/* Settings Section (Visible to both typically, but can restrict if you want) */}
           <div className="space-y-2">
             <p className="px-4 lg:px-5 text-[9px] lg:text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-slate-700"></span>
@@ -188,7 +186,6 @@ export default function DashboardLayout({
 
       {/* --- MAIN CONTENT AREA --- */}
       <main className="flex-1 relative bg-[#010206] h-[calc(100vh-72px)] md:h-screen overflow-hidden">
-         {/* Subtle Inner shadow on the main content area to give depth to the sidebar */}
          <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-[#010206] to-transparent z-20 pointer-events-none hidden md:block"></div>
          <div className="h-full w-full overflow-y-auto custom-scrollbar relative z-10 scroll-smooth">
             {children}
@@ -210,26 +207,22 @@ function NavLink({ href, currentPath, children }: { href: string, currentPath: s
     <Link href={href} className="block relative group outline-none">
       <div className={`relative flex items-center gap-3 lg:gap-4 px-4 lg:px-6 py-3 lg:py-4 rounded-[1rem] lg:rounded-[1.25rem] transition-all duration-300 z-10 ${isActive ? "text-white" : "text-slate-400 hover:text-slate-200"}`}>
         
-        {/* Animated Background Pill */}
         {isActive && (
           <motion.div 
             layoutId="sidebar-active-indicator"
             className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-emerald-500/5 border border-emerald-500/40 rounded-[1rem] lg:rounded-[1.25rem] shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_0_20px_rgba(52,211,153,0.15)] z-0"
-            transition={{ type: "spring", stiffness: 400, damping: 30 }} // Snappier transition
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
           />
         )}
         
-        {/* Hover Background Pill */}
         {!isActive && (
           <div className="absolute inset-0 bg-white/[0.04] rounded-[1rem] lg:rounded-[1.25rem] opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-0 border border-white/[0.06]"></div>
         )}
 
-        {/* Content */}
         <span className={`relative z-10 font-bold text-[13px] lg:text-[14px] tracking-wide transition-colors ${isActive ? "drop-shadow-[0_0_8px_rgba(52,211,153,0.8)] text-emerald-50" : ""}`}>
           {children}
         </span>
 
-        {/* Active Dot Indicator */}
         {isActive && (
           <div className="absolute right-4 lg:right-6 w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,1)] animate-pulse z-10"></div>
         )}
@@ -239,11 +232,9 @@ function NavLink({ href, currentPath, children }: { href: string, currentPath: s
 }
 
 // --- MOBILE SIDEBAR EXTRACTED COMPONENT ---
-// 👇 Added role props here so mobile view works exactly like desktop
 function MobileSidebarContent({ pathname, handleLogout, isInstructor, isStudent }: { pathname: string, handleLogout: () => void, isInstructor: boolean, isStudent: boolean }) {
   return (
     <div className="flex flex-col h-full bg-[#020510]/90">
-      {/* Mobile Logo */}
       <div className="h-[100px] flex items-center px-6 border-b border-white/[0.04] shrink-0 bg-[#010206]/50">
         <div className="flex items-center gap-3 sm:gap-4">
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-[0.8rem] sm:rounded-[1rem] bg-gradient-to-br from-[#060d20] to-[#040814] border border-white/[0.08] flex items-center justify-center text-emerald-400 shadow-[0_8px_16px_rgba(0,0,0,0.4)]">
@@ -258,23 +249,21 @@ function MobileSidebarContent({ pathname, handleLogout, isInstructor, isStudent 
         </div>
       </div>
 
-      {/* Mobile Nav Links */}
       <nav className="flex-1 px-3 sm:px-4 py-6 sm:py-8 space-y-8 sm:space-y-10 overflow-y-auto custom-scrollbar">
         <div className="space-y-1.5 sm:space-y-2">
           <NavLink href="/dashboard" currentPath={pathname}>Overview</NavLink>
           <NavLink href="/dashboard/my-courses" currentPath={pathname}>My Courses</NavLink>
         </div>
 
-        {/* 👇 Student tools restricted 👇 */}
         {isStudent && (
           <div className="space-y-1.5 sm:space-y-2">
             <p className="px-4 sm:px-5 text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] mb-2 sm:mb-3">Student Hub</p>
+            <NavLink href="/dashboard/my-notes" currentPath={pathname}>My Notebook</NavLink> {/* 🚀 NAYA LINK */}
             <NavLink href="/dashboard/submit-assignment" currentPath={pathname}>Submit Assignment</NavLink>
             <NavLink href="/dashboard/my-grades" currentPath={pathname}>My Grades</NavLink>
           </div>
         )}
 
-        {/* 👇 Instructor tools restricted 👇 */}
         {isInstructor && (
           <div className="space-y-1.5 sm:space-y-2">
             <p className="px-4 sm:px-5 text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] mb-2 sm:mb-3">Ustad Portal</p>
@@ -293,7 +282,6 @@ function MobileSidebarContent({ pathname, handleLogout, isInstructor, isStudent 
         </div>
       </nav>
 
-      {/* Mobile Logout */}
       <div className="p-4 sm:p-6 border-t border-white/[0.04] shrink-0 bg-gradient-to-t from-[#010206] to-transparent">
         <button
           onClick={handleLogout}
