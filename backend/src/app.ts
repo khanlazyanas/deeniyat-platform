@@ -11,6 +11,7 @@ import transactionRoutes from './routes/transactionRoutes';
 import { notFound, errorHandler } from './middlewares/errorMiddleware';
 import dashboardRoutes from './routes/dashboardRoutes';
 import paymentRoutes from "./routes/paymentRoutes";
+import feedbackRoutes from './routes/feedbackRoutes';
 
 const app = express();
 
@@ -51,6 +52,7 @@ app.use('/api/v1/attendance', attendanceRoutes);
 app.use('/api/v1/transactions', transactionRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use("/api/v1/payments", paymentRoutes);
+app.use('/api/v1/feedback', feedbackRoutes);
 
 // Basic Test Route
 app.get('/', (req: Request, res: Response) => {

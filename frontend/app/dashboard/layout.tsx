@@ -143,6 +143,7 @@ export default function DashboardLayout({
               <NavLink href="/dashboard/my-notes" currentPath={pathname || ""}>My Notebook</NavLink> {/* 🚀 NAYA LINK ADD KIYA */}
               <NavLink href="/dashboard/submit-assignment" currentPath={pathname || ""}>Submit Assignment</NavLink>
               <NavLink href="/dashboard/my-grades" currentPath={pathname || ""}>My Grades</NavLink>
+              <NavLink href="/dashboard/feedback" currentPath={pathname || ""}>Submit Review</NavLink>
             </div>
           )}
 

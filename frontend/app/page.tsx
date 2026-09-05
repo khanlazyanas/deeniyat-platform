@@ -182,6 +182,9 @@ function FAQItem({ question, answer }: { question: string, answer: string }) {
 export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null);
   
+  // 🚀 NAYA: Live Feedback State
+  const [reviews, setReviews] = useState<any[]>([]);
+
   const { scrollYProgress } = useScroll({ target: containerRef, offset: ["start start", "end start"] });
   const smoothProgress = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
 
@@ -212,6 +215,20 @@ export default function Home() {
   ];
 
   useEffect(() => {
+    // Fetch live feedback from backend
+    const fetchReviews = async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/feedback`);
+        const data = await res.json();
+        if (data.success && data.data && data.data.length > 0) {
+          setReviews(data.data);
+        }
+      } catch (err) {
+        console.error("Failed to load feedback", err);
+      }
+    };
+    fetchReviews();
+
     const handleGlobalMouseMove = (e: MouseEvent) => {
       if (window.innerWidth < 768) return; 
       const x = (e.clientX / window.innerWidth - 0.5) * 100;
@@ -223,8 +240,14 @@ export default function Home() {
     return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
   }, [mouseX, mouseY]);
 
+  // 🚀 Logic for flawless seamless marquee loop 
+  // Hum array ko multiply karenge taaki wo screen width ko hamesha cover kare.
+  const baseReviews = reviews.length > 0 ? reviews : [1, 2, 3, 4];
+  const duplicatedReviews = [...baseReviews, ...baseReviews, ...baseReviews]; 
+  // Done twice to satisfy the 0% to -50% Framer Motion offset seamlessly
+  const displayReviews = [...duplicatedReviews, ...duplicatedReviews];
+
   return (
-    // 👇 Magic here: Changed 'font-sans' to 'font-cinzel' globally on the main tag
     <main ref={containerRef} className="min-h-screen bg-[#010206] text-slate-50 flex flex-col font-cinzel selection:bg-emerald-500/30 selection:text-emerald-200 overflow-x-hidden relative perspective-[2000px]">
       
       {/* Top Progress Bar */}
@@ -542,15 +565,25 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* --- TESTIMONIALS MARQUEE --- */}
+      {/* --- TESTIMONIALS MARQUEE (LIVE REAL FEEDBACK) --- */}
       <section className="py-12 bg-white/[0.01] border-y border-white/[0.04] relative z-20 flex overflow-hidden shadow-xl">
         <div className="absolute inset-0 z-10 pointer-events-none" style={{ background: 'linear-gradient(to right, #010206 0%, transparent 15%, transparent 85%, #010206 100%)' }}></div>
-        <motion.div animate={{ x: ["0%", "-50%"] }} transition={{ repeat: Infinity, duration: 30, ease: "linear" }} className="flex whitespace-nowrap items-center w-max will-change-transform">
-          {[1, 2, 3, 4, 1, 2, 3, 4].map((val, idx) => (
-            <div key={idx} className="flex items-center mx-8 bg-[#030612]/80 border border-white/[0.08] rounded-full px-6 py-3 backdrop-blur-md shadow-[inset_0_1px_2px_rgba(255,255,255,0.05)] font-cinzel">
-              <span className="text-amber-400 mr-3 text-lg">★★★★★</span>
-              <span className="text-slate-300 font-medium italic mr-3 text-sm">"Alhamdulillah, incredible learning platform."</span>
-              <span className="text-slate-500 font-bold uppercase tracking-wider text-xs">- Student</span>
+        <motion.div 
+          animate={{ x: ["0%", "-50%"] }} 
+          transition={{ repeat: Infinity, duration: reviews.length > 0 ? Math.max(30, reviews.length * 5) : 30, ease: "linear" }} 
+          className="flex whitespace-nowrap items-center w-max will-change-transform hover:[animation-play-state:paused]"
+        >
+          {displayReviews.map((val: any, idx: number) => (
+            <div key={idx} className="flex items-center mx-8 bg-[#030612]/80 border border-white/[0.08] rounded-full px-6 py-3 backdrop-blur-md shadow-[inset_0_1px_2px_rgba(255,255,255,0.05)] font-cinzel transition-transform hover:scale-105 cursor-pointer">
+              <span className="text-amber-400 mr-3 text-lg">
+                {reviews.length > 0 ? '★'.repeat(val.rating) : '★★★★★'}
+              </span>
+              <span className="text-slate-300 font-medium italic mr-3 text-sm">
+                "{reviews.length > 0 ? val.review : 'Alhamdulillah, incredible learning platform.'}"
+              </span>
+              <span className="text-emerald-400 font-bold uppercase tracking-wider text-xs">
+                - {reviews.length > 0 && val.studentId?.name ? val.studentId.name : 'Student'}
+              </span>
             </div>
           ))}
         </motion.div>
